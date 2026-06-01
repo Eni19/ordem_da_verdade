@@ -8,18 +8,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
-  // Em produção, servir arquivos estáticos do frontend junto com a API
-  const staticPath =
-    process.env.NODE_ENV === "production"
-      ? path.resolve(__dirname, "..", "public")
-      : path.resolve(__dirname, "..", "dist", "public");
+  // Em produção, servir os arquivos gerados pelo Vite em dist/public.
+  const staticPath = path.resolve(__dirname, "public");
 
-  app.use(express.static(staticPath));
+  if (process.env.NODE_ENV === "production") {
+    app.use(express.static(staticPath));
 
-  // Client-side routing: redireciona todas as rotas não-API para index.html
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(staticPath, "index.html"));
-  });
+    // Client-side routing: redireciona todas as rotas não-API para index.html
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(staticPath, "index.html"));
+    });
+  }
 
   const port = process.env.API_PORT || process.env.PORT || 3001;
 
