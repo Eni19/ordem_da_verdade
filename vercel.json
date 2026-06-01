@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build:vercel",
-  "outputDirectory": "dist/public",
+  "buildCommand": "pnpm run build:vercel",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
