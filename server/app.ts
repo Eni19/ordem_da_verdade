@@ -14,27 +14,20 @@ const app = express();
 // ---- Vercel: confiar no proxy para cabeçalhos corretos (HTTPS, IP, etc.) ----
 app.set("trust proxy", 1);
 
-// ---- Debug: log detalhado de todas as requisições recebidas ----
+// ---- Normalizar URL: remover prefixo /api se presente ----
+// No Vercel, req.url pode incluir /api ou não, dependendo da versão do runtime.
+// Definimos as rotas SEM /api e normalizamos aqui para ambos os casos funcionarem.
 app.use((req, _res, next) => {
-  console.log(
-    `[api] ${req.method} ${req.url} | path=${req.path} | params=${JSON.stringify(req.params)}`
-  );
-  next();
-});
-
-// ---- Fix: Vercel serverless pode remover o prefixo /api da URL ----
-// Isso garante que as rotas do Express (definidas com /api/...) funcionem
-// independentemente de como o Vercel modifica req.url
-app.use((req, _res, next) => {
-  if (!req.url.startsWith("/api")) {
-    const original = req.url;
-    req.url = "/api" + (original.startsWith("/") ? "" : "/") + original;
-    console.log(`[api] URL corrigida: "${original}" -> "${req.url}"`);
+  console.log(`[api] ${req.method} ${req.url} (original)`);
+  if (req.url.startsWith("/api")) {
+    req.url = req.url.slice(4) || "/";
+    console.log(`[api] URL normalizada -> "${req.url}"`);
   }
   next();
 });
 
-app.use("/api", (_req, res, next) => {
+// Cache-Control: no-store para todas as respostas de API
+app.use((_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });
@@ -43,17 +36,17 @@ app.use("/api", (_req, res, next) => {
 app.use(express.json({ limit: "2mb" }));
 
 // ---- Health Check ----
-app.get("/api/health", (_req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ ok: true, database: isDatabaseAvailable() });
 });
 
-// ---- GET /api/characters — Listar todas as fichas ----
-app.get("/api/characters", async (_req, res) => {
+// ---- GET /characters — Listar todas as fichas ----
+app.get("/characters", async (_req, res) => {
   try {
     const characters = await listCharacters();
     res.json(characters);
   } catch (err) {
-    console.error("[api] GET /api/characters error:", err);
+    console.error("[api] GET /characters error:", err);
     res.status(503).json({
       error: "Database unavailable",
       message: err instanceof Error ? err.message : String(err),
@@ -61,8 +54,8 @@ app.get("/api/characters", async (_req, res) => {
   }
 });
 
-// ---- GET /api/characters/:id — Buscar ficha por ID ----
-app.get("/api/characters/:id", async (req, res) => {
+// ---- GET /characters/:id — Buscar ficha por ID ----
+app.get("/characters/:id", async (req, res) => {
   try {
     const character = await getCharacter(req.params.id);
     if (!character) {
@@ -74,7 +67,7 @@ app.get("/api/characters/:id", async (req, res) => {
       data: JSON.parse(character.data),
     });
   } catch (err) {
-    console.error("[api] GET /api/characters/:id error:", err);
+    console.error("[api] GET /characters/:id error:", err);
     res.status(503).json({
       error: "Database unavailable",
       message: err instanceof Error ? err.message : String(err),
@@ -82,8 +75,8 @@ app.get("/api/characters/:id", async (req, res) => {
   }
 });
 
-// ---- POST /api/characters — Criar nova ficha ----
-app.post("/api/characters", async (req, res) => {
+// ---- POST /characters — Criar nova ficha ----
+app.post("/characters", async (req, res) => {
   try {
     const { name, data } = req.body;
     if (!data) {
@@ -96,7 +89,7 @@ app.post("/api/characters", async (req, res) => {
       data: JSON.parse(character.data),
     });
   } catch (err) {
-    console.error("[api] POST /api/characters error:", err);
+    console.error("[api] POST /characters error:", err);
     res.status(503).json({
       error: "Database unavailable",
       message: err instanceof Error ? err.message : String(err),
@@ -104,8 +97,8 @@ app.post("/api/characters", async (req, res) => {
   }
 });
 
-// ---- PUT /api/characters/:id — Atualizar ficha ----
-app.put("/api/characters/:id", async (req, res) => {
+// ---- PUT /characters/:id — Atualizar ficha ----
+app.put("/characters/:id", async (req, res) => {
   try {
     const { name, data } = req.body;
     if (!data) {
@@ -122,7 +115,7 @@ app.put("/api/characters/:id", async (req, res) => {
       data: JSON.parse(character.data),
     });
   } catch (err) {
-    console.error("[api] PUT /api/characters/:id error:", err);
+    console.error("[api] PUT /characters/:id error:", err);
     res.status(503).json({
       error: "Database unavailable",
       message: err instanceof Error ? err.message : String(err),
@@ -130,8 +123,8 @@ app.put("/api/characters/:id", async (req, res) => {
   }
 });
 
-// ---- DELETE /api/characters/:id — Deletar ficha ----
-app.delete("/api/characters/:id", async (req, res) => {
+// ---- DELETE /characters/:id — Deletar ficha ----
+app.delete("/characters/:id", async (req, res) => {
   try {
     const deleted = await deleteCharacter(req.params.id);
     if (!deleted) {
@@ -140,7 +133,7 @@ app.delete("/api/characters/:id", async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    console.error("[api] DELETE /api/characters/:id error:", err);
+    console.error("[api] DELETE /characters/:id error:", err);
     res.status(503).json({
       error: "Database unavailable",
       message: err instanceof Error ? err.message : String(err),
