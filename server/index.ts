@@ -11,7 +11,7 @@ async function startServer() {
   // Em produção, servir arquivos estáticos do frontend junto com a API
   const staticPath =
     process.env.NODE_ENV === "production"
-      ? path.resolve(__dirname, "public")
+      ? path.resolve(__dirname, "..", "public")
       : path.resolve(__dirname, "..", "dist", "public");
 
   app.use(express.static(staticPath));
