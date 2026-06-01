@@ -11,6 +11,11 @@ import {
 
 const app = express();
 
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 // Parse JSON bodies (limit 2MB para fichas grandes)
 app.use(express.json({ limit: "2mb" }));
 
