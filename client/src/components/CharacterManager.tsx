@@ -45,8 +45,15 @@ export default function CharacterManager({
     try {
       const res = await fetch("/api/characters");
       if (!res.ok) {
+        const contentType = res.headers.get("content-type") || "";
+        // Se a resposta for HTML, é provável que o Vercel não esteja roteando para a API
+        if (contentType.includes("text/html")) {
+          const text = await res.text().catch(() => "");
+          console.error("[CharacterManager] Vercel retornou HTML (não JSON):", text.substring(0, 300));
+          throw new Error(`Servidor não respondeu como API (status ${res.status}). Verifique o deploy no Vercel.`);
+        }
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || `Erro ${res.status}`);
+        throw new Error(body.message || body.error || `Erro ${res.status}`);
       }
       const list: CloudCharacter[] = await res.json();
       setCharacters(list);
@@ -86,8 +93,14 @@ export default function CharacterManager({
     try {
       const res = await fetch(`/api/characters/${id}`);
       if (!res.ok) {
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("text/html")) {
+          const text = await res.text().catch(() => "");
+          console.error("[CharacterManager] Vercel retornou HTML ao abrir ficha:", text.substring(0, 300));
+          throw new Error(`Servidor não respondeu como API (status ${res.status}). Verifique o deploy no Vercel.`);
+        }
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || `Erro ${res.status}`);
+        throw new Error(body.message || body.error || `Erro ${res.status}`);
       }
       const character = await res.json();
       // Garantir que data é um objeto válido — nunca passar null/undefined para o handler

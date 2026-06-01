@@ -401,9 +401,11 @@ export default function CharacterSheet() {
         });
         if (res.ok) {
           setLastCloudSave(new Date().toISOString());
+        } else {
+          console.warn(`[CharacterSheet] Auto-save retornou status ${res.status}`);
         }
-      } catch {
-        // Silently fail on auto-save — user can manually save
+      } catch (err) {
+        console.warn('[CharacterSheet] Auto-save falhou:', err);
       }
     }, 2000);
 
@@ -461,8 +463,9 @@ export default function CharacterSheet() {
         } catch { /* ignore */ }
       }
     } catch (err) {
-      alert('Erro ao salvar na nuvem. Verifique se o servidor está rodando.');
-      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      alert(`Erro ao salvar na nuvem: ${msg}`);
+      console.error('[CharacterSheet] Erro ao salvar:', err);
     } finally {
       setIsCloudSaving(false);
     }

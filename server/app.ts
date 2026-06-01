@@ -11,6 +11,29 @@ import {
 
 const app = express();
 
+// ---- Vercel: confiar no proxy para cabeçalhos corretos (HTTPS, IP, etc.) ----
+app.set("trust proxy", 1);
+
+// ---- Debug: log detalhado de todas as requisições recebidas ----
+app.use((req, _res, next) => {
+  console.log(
+    `[api] ${req.method} ${req.url} | path=${req.path} | params=${JSON.stringify(req.params)}`
+  );
+  next();
+});
+
+// ---- Fix: Vercel serverless pode remover o prefixo /api da URL ----
+// Isso garante que as rotas do Express (definidas com /api/...) funcionem
+// independentemente de como o Vercel modifica req.url
+app.use((req, _res, next) => {
+  if (!req.url.startsWith("/api")) {
+    const original = req.url;
+    req.url = "/api" + (original.startsWith("/") ? "" : "/") + original;
+    console.log(`[api] URL corrigida: "${original}" -> "${req.url}"`);
+  }
+  next();
+});
+
 app.use("/api", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
