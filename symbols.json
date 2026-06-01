@@ -1,0 +1,107 @@
+[
+  {
+    "simbolo": "Opressor",
+    "efeito": "Se o ritual causar dano, ele causa +1 dado de dano. Se não causar dano, um alvo afetado sofre -1d4 no próximo teste relacionado ao efeito do ritual.",
+    "tag": "Potencia"
+  },
+  {
+    "simbolo": "Brutal",
+    "efeito": "Aumente em um passo o dado principal de dano do ritual. Por exemplo, d6 vira d8, d8 vira d10. Se o ritual não causar dano, aumente em +1 rodada a duração de uma condição imposta pelo ritual.",
+    "tag": "Potencia"
+  },
+  {
+    "simbolo": "Maligno",
+    "efeito": "Aumenta a DT da resistência do ritual em +2.",
+    "tag": "Potencia"
+  },
+  {
+    "simbolo": "Exagerado",
+    "efeito": "Aumente um parâmetro de escala do ritual: alcance, área, duração.",
+    "tag": "Potencia"
+  },
+  {
+    "simbolo": "Ancorado",
+    "efeito": "Escolha um ponto, objeto ou aliado próximo como âncora. Enquanto a âncora permanecer presente ou intacta, a primeira vez que você perderia a concentração, você mantém a conjuração.",
+    "tag": "Segurança"
+  },
+  {
+    "simbolo": "Revigorante",
+    "efeito": "Se passar no teste final de Ocultismo para conjurar o ritual, você recupera 2d6 PV.",
+    "tag": "Segurança"
+  },
+  {
+    "simbolo": "Indomavel",
+    "efeito": "Até o ritual ser resolvido, você recebe +1d4 em testes para manter concentração e resistir a efeitos que tentem te deslocar, assustar, silenciar, derrubar ou impedir a conjuração.",
+    "tag": "Segurança"
+  },
+  {
+    "simbolo": "Guardião",
+    "efeito": "Escolha você ou um aliado adjacente ao símbolo. Até o ritual ser resolvido, o alvo escolhido recebe +1d4 em um teste de resistência.",
+    "tag": "Segurança"
+  },
+  {
+    "simbolo": "Versatil",
+    "efeito": "Na etapa de Componentes, compre +1 carta de Componente.",
+    "tag": "Distorção"
+  },
+  {
+    "simbolo": "Sensiente",
+    "efeito": "O ritual continua sozinho. Até a Invocação, você pode realizar ações normais, desde que mantenha concentração.",
+    "tag": "Distorção"
+  },
+  {
+    "simbolo": "Heretico",
+    "efeito": "Altere o tipo de dano do ritual. Se o ritual não causar dano, altere a aparência, manifestação ou elemento narrativo do efeito, podendo contornar uma resistência narrativa a critério do mestre.",
+    "tag": "Distorção"
+  },
+  {
+    "simbolo": "Devoto",
+    "efeito": "Declare uma restrição até o ritual ser resolvido: não se mover, não falar, não atacar, não se defender ativamente, não olhar para o alvo ou não receber ajuda. Se cumprir, o ritual recebe +1d4 no teste final e +1 na DT da resistência. O mestre pode rejeitar uma restrição que não imponha uma limitação real na cena.",
+    "tag": "Sacrificio"
+  },
+  {
+    "simbolo": "Fragmentado",
+    "efeito": "Divida o efeito do ritual entre dois alvos válidos. Se o ritual causar dano, divida os dados de dano entre os alvos da forma mais equilibrada possível. Se não causar dano, ambos recebem uma versão reduzida do efeito, como menor duração, menor penalidade ou efeito parcial.",
+    "tag": "Distorção"
+  },
+  {
+    "simbolo": "Profano",
+    "efeito": "Aplique um aprimoramento do ritual sem pagar seu custo normal.",
+    "tag": "Sacrificio"
+  },
+  {
+    "simbolo": "Flagelante",
+    "efeito": "Antes da Invocação, você pode sofrer 1d6 de dano para receber +1d4 no teste final de Ocultismo.",
+    "tag": "Sacrificio"
+  },
+  {
+    "simbolo": "Consumidor",
+    "efeito": "Na etapa de Componentes, você pode escolher duas cartas de Componente em vez de uma.",
+    "tag": "Sacrificio"
+  },
+  {
+    "simbolo": "Irresponsável",
+    "efeito": "Reduza a conjuração em 1 etapa. O teste final de Ocultismo sofre -1d4 e você não pode usar componentes.",
+    "tag": "Sacrificio"
+  },
+  {
+    "simbolo": "Aterrorizante",
+    "efeito": "Inimigos que presenciarem a conjuração precisam resistir ou ficam abalados, hesitantes ou incapazes de se aproximar voluntariamente do símbolo por 1 rodada.",
+    "tag": "Controle"
+  },
+  {
+    "simbolo": "Discente",
+    "efeito": "Revele uma informação útil sobre o alvo: Defesa, PV aproximados, maior atributo, menor atributo, resistência, vulnerabilidade, ataque perigoso, condição ativa ou conexão paranormal.",
+    "tag": "Controle"
+  },
+  {
+    "simbolo": "Acusador",
+    "efeito": "Escolha uma criatura visível. Até a Invocação, o próximo ataque ou teste hostil contra essa criatura recebe +1d4.",
+    "tag": "Controle"
+  },
+  {
+    "simbolo": "Paralisante",
+    "efeito": "Escolha uma criatura que presencie a conjuração. Ela sofre -1d4 no próximo teste de deslocamento, esquiva, fuga ou reação antes da Invocação.",
+    "tag": "Controle"
+  }
+]

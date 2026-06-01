@@ -1,0 +1,345 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Dark Occult Minimalism - Paleta de Cores */
+  --primary: #FF1744;
+  --primary-foreground: #FFFFFF;
+  --sidebar-primary: #FF1744;
+  --sidebar-primary-foreground: #FFFFFF;
+  --chart-1: #FF1744;
+  --chart-2: #8B0000;
+  --chart-3: #FF1744;
+  --chart-4: #8B0000;
+  --chart-5: #FF1744;
+  --radius: 0.25rem;
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --card: #0A0A0A;
+  --card-foreground: #FFFFFF;
+  --popover: #0A0A0A;
+  --popover-foreground: #FFFFFF;
+  --secondary: #8B0000;
+  --secondary-foreground: #FFFFFF;
+  --muted: #333333;
+  --muted-foreground: #CCCCCC;
+  --accent: #FF1744;
+  --accent-foreground: #000000;
+  --destructive: #FF1744;
+  --destructive-foreground: #000000;
+  --border: #FF1744;
+  --input: #1A1A1A;
+  --ring: #FF1744;
+  --sidebar: #000000;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-accent: #FF1744;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #FF1744;
+  --sidebar-ring: #FF1744;
+}
+
+.dark {
+  --primary: #FF1744;
+  --primary-foreground: #FFFFFF;
+  --sidebar-primary: #FF1744;
+  --sidebar-primary-foreground: #FFFFFF;
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --card: #0A0A0A;
+  --card-foreground: #FFFFFF;
+  --popover: #0A0A0A;
+  --popover-foreground: #FFFFFF;
+  --secondary: #8B0000;
+  --secondary-foreground: #FFFFFF;
+  --muted: #333333;
+  --muted-foreground: #CCCCCC;
+  --accent: #FF1744;
+  --accent-foreground: #000000;
+  --destructive: #FF1744;
+  --destructive-foreground: #000000;
+  --border: #FF1744;
+  --input: #1A1A1A;
+  --ring: #FF1744;
+  --chart-1: #FF1744;
+  --chart-2: #8B0000;
+  --chart-3: #FF1744;
+  --chart-4: #8B0000;
+  --chart-5: #FF1744;
+  --sidebar: #000000;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-accent: #FF1744;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #FF1744;
+  --sidebar-ring: #FF1744;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /* Remove spinners from number inputs to avoid overlaying values in dark UI */
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+
+  /* Dark Occult Minimalism - Tipografia e Componentes */
+  @font-face {
+    font-family: 'Bebas Neue';
+    src: url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+  }
+
+  @font-face {
+    font-family: 'Roboto Mono';
+    src: url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+  }
+
+  .font-display {
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'Bebas Neue', sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'Roboto Mono', monospace;
+  }
+
+  /* Hexágonos para atributos */
+  .hexagon {
+    @apply relative w-24 h-24 flex items-center justify-center;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  .hexagon-border {
+    @apply absolute inset-0 border-2 border-primary;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  /* Cards com borda vermelha */
+  .card-occult {
+    @apply bg-card border-2 border-primary p-4 relative;
+  }
+
+  .card-occult::before {
+    content: '';
+    @apply absolute inset-0 bg-primary opacity-0 transition-opacity duration-300;
+    pointer-events: none;
+  }
+
+  .card-occult:hover::before {
+    @apply opacity-5;
+  }
+
+  /* Efeito de pulsação */
+  @keyframes pulse-red {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 10px rgba(255, 23, 68, 0);
+    }
+  }
+
+  .pulse-red {
+    animation: pulse-red 2s infinite;
+  }
+
+  /* Efeito de glitch (sutil) */
+  @keyframes glitch-subtle {
+    0%, 100% {
+      text-shadow: 0 0 0 #FF1744;
+    }
+    50% {
+      text-shadow: 2px 0 0 #FF1744;
+    }
+  }
+
+  .glitch-subtle {
+    animation: glitch-subtle 0.3s ease-in-out;
+  }
+
+  /* Input com estilo occult */
+  .input-occult {
+    @apply bg-input border-2 border-primary text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Botão com estilo occult */
+  .btn-occult {
+    @apply bg-primary text-black px-6 py-2 border-2 border-primary hover:bg-secondary hover:border-secondary transition-all duration-300 active:scale-95;
+    font-weight: 700;
+    font-family: 'Roboto Mono', monospace;
+  }
+
+  .btn-occult-outline {
+    @apply bg-transparent text-primary border-2 border-primary hover:bg-primary hover:text-black transition-all duration-300;
+  }
+
+  /* Cartas sendo compradas / aparecendo */
+  @keyframes card-draw {
+    0% {
+      transform: translateY(-40px) rotateZ(-6deg) rotateY(0deg) scale(0.98);
+      opacity: 0;
+      filter: blur(2px);
+    }
+    60% {
+      transform: translateY(8px) rotateZ(2deg) rotateY(0deg) scale(1.02);
+      opacity: 1;
+      filter: blur(0);
+    }
+    80% {
+      transform: translateY(4px) rotateZ(1deg) rotateY(90deg) scale(1.02);
+      opacity: 1;
+      filter: blur(0);
+    }
+    100% {
+      transform: translateY(0) rotateZ(0deg) rotateY(0deg) scale(1);
+      opacity: 1;
+      filter: none;
+    }
+  }
+
+  .card-draw {
+    animation-name: card-draw;
+    animation-duration: 900ms;
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+    will-change: transform, opacity;
+    transform-style: preserve-3d;
+    perspective: 800px;
+    overflow: visible;
+  }
+
+  .card-draw > * {
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
+
+  .card-inner {
+    perspective: 900px;
+  }
+
+  .card-back,
+  .card-front {
+    transition: transform 0.6s cubic-bezier(0.2,0.9,0.3,1), opacity 0.6s;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+  }
+
+  .card-back {
+    transform: rotateY(0deg) translateZ(0);
+    z-index: 2;
+    opacity: 1;
+  }
+
+  .card-front {
+    transform: rotateY(180deg) translateZ(0);
+    opacity: 0;
+  }
+
+  .card-flip .card-back {
+    transform: rotateY(-180deg);
+    opacity: 0;
+  }
+
+  .card-flip .card-front {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+
+  /* fog effects removed */
+}

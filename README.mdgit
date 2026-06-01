@@ -1,0 +1,1 @@
+"# ordem_da_verdade"  initgit add README.mdgit commit -m "first commit"git branch -M maingit remote add origin https://github.com/Eni19/ordem_da_verdade.gitgit push -u origin main
