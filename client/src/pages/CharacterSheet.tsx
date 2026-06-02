@@ -801,6 +801,10 @@ export default function CharacterSheet() {
       return;
     }
 
+    if (!window.confirm(`Tem certeza que deseja excluir a perícia "${targetPericia.name}"?`)) {
+      return;
+    }
+
     setCharacter({
       ...character,
       pericias: character.pericias.filter((pericia) => pericia.id !== id),
@@ -1603,6 +1607,7 @@ export default function CharacterSheet() {
                   onOpenManager={() => setIsManagerOpen(true)}
                   isCloudSaving={isCloudSaving}
                   lastCloudSave={lastCloudSave}
+                  hideCloud={true}
                 />
               </div>
             </div>
@@ -1612,8 +1617,20 @@ export default function CharacterSheet() {
           type="text"
           value={character.name}
           onChange={handleNameChange}
-          className="input-occult text-lg md:text-2xl font-display bg-black border-b-2 border-primary focus:border-primary w-full"
+          className="input-occult text-lg md:text-2xl font-display bg-black border-b-2 border-primary focus:border-primary w-full mb-2"
           placeholder="Nome do Personagem"
+        />
+
+        {/* Save/Load Buttons (Cloud Only) */}
+        <SaveLoad
+          characterData={character}
+          onLoadCharacter={handleLoadCharacter}
+          characterId={characterId}
+          onSaveToCloud={handleSaveToCloud}
+          onOpenManager={() => setIsManagerOpen(true)}
+          isCloudSaving={isCloudSaving}
+          lastCloudSave={lastCloudSave}
+          hideJson={true}
         />
 
         {/* Vitals + Hope + Evasion Row - Stack on mobile */}

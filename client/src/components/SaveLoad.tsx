@@ -9,6 +9,8 @@ interface SaveLoadProps {
   onOpenManager: () => void;
   isCloudSaving: boolean;
   lastCloudSave: string | null;
+  hideCloud?: boolean;
+  hideJson?: boolean;
 }
 
 export default function SaveLoad({
@@ -19,6 +21,8 @@ export default function SaveLoad({
   onOpenManager,
   isCloudSaving,
   lastCloudSave,
+  hideCloud,
+  hideJson,
 }: SaveLoadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,45 +96,50 @@ export default function SaveLoad({
   return (
     <div className="flex flex-wrap gap-2">
       {/* Cloud Buttons - Primary Row */}
-      <div className="flex gap-2 w-full">
-        <button
-          onClick={onSaveToCloud}
-          disabled={isCloudSaving}
-          className="flex-1 py-2 px-3 bg-primary text-black font-bold uppercase text-xs border-2 border-primary hover:bg-black hover:text-primary transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          title={characterId ? "Salvar alterações na nuvem" : "Salvar como nova ficha na nuvem"}
-        >
-          {isCloudSaving ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : characterId ? (
-            <HardDrive size={16} />
-          ) : (
-            <Cloud size={16} />
+      {!hideCloud && (
+        <>
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={onSaveToCloud}
+              disabled={isCloudSaving}
+              className="flex-1 py-2 px-3 bg-primary text-black font-bold uppercase text-xs border-2 border-primary hover:bg-black hover:text-primary transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={characterId ? "Salvar alterações na nuvem" : "Salvar como nova ficha na nuvem"}
+            >
+              {isCloudSaving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : characterId ? (
+                <HardDrive size={16} />
+              ) : (
+                <Cloud size={16} />
+              )}
+              {characterId ? "ATUALIZAR NUVEM" : "SALVAR NUVEM"}
+            </button>
+
+            <button
+              onClick={onOpenManager}
+              className="flex-1 py-2 px-3 bg-black text-primary font-bold uppercase text-xs border-2 border-primary hover:bg-primary hover:text-black transition-all flex items-center justify-center gap-2"
+              title="Gerenciar fichas na nuvem"
+            >
+              <FolderKanban size={16} />
+              FICHAS
+            </button>
+          </div>
+
+          {/* Cloud Status Info */}
+          {characterId && lastCloudSave && (
+            <div className="w-full text-[10px] text-primary/50 font-mono text-center">
+              Último save: {formatLastCloudSave(lastCloudSave)}
+            </div>
           )}
-          {characterId ? "ATUALIZAR NUVEM" : "SALVAR NUVEM"}
-        </button>
 
-        <button
-          onClick={onOpenManager}
-          className="flex-1 py-2 px-3 bg-black text-primary font-bold uppercase text-xs border-2 border-primary hover:bg-primary hover:text-black transition-all flex items-center justify-center gap-2"
-          title="Gerenciar fichas na nuvem"
-        >
-          <FolderKanban size={16} />
-          FICHAS
-        </button>
-      </div>
-
-      {/* Cloud Status Info */}
-      {characterId && lastCloudSave && (
-        <div className="w-full text-[10px] text-primary/50 font-mono text-center">
-          Último save: {formatLastCloudSave(lastCloudSave)}
-        </div>
+          {/* Divider */}
+          {!hideJson && <div className="w-full border-t border-primary/20 my-0.5" />}
+        </>
       )}
 
-      {/* Divider */}
-      <div className="w-full border-t border-primary/20 my-0.5" />
-
       {/* Local JSON Buttons - Secondary Row */}
-      <div className="flex gap-2 w-full">
+      {!hideJson && (
+        <div className="flex gap-2 w-full">
         <button
           onClick={handleSave}
           className="flex-1 py-1.5 px-2 bg-black text-primary/60 font-bold uppercase text-[10px] border border-primary/30 hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-1.5"
@@ -157,6 +166,7 @@ export default function SaveLoad({
           className="hidden"
         />
       </div>
+      )}
     </div>
   );
 }
