@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Settings, X } from 'lucide-react';
 import AttributeHexagon from '@/components/AttributeHexagon';
 import SkillsList from '@/components/SkillsList';
 import DiceRoller from '@/components/DiceRoller';
@@ -185,6 +186,7 @@ interface CharacterData {
   paranormalPowers: ParanormalPower[];
   rituals: Ritual[];
   ritualComponents: RitualComponent[];
+  activeFearTags: ActiveFearTag[];
 }
 
 interface SkillRollRequest {
@@ -297,7 +299,6 @@ export default function CharacterSheet() {
       }
     | null
   >(null);
-  const [activeFearTags, setActiveFearTags] = useState<ActiveFearTag[]>([]);
   const [fearRouletteState, setFearRouletteState] = useState<FearRouletteState>(
     createInitialFearRouletteState()
   );
@@ -305,6 +306,24 @@ export default function CharacterSheet() {
   const [selectedFearTag, setSelectedFearTag] = useState<ActiveFearTag | null>(null);
   const [fearTagPendingRemoval, setFearTagPendingRemoval] = useState<ActiveFearTag | null>(null);
   const [showFearDebug, setShowFearDebug] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('odv_auto_save_enabled') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleAutoSave = () => {
+    setAutoSaveEnabled(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('odv_auto_save_enabled', String(next));
+      } catch {}
+      return next;
+    });
+  };
   const [debugResultTwoAttribute, setDebugResultTwoAttribute] = useState<AttributeKey>('força');
   const fearRouletteIntervalRef = useRef<number | null>(null);
   const fearRouletteTimeoutRef = useRef<number | null>(null);
@@ -364,7 +383,16 @@ export default function CharacterSheet() {
     paranormalPowers: [],
     rituals: [],
     ritualComponents: [],
+    activeFearTags: [],
   });
+
+  const activeFearTags = character.activeFearTags || [];
+  const setActiveFearTags = (updater: React.SetStateAction<ActiveFearTag[]>) => {
+    setCharacter((prev) => ({
+      ...prev,
+      activeFearTags: typeof updater === 'function' ? updater(prev.activeFearTags || []) : updater,
+    }));
+  };
 
   useEffect(() => {
     return () => {
@@ -382,7 +410,7 @@ export default function CharacterSheet() {
 
   // Auto-save to cloud with debounce (2s after last change) when characterId exists
   useEffect(() => {
-    if (!characterId) return;
+    if (!characterId || !autoSaveEnabled) return;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -431,6 +459,7 @@ export default function CharacterSheet() {
     paranormalPowers: character.paranormalPowers,
     rituals: character.rituals,
     ritualComponents: character.ritualComponents,
+    activeFearTags: character.activeFearTags,
   }), [character]);
 
   const handleSaveToCloud = async () => {
@@ -506,6 +535,7 @@ export default function CharacterSheet() {
       paranormalPowers: [],
       rituals: [],
       ritualComponents: [],
+      activeFearTags: [],
     });
   };
 
@@ -1465,6 +1495,7 @@ export default function CharacterSheet() {
           Math.min(4, Number(data.evasion?.maxDefensiveCharges ?? prev.evasion.maxDefensiveCharges))
         ),
       },
+      activeFearTags: Array.isArray((data as any).activeFearTags) ? (data as any).activeFearTags : (prev.activeFearTags || []),
     }));
 
     // Update cloud tracking
@@ -1481,24 +1512,108 @@ export default function CharacterSheet() {
     <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col">
       {/* Header */}
       <div className="border-b-2 border-primary bg-black p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
-        <h1 className="font-display text-2xl md:text-4xl text-primary">ORDEM DA VERDADE</h1>
+        <div className="flex justify-between items-center relative">
+          <h1 className="font-display text-2xl md:text-4xl text-primary">ORDEM DA VERDADE</h1>
+          <button 
+            onClick={() => setShowSettings(!showSettings)} 
+            className={`p-2 transition-colors ${showSettings ? 'text-primary' : 'text-primary/50 hover:text-primary'}`}
+            title="Configurações"
+          >
+            <Settings size={24} />
+          </button>
+          
+          {showSettings && (
+            <div className="absolute top-12 right-0 z-50 bg-black border-2 border-primary p-4 shadow-[0_0_15px_rgba(255,23,68,0.3)] w-[340px] max-h-[80vh] overflow-y-auto flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-primary font-bold uppercase text-xs">Configurações</span>
+                <button onClick={() => setShowSettings(false)} className="text-primary/50 hover:text-primary">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border border-primary/20 p-2">
+                  <span className="text-primary font-bold uppercase text-xs">Auto-Save na Nuvem</span>
+                  <button 
+                    onClick={toggleAutoSave}
+                    className={`flex items-center justify-center w-12 h-6 border ${autoSaveEnabled ? 'border-primary bg-primary/20 text-primary' : 'border-primary/50 text-primary/50 hover:border-primary'} transition-all text-xs font-bold`}
+                  >
+                    {autoSaveEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between border border-purple-500/20 p-2">
+                  <span className="text-purple-300 font-bold uppercase text-xs">Debug de Medo</span>
+                  <button 
+                    onClick={() => setShowFearDebug(prev => !prev)}
+                    className={`flex items-center justify-center w-12 h-6 border ${showFearDebug ? 'border-purple-500 bg-purple-500/20 text-purple-300' : 'border-purple-500/50 text-purple-500/50 hover:border-purple-500'} transition-all text-xs font-bold`}
+                  >
+                    {showFearDebug ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+
+                {showFearDebug && (
+                  <div className="space-y-2 border border-purple-500/60 bg-purple-950/10 p-2">
+                    <div className="text-[10px] text-purple-200/80">
+                      Ative/desative rapidamente os efeitos de medo para testar os modificadores.
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-purple-300 uppercase">Atr. Result 2</label>
+                      <select
+                        value={debugResultTwoAttribute}
+                        onChange={(event) => setDebugResultTwoAttribute(event.target.value as AttributeKey)}
+                        className="bg-black border border-purple-500 text-purple-200 text-[10px] px-2 py-1 max-w-[80px]"
+                      >
+                        {ATTRIBUTE_KEYS.map((attribute) => (
+                          <option key={attribute} value={attribute}>
+                            {ATTRIBUTE_LABELS[attribute]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {(['2', '3', '4', '5', '6', '7', '8', '10', '11', '13', '14'] as const).map((result) => {
+                        const isActive = activeFearTags.some(
+                          (tag) =>
+                            tag.sourceInsanityId === 'debug-fear' &&
+                            tag.effectResult === result &&
+                            (result !== '2' || tag.selectedAttribute === debugResultTwoAttribute)
+                        );
+                        return (
+                          <button
+                            key={result}
+                            onClick={() => toggleFearDebugCondition(result)}
+                            className={`text-[10px] py-1 uppercase border ${isActive ? 'bg-purple-500 text-black border-purple-500' : 'text-purple-200 border-purple-500 hover:bg-purple-500/20'}`}
+                          >
+                            {isActive ? 'Desativar' : 'Ativar'} {result}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="border-t border-primary/20 pt-4 space-y-2">
+                <div className="text-primary font-bold uppercase text-xs mb-2">Ações de Ficha</div>
+                <SaveLoad
+                  characterData={character}
+                  onLoadCharacter={handleLoadCharacter}
+                  characterId={characterId}
+                  onSaveToCloud={handleSaveToCloud}
+                  onOpenManager={() => setIsManagerOpen(true)}
+                  isCloudSaving={isCloudSaving}
+                  lastCloudSave={lastCloudSave}
+                />
+              </div>
+            </div>
+          )}
+        </div>
         <input
           type="text"
           value={character.name}
           onChange={handleNameChange}
           className="input-occult text-lg md:text-2xl font-display bg-black border-b-2 border-primary focus:border-primary w-full"
           placeholder="Nome do Personagem"
-        />
-
-        {/* Save/Load Buttons */}
-        <SaveLoad
-          characterData={character}
-          onLoadCharacter={handleLoadCharacter}
-          characterId={characterId}
-          onSaveToCloud={handleSaveToCloud}
-          onOpenManager={() => setIsManagerOpen(true)}
-          isCloudSaving={isCloudSaving}
-          lastCloudSave={lastCloudSave}
         />
 
         {/* Vitals + Hope + Evasion Row - Stack on mobile */}
@@ -1515,58 +1630,7 @@ export default function CharacterSheet() {
               }))}
               onFearTagClick={handleOpenFearTagDetails}
             />
-            <div className="mt-2 border border-purple-500/60 bg-purple-950/10 p-2 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-[10px] uppercase font-bold text-purple-300">Debug Medo</div>
-                <button
-                  onClick={() => setShowFearDebug((prev) => !prev)}
-                  className="text-[10px] px-2 py-1 border border-purple-500 text-purple-300 hover:bg-purple-500/10"
-                >
-                  {showFearDebug ? 'Ocultar' : 'Mostrar'}
-                </button>
-              </div>
-              {showFearDebug && (
-                <div className="space-y-2">
-                  <div className="text-[10px] text-purple-200/80">
-                    Ative/desative rapidamente os efeitos de medo para testar os modificadores.
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] text-purple-300 uppercase">Atributo do Resultado 2</label>
-                    <select
-                      value={debugResultTwoAttribute}
-                      onChange={(event) => setDebugResultTwoAttribute(event.target.value as AttributeKey)}
-                      className="bg-black border border-purple-500 text-purple-200 text-[10px] px-2 py-1"
-                    >
-                      {ATTRIBUTE_KEYS.map((attribute) => (
-                        <option key={attribute} value={attribute}>
-                          {ATTRIBUTE_LABELS[attribute]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    {(['2', '3', '4', '5', '6', '7', '8', '10', '11', '13', '14'] as const).map((result) => {
-                      const isActive = activeFearTags.some(
-                        (tag) =>
-                          tag.sourceInsanityId === 'debug-fear' &&
-                          tag.effectResult === result &&
-                          (result !== '2' || tag.selectedAttribute === debugResultTwoAttribute)
-                      );
 
-                      return (
-                        <button
-                          key={result}
-                          onClick={() => toggleFearDebugCondition(result)}
-                          className={`text-[10px] py-1 uppercase border ${isActive ? 'bg-purple-500 text-black border-purple-500' : 'text-purple-200 border-purple-500 hover:bg-purple-500/20'}`}
-                        >
-                          {isActive ? 'Desativar' : 'Ativar'} {result}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
           <div className="w-full md:w-56 flex-shrink-0">
             <HopeCounter

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface AttributeHexagonProps {
   attribute: string;
@@ -28,6 +28,9 @@ export default function AttributeHexagon({ attribute, value, onChange, isFearAff
   const [isEditing, setIsEditing] = useState(false);
   const [tempValue, setTempValue] = useState(value.toString());
 
+  useEffect(() => {
+    setTempValue(value.toString());
+  }, [value]);
   const handleSave = () => {
     const parsedValue = parseInt(tempValue) || 0;
     const numValue = Math.max(0, Math.min(5, parsedValue));
