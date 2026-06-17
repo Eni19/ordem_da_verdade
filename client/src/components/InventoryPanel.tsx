@@ -93,7 +93,7 @@ export default function InventoryPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-16 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
+          className={`group fixed top-16 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
             isOpen ? 'right-[21rem]' : 'right-0'
           }`}
         >
@@ -107,7 +107,7 @@ export default function InventoryPanel({
       )}
 
       {/* Panel Content */}
-      <div className={`fixed right-0 top-0 h-screen bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[21rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
+      <div className={`fixed right-0 top-0 h-screen z-50 bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[21rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
 
       {/* Content */}
       {isOpen && (

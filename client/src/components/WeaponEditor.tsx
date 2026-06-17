@@ -41,7 +41,7 @@ interface Weapon {
   tags: WeaponTag[];
 }
 
-const ATTRIBUTE_OPTIONS = ['força', 'agilidade', 'inteligência', 'presença', 'vigor'];
+const ATTRIBUTE_OPTIONS = ['força', 'agilidade', 'inteligência', 'presença', 'vigor', 'vontade'];
 
 interface WeaponEditorProps {
   weapon: Weapon;

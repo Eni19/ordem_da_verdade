@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Dice6 } from 'lucide-react';
 import pressagioPhrases from '@/data/pressagio';
+import anime from 'animejs';
 
 interface DiceResult {
   formula: string;
@@ -56,6 +57,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
   const [isReRolling, setIsReRolling] = useState<'attribute' | 'training' | null>(null);
   const [isCritical, setIsCritical] = useState(false);
   const [lastAttackWeapon, setLastAttackWeapon] = useState<SkillRollRequest | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const diceTypes = [4, 6, 8, 10, 12, 20];
   const maxDice = 10;
@@ -126,12 +128,45 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
     // Limpar timeouts antigos de interferência crítica
     clearCriticalTimeouts();
 
-    if (firstRoll === 1 || secondRoll === 1) {
-      setDisplayMessage('Fracasso!');
+    const isAnsiedadeActive = rollRequest?.isAnsiedadeActive ?? false;
+
+    if (isAnsiedadeActive && (firstRoll === 1 || secondRoll === 1)) {
+      setDisplayMessage('Fracasso por Ansiedade!');
       setDisplayFlash('fail');
       setIsCritical(false);
       setPressagioMessage(null);
       setCriticalInterferencePhase('none');
+
+      if (containerRef.current) {
+        anime({
+          targets: containerRef.current,
+          translateX: [
+            { value: -15, duration: 50 },
+            { value: 15, duration: 50 },
+            { value: -10, duration: 50 },
+            { value: 10, duration: 50 },
+            { value: 0, duration: 50 }
+          ],
+          scale: [
+            { value: 1.05, duration: 100 },
+            { value: 1, duration: 150 }
+          ],
+          easing: 'easeInOutQuad'
+        });
+        
+        const diceElements = containerRef.current.querySelectorAll('.dice-button-container');
+        if (diceElements.length > 0) {
+          anime({
+            targets: diceElements,
+            rotate: [
+              { value: -20, duration: 50 },
+              { value: 20, duration: 50 },
+              { value: 0, duration: 100 }
+            ],
+            easing: 'easeInOutQuad'
+          });
+        }
+      }
     } else if (criticalDice >= criticalThreshold) {
       // Fase 0: Mostrar resultado completamente normal
       setDisplayMessage(null);
@@ -275,13 +310,17 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
           triggerDisplayOutcome(newRolls[0], newRolls[1], criticalDice, criticalThreshold);
         }
 
-        // Update history with new result
         const attributeConfig = getAttributeRollConfig(rollRequest.attributeValue);
-        let total = newRolls[0] + newRolls[1];
+        const modifier = rollRequest.modifier || 0;
+        let total = newRolls[0] + newRolls[1] + modifier;
         const finalRolls = [...newRolls];
+        if (modifier !== 0) finalRolls.push(modifier);
 
         const formulaParts = [attributeConfig.formula, `1d${rollRequest.trainingDie}`];
-        const formula = formulaParts.join(' + ').replace('+ -', '- ');
+        if (modifier !== 0) {
+          formulaParts.push(modifier > 0 ? `+ ${modifier}` : `- ${Math.abs(modifier)}`);
+        }
+        const formula = formulaParts.join(' ').replace('+ -', '- ');
 
         const result: DiceResult = {
           formula,
@@ -433,26 +472,30 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
 
       const baseAttributeRoll = rollAttributeValue(rollRequest.attributeValue);
       const baseTrainingRoll = Math.floor(Math.random() * rollRequest.trainingDie) + 1;
-      // Sistema de crítico: rolar d20 secretamente
+      const modifier = rollRequest.modifier || 0;
+      
       const criticalDice = Math.floor(Math.random() * 20) + 1;
       const criticalThreshold = rollRequest.criticalThreshold ?? 20;
-      // Save critical dice to history (keep last 6)
       setCriticalHistory((prev) => [
         { value: criticalDice, timestamp: new Date().toLocaleTimeString('pt-BR') },
         ...prev,
       ].slice(0, 6));
+      
       const finalRolls = [baseAttributeRoll, baseTrainingRoll];
-      let total = baseAttributeRoll + baseTrainingRoll;
+      if (modifier !== 0) finalRolls.push(modifier);
+      
+      let total = baseAttributeRoll + baseTrainingRoll + modifier;
 
       triggerDisplayOutcome(baseAttributeRoll, baseTrainingRoll, criticalDice, criticalThreshold);
-
-
 
       setDisplayRolls(finalRolls);
 
       const formulaParts = [attributeConfig.formula, `1d${rollRequest.trainingDie}`];
+      if (modifier !== 0) {
+        formulaParts.push(modifier > 0 ? `+ ${modifier}` : `- ${Math.abs(modifier)}`);
+      }
 
-      const formula = formulaParts.join(' + ').replace('+ -', '- ');
+      const formula = formulaParts.join(' ').replace('+ -', '- ');
 
       const result: DiceResult = {
         formula,
@@ -501,7 +544,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={containerRef}>
       <div
         className={`border-2 p-4 transition-all duration-700 relative ${
           criticalInterferencePhase === 'glitch' || criticalInterferencePhase === 'pressagio' || criticalInterferencePhase === 'interference'
@@ -536,7 +579,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
 
         {displayMode === 'skill' ? (
           <>
-            <div className="grid grid-cols-2 gap-2 mb-1">
+            <div className="grid grid-cols-2 gap-2 mb-1 dice-button-container">
               <button
                 onClick={() => reRollDice('attribute')}
                 disabled={isRolling || isReRolling !== null}

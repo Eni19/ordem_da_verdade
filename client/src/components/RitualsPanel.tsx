@@ -224,11 +224,11 @@ export default function RitualsPanel({
   const conjureStep = ritualConjureState?.step ?? 0;
 
   return (
-    <div className="fixed right-0 top-0 h-screen z-30">
+    <div className="fixed right-0 top-0 h-screen z-50">
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-40 z-40 h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-purple-500 hover:bg-purple-500 hover:bg-opacity-10 flex items-center justify-start text-purple-300 transition-all duration-300 ${
+          className={`group fixed top-40 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-purple-500 hover:bg-purple-500 hover:bg-opacity-10 flex items-center justify-start text-purple-300 transition-all duration-300 ${
             isOpen ? 'right-[22rem]' : 'right-0'
           }`}
         >

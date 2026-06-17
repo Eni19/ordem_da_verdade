@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Settings2, Shield } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import anime from 'animejs';
 
 export type EvasionProtection = 'none' | 'light' | 'heavy';
 
@@ -10,7 +11,8 @@ interface EvasionPanelProps {
   defensiveCharges: number;
   maxDefensiveCharges: number;
   evasionPenalty?: number;
-  isFearLimited?: boolean;
+  isEvasionAffected?: boolean;
+  areChargesDisabled?: boolean;
   onProtectionChange: (value: EvasionProtection) => void;
   onDefensiveChargesChange: (value: number) => void;
   onMaxDefensiveChargesChange: (value: number) => void;
@@ -34,7 +36,8 @@ export default function EvasionPanel({
   defensiveCharges,
   maxDefensiveCharges,
   evasionPenalty = 0,
-  isFearLimited = false,
+  isEvasionAffected = false,
+  areChargesDisabled = false,
   onProtectionChange,
   onDefensiveChargesChange,
   onMaxDefensiveChargesChange,
@@ -44,7 +47,6 @@ export default function EvasionPanel({
   const baseEvasion = 7 + agility;
   const protectionBonus = PROTECTION_OPTIONS.find((option) => option.value === protection)?.bonus ?? 0;
   const totalEvasion = baseEvasion + protectionBonus - evasionPenalty;
-  const protectionLabel = PROTECTION_OPTIONS.find((option) => option.value === protection)?.label ?? 'Sem proteção';
 
   const handleChargeClick = (index: number) => {
     const chargeMask = 1 << index;
@@ -52,16 +54,88 @@ export default function EvasionPanel({
 
     onDefensiveChargesChange(newCharges);
   };
+  
+  // inside EvasionPanel:
+  const hexRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if ((!isEvasionAffected && !areChargesDisabled) || !hexRef.current) return;
+
+    anime.speed = 0.38;
+
+    const createParticle = () => {
+      if (!hexRef.current) return;
+      const particle = document.createElement('div');
+      particle.className = 'absolute w-1 h-1 rounded-full pointer-events-none';
+
+      const border = Math.floor(Math.random() * 4);
+      let startX = 0;
+      let startY = 0;
+      let angle = 0;
+
+      if (border === 0) { 
+        startX = Math.random() * 100;
+        startY = 0;
+        angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3); 
+      } else if (border === 1) { 
+        startX = 100;
+        startY = Math.random() * 100;
+        angle = (Math.random() - 0.5) * (Math.PI / 3); 
+      } else if (border === 2) { 
+        startX = Math.random() * 100;
+        startY = 100;
+        angle = Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3); 
+      } else { 
+        startX = 0;
+        startY = Math.random() * 100;
+        angle = Math.PI + (Math.random() - 0.5) * (Math.PI / 3); 
+      }
+
+      particle.style.left = `calc(${startX}% - 2px)`;
+      particle.style.top = `calc(${startY}% - 2px)`;
+
+      const colors = ['#c084fc', '#a855f7', '#d946ef', '#e879f9', '#818cf8', '#a78bfa'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      particle.style.backgroundColor = randomColor;
+
+      hexRef.current.appendChild(particle);
+
+      const distance = 15 + Math.random() * 25;
+      const tx = Math.cos(angle) * distance;
+      const ty = Math.sin(angle) * distance;
+
+      anime({
+        targets: particle,
+        translateX: tx,
+        translateY: ty,
+        opacity: [0.95, 0],
+        scale: [Math.random() * 0.6 + 0.6, Math.random() * 2.0 + 1.0],
+        duration: 700 + Math.random() * 800,
+        easing: 'easeOutQuad',
+        complete: () => {
+          if (particle.parentNode) {
+            particle.parentNode.removeChild(particle);
+          }
+        }
+      });
+    };
+
+    const interval = setInterval(() => {
+      createParticle();
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, [isEvasionAffected, areChargesDisabled]);
 
   return (
-    <div className={`card-occult space-y-2 transition-colors ${isFearLimited ? 'border-amber-500/60 bg-amber-950/10' : ''}`}>
+    <div ref={hexRef} className={`card-occult space-y-2 transition-colors relative overflow-hidden ${isEvasionAffected || areChargesDisabled ? 'border-purple-500/60 bg-purple-950/20 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : ''}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2 text-center">
-          <h3 className={`font-display text-sm uppercase ${isFearLimited ? 'text-amber-300' : 'text-sky-300'}`}>Evasão</h3>
-          <div className={`font-display text-3xl leading-none ${isFearLimited ? 'text-amber-300' : 'text-sky-300'}`}>{totalEvasion}</div>
+        <div className="space-y-2 text-center relative z-10">
+          <h3 className={`font-display text-sm uppercase ${isEvasionAffected ? 'text-purple-300' : 'text-sky-300'}`}>Evasão</h3>
+          <div className={`font-display text-3xl leading-none ${isEvasionAffected ? 'text-purple-300' : 'text-sky-300'}`}>{totalEvasion}</div>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-2 relative z-10">
           <Popover open={configOpen} onOpenChange={setConfigOpen}>
             <PopoverTrigger asChild>
               <button
@@ -107,7 +181,7 @@ export default function EvasionPanel({
                 </div>
 
                 <div className="border-t border-primary/20 pt-3">
-                  <div className={`font-display text-xs uppercase mb-2 ${isFearLimited ? 'text-amber-300' : 'text-primary'}`}>Cargas defensivas</div>
+                  <div className={`font-display text-xs uppercase mb-2 ${areChargesDisabled ? 'text-purple-300' : 'text-primary'}`}>Cargas defensivas</div>
                   <div className="grid grid-cols-4 gap-2">
                     {Array.from({ length: MAX_POSSIBLE_CHARGES }).map((_, index) => {
                       const chargeCount = index + 1;
@@ -117,13 +191,13 @@ export default function EvasionPanel({
                         <button
                           key={chargeCount}
                           type="button"
-                          disabled={isFearLimited}
+                          disabled={areChargesDisabled}
                           onClick={() => onMaxDefensiveChargesChange(chargeCount)}
                           className={`border px-2 py-2 text-xs uppercase transition-all ${
-                            isFearLimited
+                            areChargesDisabled
                               ? isActive
-                                ? 'border-amber-400 bg-amber-400 text-black'
-                                : 'border-amber-500/30 bg-black/70 text-amber-200/60 cursor-not-allowed'
+                                ? 'border-purple-500 bg-purple-500 text-black'
+                                : 'border-purple-500/30 bg-black/70 text-purple-200/60 cursor-not-allowed'
                               : isActive
                                 ? 'border-primary bg-primary text-black'
                                 : 'border-primary/40 bg-black text-primary hover:border-primary hover:bg-primary/10'
@@ -134,13 +208,13 @@ export default function EvasionPanel({
                       );
                     })}
                   </div>
-                  {isFearLimited && <div className="text-[10px] text-amber-200/80 uppercase mt-2">Sem reações ou cargas defensivas</div>}
+                  {areChargesDisabled && <div className="text-[10px] text-purple-200/80 uppercase mt-2">Sem reações ou cargas defensivas</div>}
                 </div>
               </div>
             </PopoverContent>
           </Popover>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative z-10">
             {Array.from({ length: maxDefensiveCharges }).map((_, index) => {
               const isFilled = (defensiveCharges & (1 << index)) !== 0;
 
@@ -148,11 +222,16 @@ export default function EvasionPanel({
                 <button
                   key={index}
                   type="button"
+                  disabled={areChargesDisabled}
                   onClick={() => handleChargeClick(index)}
                   className={`flex h-7 w-7 items-center justify-center border transition-all ${
-                    isFilled
-                      ? 'border-sky-400 bg-sky-400 text-black'
-                      : 'border-sky-400/40 bg-black text-sky-300 hover:border-sky-400 hover:bg-sky-400/10'
+                    areChargesDisabled
+                      ? isFilled
+                        ? 'border-purple-500 bg-purple-500 text-black cursor-not-allowed'
+                        : 'border-purple-500/30 bg-black text-purple-300/50 cursor-not-allowed'
+                      : isFilled
+                        ? 'border-sky-400 bg-sky-400 text-black'
+                        : 'border-sky-400/40 bg-black text-sky-300 hover:border-sky-400 hover:bg-sky-400/10'
                   }`}
                   aria-label={`Definir cargas defensivas em ${index + 1}`}
                 >

@@ -1,4 +1,6 @@
 import { Minus, Plus } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import anime from 'animejs';
 
 interface FearTagChip {
   id: string;
@@ -24,6 +26,28 @@ export default function VitalStats({
 }: VitalStatsProps) {
   const hpPercent = hp.max > 0 ? (hp.current / hp.max) * 100 : 0;
   const sanityPercent = sanity.max > 0 ? (sanity.current / sanity.max) * 100 : 0;
+
+  const sanityBarRef = useRef<HTMLDivElement>(null);
+  const prevSanityRef = useRef(sanity.current);
+
+  useEffect(() => {
+    if (sanity.current < prevSanityRef.current && sanityBarRef.current) {
+      anime({
+        targets: sanityBarRef.current,
+        backgroundColor: ['#93c5fd', '#1E3A8A'], // flash light blue when taking mental damage
+        duration: 800,
+        easing: 'easeOutElastic(1, .8)'
+      });
+    } else if (sanity.current > prevSanityRef.current && sanityBarRef.current) {
+      anime({
+        targets: sanityBarRef.current,
+        backgroundColor: ['#3b82f6', '#1E3A8A'], // flash stronger blue when healing
+        duration: 800,
+        easing: 'easeOutExpo'
+      });
+    }
+    prevSanityRef.current = sanity.current;
+  }, [sanity.current]);
 
   return (
     <div className="card-occult space-y-3">
@@ -73,22 +97,22 @@ export default function VitalStats({
         </div>
       </div>
 
-      {/* Sanity */}
+      {/* Determinação */}
       <div className="space-y-1">
-        <label className="font-display text-sm text-primary uppercase block">Sanidade</label>
+        <label className="font-display text-sm text-primary uppercase block">Determinação</label>
         <div className="flex gap-1 items-center">
           <div className="flex flex-col gap-1">
             <button
               onClick={() => onSanityChange('current', sanity.current + 1)}
               className="btn-occult p-0.5 h-6 w-6 flex items-center justify-center"
-              aria-label="Aumentar sanidade atual"
+              aria-label="Aumentar determinação atual"
             >
               <Plus size={10} />
             </button>
             <button
               onClick={() => onSanityChange('current', Math.max(0, sanity.current - 1))}
               className="btn-occult p-0.5 h-6 w-6 flex items-center justify-center"
-              aria-label="Diminuir sanidade atual"
+              aria-label="Diminuir determinação atual"
             >
               <Minus size={10} />
             </button>
@@ -128,6 +152,7 @@ export default function VitalStats({
         </div>
         <div className="w-full bg-black border border-primary h-3 overflow-hidden">
           <div
+            ref={sanityBarRef}
             className="h-full transition-all duration-300 bg-[#1E3A8A]"
             style={{ width: `${sanityPercent}%` }}
           />

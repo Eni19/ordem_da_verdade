@@ -6,12 +6,15 @@ import DiceRoller from '@/components/DiceRoller';
 import VitalStats from '@/components/VitalStats';
 import Pericias from '@/components/Pericias';
 import HopeCounter from '@/components/HopeCounter';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { TensaoOverlay } from '@/components/TensaoOverlay';
 import EvasionPanel, { type EvasionProtection } from '@/components/EvasionPanel';
 import InventoryPanel from '@/components/InventoryPanel';
 import InsanityPanel from '@/components/InsanityPanel';
 import RitualsPanel from '@/components/RitualsPanel';
 import SaveLoad from '@/components/SaveLoad';
 import CharacterManager from '@/components/CharacterManager';
+import { FearRouletteOverlay } from '@/components/FearRouletteOverlay';
 import symbols, { type RitualSymbol } from '@/data/symbols';
 import fearEffects, { type FearEffect } from '@/data/fear';
 
@@ -84,7 +87,7 @@ interface Insanity {
   type: 'fobia' | 'mania' | 'surto';
 }
 
-type AttributeKey = 'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor';
+type AttributeKey = 'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor' | 'vontade';
 
 interface ActiveFearTag {
   id: string;
@@ -97,6 +100,7 @@ interface ActiveFearTag {
   sourceInsanityId: string;
   sourceInsanityName: string;
   selectedAttribute?: AttributeKey;
+  secondaryAttribute?: AttributeKey;
 }
 
 interface FearRouletteState {
@@ -169,6 +173,7 @@ interface CharacterData {
     inteligência: number;
     presença: number;
     vigor: number;
+    vontade: number;
   };
   skills: Skill[];
   pericias: Pericia[];
@@ -196,6 +201,8 @@ interface SkillRollRequest {
   trainingLabel: string;
   attributeValue: number;
   trainingDie: number;
+  modifier?: number;
+  isAnsiedadeActive?: boolean;
 }
 
 const ATTRIBUTE_KEYS: Array<keyof CharacterData['attributes']> = [
@@ -204,6 +211,7 @@ const ATTRIBUTE_KEYS: Array<keyof CharacterData['attributes']> = [
   'inteligência',
   'presença',
   'vigor',
+  'vontade',
 ];
 
 const ATTRIBUTE_LABELS: Record<keyof CharacterData['attributes'], string> = {
@@ -212,6 +220,7 @@ const ATTRIBUTE_LABELS: Record<keyof CharacterData['attributes'], string> = {
   inteligência: 'Inteligencia',
   presença: 'Presenca',
   vigor: 'Vigor',
+  vontade: 'Vontade',
 };
 
 const TRAINING_DIE_MAP: Record<Pericia['training'], number> = {
@@ -303,6 +312,7 @@ export default function CharacterSheet() {
     createInitialFearRouletteState()
   );
   const [fearResultAttributeChoice, setFearResultAttributeChoice] = useState<AttributeKey | null>(null);
+  const [fearSecondaryAttributeChoice, setFearSecondaryAttributeChoice] = useState<AttributeKey | null>(null);
   const [selectedFearTag, setSelectedFearTag] = useState<ActiveFearTag | null>(null);
   const [fearTagPendingRemoval, setFearTagPendingRemoval] = useState<ActiveFearTag | null>(null);
   const [showFearDebug, setShowFearDebug] = useState(false);
@@ -325,6 +335,7 @@ export default function CharacterSheet() {
     });
   };
   const [debugResultTwoAttribute, setDebugResultTwoAttribute] = useState<AttributeKey>('força');
+  const [debugDebuffAttribute, setDebugDebuffAttribute] = useState<AttributeKey>('inteligência');
   const fearRouletteIntervalRef = useRef<number | null>(null);
   const fearRouletteTimeoutRef = useRef<number | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -346,6 +357,7 @@ export default function CharacterSheet() {
       inteligência: 0,
       presença: 0,
       vigor: 0,
+      vontade: 0,
     },
     skills: [],
     pericias: [
@@ -512,7 +524,7 @@ export default function CharacterSheet() {
     } catch { /* ignore */ }
     setCharacter({
       name: 'Novo Personagem',
-      attributes: { força: 0, agilidade: 0, inteligência: 0, presença: 0, vigor: 0 },
+      attributes: { força: 0, agilidade: 0, inteligência: 0, presença: 0, vigor: 0, vontade: 0 },
       skills: [],
       pericias: [
         { id: GENERIC_PERICIA_ID, name: GENERIC_PERICIA_NAME, training: 'treinado', isGeneric: true },
@@ -540,8 +552,8 @@ export default function CharacterSheet() {
   };
 
   const resolveFearEffect = (total: number): FearEffect => {
-    if (total >= 20) {
-      return fearEffects.find((effect) => effect.resultado === '20+') ?? fearEffects[fearEffects.length - 1];
+    if (total >= 24) {
+      return fearEffects.find((effect) => effect.resultado === '24+') ?? fearEffects[fearEffects.length - 1];
     }
 
     const exact = fearEffects.find((effect) => effect.resultado === String(total));
@@ -554,19 +566,19 @@ export default function CharacterSheet() {
         case '2':
           return tag.selectedAttribute === attribute ? sum + 1 : sum;
         case '3':
-          if (attribute === 'força' || attribute === 'agilidade') return sum + 1;
-          if (attribute === 'inteligência' || attribute === 'presença') return sum - 1;
+          if (tag.selectedAttribute === attribute) return sum + 1;
+          if (tag.secondaryAttribute === attribute) return sum - 1;
           return sum;
         case '4':
-          return attribute === 'agilidade' ? sum - 1 : sum;
-        case '5':
-          return attribute === 'força' ? sum - 1 : sum;
-        case '6':
           return attribute === 'inteligência' ? sum - 1 : sum;
-        case '7':
+        case '5':
+          return attribute === 'agilidade' ? sum - 1 : sum;
+        case '6':
+          return attribute === 'força' ? sum - 1 : sum;
+        case '8':
           return attribute === 'presença' ? sum - 1 : sum;
-        case '14':
-          return attribute === 'vigor' ? sum - 2 : sum;
+        case '10':
+          return attribute === 'vontade' ? sum - 1 : sum;
         default:
           return sum;
       }
@@ -602,9 +614,68 @@ export default function CharacterSheet() {
     return { attribute: swappedAttribute, wasSwapped: true };
   };
 
-  const getDespairAdjustedTrainingDie = (trainingDie: number) => {
-    const hasDespair = activeFearTags.some((tag) => tag.effectResult === '11');
-    return hasDespair ? getReducedTrainingDie(trainingDie) : trainingDie;
+  const getFearAdjustedTrainingDie = (trainingDie: number, skillName: string) => {
+    const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
+    const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
+    
+    const normalizedName = skillName.toLowerCase();
+    const isAffectedByTremor = normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao');
+    
+    let stepsToReduce = 0;
+    if (isPanicoSomatico) stepsToReduce += 1;
+    if (isTremor && isAffectedByTremor) stepsToReduce += 1;
+
+    let finalDie = trainingDie;
+    for (let i = 0; i < stepsToReduce; i++) {
+      finalDie = getReducedTrainingDie(finalDie);
+    }
+    return finalDie;
+  };
+
+  const getFearAdjustedTrainingLevel = (trainingLevel: string, skillName: string): string => {
+    const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
+    const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
+    
+    const normalizedName = skillName.toLowerCase();
+    const isAffectedByTremor = normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao');
+    
+    let stepsToReduce = 0;
+    if (isPanicoSomatico) stepsToReduce += 1;
+    if (isTremor && isAffectedByTremor) stepsToReduce += 1;
+
+    const levels = ['destreinado', 'treinado', 'veterano', 'expert'];
+    let currentIndex = levels.indexOf(trainingLevel);
+    if (currentIndex === -1) currentIndex = 0;
+    
+    currentIndex = Math.max(0, currentIndex - stepsToReduce);
+    return levels[currentIndex];
+  };
+
+  const getFearModifierForSkillRoll = (skillName: string) => {
+    const isHisteria = activeFearTags.some((tag) => tag.effectResult === '8');
+    const normalizedName = skillName.toLowerCase();
+    const isAffectedByHisteria = normalizedName.includes('furtividade') || 
+                                  normalizedName.includes('enganação') || 
+                                  normalizedName.includes('enganacao') || 
+                                  normalizedName.includes('diplomacia') || 
+                                  normalizedName.includes('intimidação') ||
+                                  normalizedName.includes('intimidacao');
+                                  
+    return isHisteria && isAffectedByHisteria ? -3 : 0;
+  };
+
+  const isFearAffectedSkill = (skillName: string): boolean => {
+    const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
+    if (isPanicoSomatico) return true;
+    
+    const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
+    const isHisteria = activeFearTags.some((tag) => tag.effectResult === '8');
+    
+    const normalizedName = skillName.toLowerCase();
+    if (isTremor && (normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao'))) return true;
+    if (isHisteria && (normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao') || normalizedName.includes('diplomacia') || normalizedName.includes('intimidação') || normalizedName.includes('intimidacao'))) return true;
+    
+    return false;
   };
 
   const isFear8Active = activeFearTags.some((tag) => tag.effectResult === '8');
@@ -615,19 +686,17 @@ export default function CharacterSheet() {
         case '2':
           return tag.selectedAttribute === attribute;
         case '3':
-          return attribute === 'força' || attribute === 'agilidade' || attribute === 'inteligência' || attribute === 'presença';
+          return tag.selectedAttribute === attribute || tag.secondaryAttribute === attribute;
         case '4':
-          return attribute === 'agilidade';
-        case '5':
-          return attribute === 'força';
-        case '6':
           return attribute === 'inteligência';
-        case '7':
+        case '5':
+          return attribute === 'agilidade';
+        case '6':
+          return attribute === 'força';
+        case '8':
           return attribute === 'presença';
-        case '13':
-          return attribute !== 'vigor';
-        case '14':
-          return attribute === 'vigor';
+        case '10':
+          return attribute === 'vontade';
         default:
           return false;
       }
@@ -637,6 +706,7 @@ export default function CharacterSheet() {
   const closeFearRoulette = () => {
     setFearRouletteState(createInitialFearRouletteState());
     setFearResultAttributeChoice(null);
+    setFearSecondaryAttributeChoice(null);
   };
 
   const buildFearTag = (
@@ -647,6 +717,7 @@ export default function CharacterSheet() {
       sourceInsanityId: string;
       sourceInsanityName: string;
       selectedAttribute?: AttributeKey;
+      secondaryAttribute?: AttributeKey;
     }
   ): ActiveFearTag => ({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -659,6 +730,7 @@ export default function CharacterSheet() {
     sourceInsanityId: params.sourceInsanityId,
     sourceInsanityName: params.sourceInsanityName,
     selectedAttribute: params.selectedAttribute,
+    secondaryAttribute: params.secondaryAttribute,
   });
 
   const handleOpenFearTagDetails = (id: string) => {
@@ -673,12 +745,12 @@ export default function CharacterSheet() {
     setFearTagPendingRemoval((prev) => (prev?.id === id ? null : prev));
   };
 
-  const toggleFearDebugCondition = (result: '2' | '3' | '4' | '5' | '6' | '7' | '8' | '10' | '11' | '13' | '14') => {
+  const toggleFearDebugCondition = (result: string) => {
+    // Para remover, checamos se existe uma tag de debug desse resultado
     const existing = activeFearTags.find(
       (tag) =>
         tag.sourceInsanityId === 'debug-fear' &&
-        tag.effectResult === result &&
-        (result !== '2' || tag.selectedAttribute === debugResultTwoAttribute)
+        tag.effectResult === result
     );
 
     if (existing) {
@@ -689,12 +761,36 @@ export default function CharacterSheet() {
     const effect = fearEffects.find((item) => item.resultado === result);
     if (!effect) return;
 
+    if (result === '2' || result === '3') {
+      // Abre a roleta no estado final para forçar a escolha
+      setFearRouletteState({
+        isOpen: true,
+        isRolling: false,
+        displayIndex: 0,
+        finalEffect: effect,
+        dice: null,
+        total: Number(result) || parseInt(result) || 0,
+        bonus: 0,
+        pendingTag: {
+          id: `debug-${Date.now()}`,
+          effectResult: effect.resultado,
+          effectName: effect.nome,
+          effectDescription: effect.descricaoMecanica,
+          effectNarrative: effect.descricaoNarrativa,
+          rollTotal: Number(result) || parseInt(result) || 0,
+          bonusApplied: 0,
+          sourceInsanityId: 'debug-fear',
+          sourceInsanityName: 'Debug',
+        }
+      });
+      return;
+    }
+
     const debugTag = buildFearTag(effect, {
-      rollTotal: Number(result),
+      rollTotal: Number(result) || parseInt(result) || 0,
       bonusApplied: 0,
       sourceInsanityId: 'debug-fear',
       sourceInsanityName: 'Debug',
-      selectedAttribute: result === '2' ? debugResultTwoAttribute : undefined,
     });
 
     setActiveFearTags((prev) => [...prev, debugTag]);
@@ -702,15 +798,21 @@ export default function CharacterSheet() {
 
   const handleConfirmFearAttribute = () => {
     const pending = fearRouletteState.pendingTag;
-    if (!pending || pending.effectResult !== '2' || !fearResultAttributeChoice) return;
+    if (!pending) return;
 
-    setActiveFearTags((prev) => [
-      ...prev,
-      {
-        ...pending,
-        selectedAttribute: fearResultAttributeChoice,
-      },
-    ]);
+    if (pending.effectResult === '2') {
+      if (!fearResultAttributeChoice) return;
+      setActiveFearTags((prev) => [
+        ...prev,
+        { ...pending, selectedAttribute: fearResultAttributeChoice },
+      ]);
+    } else if (pending.effectResult === '3') {
+      if (!fearResultAttributeChoice || !fearSecondaryAttributeChoice) return;
+      setActiveFearTags((prev) => [
+        ...prev,
+        { ...pending, selectedAttribute: fearResultAttributeChoice, secondaryAttribute: fearSecondaryAttributeChoice },
+      ]);
+    }
 
     closeFearRoulette();
   };
@@ -820,8 +922,11 @@ export default function CharacterSheet() {
     const normalizedAttribute = getEffectiveAttributeValue(adjustedAttribute.attribute);
 
     const baseTrainingDie = pericia.isGeneric ? 4 : TRAINING_DIE_MAP[pericia.training];
-    const trainingDie = getDespairAdjustedTrainingDie(baseTrainingDie);
+    const trainingDie = getFearAdjustedTrainingDie(baseTrainingDie, pericia.name);
     const trainingLabel = getTrainingLabelForDie(trainingDie);
+    
+    const modifier = getFearModifierForSkillRoll(pericia.name);
+    const isAnsiedadeActive = activeFearTags.some((tag) => tag.effectResult === '13');
 
     setPendingRoll({
       id: Date.now(),
@@ -830,6 +935,8 @@ export default function CharacterSheet() {
       trainingLabel,
       attributeValue: normalizedAttribute,
       trainingDie,
+      modifier,
+      isAnsiedadeActive,
     });
   };
 
@@ -855,6 +962,7 @@ export default function CharacterSheet() {
       criticalMultiplier: weapon.criticalMultiplier,
       damageDiceCount: weapon.damageDiceCount,
       damageDiceSides: weapon.damageDiceSides,
+      isAnsiedadeActive: activeFearTags.some((tag) => tag.effectResult === '13'),
     });
 
     // Minimiza/fecha o menu lateral quando fazer um ataque
@@ -1314,17 +1422,99 @@ export default function CharacterSheet() {
     const dieTwo = Math.floor(Math.random() * 10) + 1;
     const bonus = activeFearTags.length;
     const total = dieOne + dieTwo + bonus;
-    const finalEffect = resolveFearEffect(total);
-    const finalIndex = Math.max(
+    let finalEffect = resolveFearEffect(total);
+    let finalIndex = Math.max(
       0,
       fearEffects.findIndex((effect) => effect.resultado === finalEffect.resultado)
     );
+
+    let loopCount = 0;
+    while (
+      activeFearTags.some((tag) => tag.effectResult === finalEffect.resultado) &&
+      loopCount < fearEffects.length
+    ) {
+      finalIndex = (finalIndex + 1) % fearEffects.length;
+      finalEffect = fearEffects[finalIndex];
+      loopCount++;
+    }
 
     const pendingTag = buildFearTag(finalEffect, {
       rollTotal: total,
       bonusApplied: bonus,
       sourceInsanityId: insanity.id,
       sourceInsanityName: insanity.name,
+    });
+
+    if (fearRouletteIntervalRef.current) {
+      clearInterval(fearRouletteIntervalRef.current);
+    }
+    if (fearRouletteTimeoutRef.current) {
+      clearTimeout(fearRouletteTimeoutRef.current);
+    }
+
+    setFearResultAttributeChoice(null);
+    setFearRouletteState({
+      isOpen: true,
+      isRolling: true,
+      displayIndex: 0,
+      finalEffect: null,
+      dice: [dieOne, dieTwo],
+      total,
+      bonus,
+      pendingTag: null,
+    });
+
+    let displayIndex = 0;
+    fearRouletteIntervalRef.current = window.setInterval(() => {
+      displayIndex = (displayIndex + 1) % fearEffects.length;
+      setFearRouletteState((prev) => ({ ...prev, displayIndex }));
+    }, 85);
+
+    fearRouletteTimeoutRef.current = window.setTimeout(() => {
+      if (fearRouletteIntervalRef.current) {
+        clearInterval(fearRouletteIntervalRef.current);
+      }
+
+      setFearRouletteState((prev) => ({
+        ...prev,
+        isRolling: false,
+        displayIndex: finalIndex,
+        finalEffect,
+        pendingTag: finalEffect.resultado === '2' ? pendingTag : null,
+      }));
+
+      if (finalEffect.resultado !== '2') {
+        setActiveFearTags((prev) => [...prev, pendingTag]);
+      }
+    }, 2200);
+  };
+
+  const handleRollDirectFear = () => {
+    const dieOne = Math.floor(Math.random() * 10) + 1;
+    const dieTwo = Math.floor(Math.random() * 10) + 1;
+    const bonus = activeFearTags.length;
+    const total = dieOne + dieTwo + bonus;
+    let finalEffect = resolveFearEffect(total);
+    let finalIndex = Math.max(
+      0,
+      fearEffects.findIndex((effect) => effect.resultado === finalEffect.resultado)
+    );
+
+    let loopCount = 0;
+    while (
+      activeFearTags.some((tag) => tag.effectResult === finalEffect.resultado) &&
+      loopCount < fearEffects.length
+    ) {
+      finalIndex = (finalIndex + 1) % fearEffects.length;
+      finalEffect = fearEffects[finalIndex];
+      loopCount++;
+    }
+
+    const pendingTag = buildFearTag(finalEffect, {
+      rollTotal: total,
+      bonusApplied: bonus,
+      sourceInsanityId: 'direto',
+      sourceInsanityName: 'Sanidade',
     });
 
     if (fearRouletteIntervalRef.current) {
@@ -1482,6 +1672,7 @@ export default function CharacterSheet() {
         inteligência: Number(data.attributes?.inteligência ?? prev.attributes.inteligência ?? 0),
         presença: Number(data.attributes?.presença ?? prev.attributes.presença ?? 0),
         vigor: Number(data.attributes?.vigor ?? prev.attributes.vigor ?? 0),
+        vontade: Number(data.attributes?.vontade ?? prev.attributes.vontade ?? 0),
       },
       skills: loadedSkills.length > 0 ? loadedSkills : prev.skills,
       pericias: ensureGenericPericia(loadedPericias.length > 0 ? loadedPericias : prev.pericias),
@@ -1511,9 +1702,11 @@ export default function CharacterSheet() {
       } catch { /* ignore */ }
     }
   };
+  const isTensaoActive = activeFearTags.some(tag => ['12', '17', '14', '15', '18', '19', '20', '21', '22', '23', '24'].includes(tag.effectResult || ''));
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col relative">
+      {isTensaoActive && <TensaoOverlay />}
       {/* Header */}
       <div className="border-b-2 border-primary bg-black p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
         <div className="flex justify-between items-center relative">
@@ -1557,30 +1750,16 @@ export default function CharacterSheet() {
 
                 {showFearDebug && (
                   <div className="space-y-2 border border-purple-500/60 bg-purple-950/10 p-2">
-                    <div className="text-[10px] text-purple-200/80">
-                      Ative/desative rapidamente os efeitos de medo para testar os modificadores.
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] text-purple-300 uppercase">Atr. Result 2</label>
-                      <select
-                        value={debugResultTwoAttribute}
-                        onChange={(event) => setDebugResultTwoAttribute(event.target.value as AttributeKey)}
-                        className="bg-black border border-purple-500 text-purple-200 text-[10px] px-2 py-1 max-w-[80px]"
-                      >
-                        {ATTRIBUTE_KEYS.map((attribute) => (
-                          <option key={attribute} value={attribute}>
-                            {ATTRIBUTE_LABELS[attribute]}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="text-[10px] text-purple-200/80 mb-2">
+                      Ative/desative rapidamente os efeitos de medo para testar os modificadores. Se um efeito necessitar de escolha, uma janela se abrirá.
                     </div>
                     <div className="grid grid-cols-2 gap-1">
-                      {(['2', '3', '4', '5', '6', '7', '8', '10', '11', '13', '14'] as const).map((result) => {
+                      {fearEffects.map((effect) => {
+                        const result = effect.resultado;
                         const isActive = activeFearTags.some(
                           (tag) =>
                             tag.sourceInsanityId === 'debug-fear' &&
-                            tag.effectResult === result &&
-                            (result !== '2' || tag.selectedAttribute === debugResultTwoAttribute)
+                            tag.effectResult === result
                         );
                         return (
                           <button
@@ -1660,8 +1839,9 @@ export default function CharacterSheet() {
                 protection={character.evasion.protection}
                 defensiveCharges={character.evasion.defensiveCharges}
                 maxDefensiveCharges={character.evasion.maxDefensiveCharges}
-                evasionPenalty={isFear8Active ? 3 : 0}
-                isFearLimited={isFear8Active}
+                evasionPenalty={activeFearTags.some(t => t.effectResult === '9') ? 3 : 0}
+                isEvasionAffected={activeFearTags.some(t => t.effectResult === '9')}
+                areChargesDisabled={activeFearTags.some(t => t.effectResult === '11')}
                 onProtectionChange={handleEvasionProtectionChange}
                 onDefensiveChargesChange={handleDefensiveChargesChange}
                 onMaxDefensiveChargesChange={handleMaxDefensiveChargesChange}
@@ -1681,7 +1861,7 @@ export default function CharacterSheet() {
               <AttributeHexagon
                 key={attr}
                 attribute={attr}
-                value={character.attributes[attr]}
+                value={getEffectiveAttributeValue(attr)}
                 onChange={(val) => handleAttributeChange(attr, val)}
                 isFearAffected={isFearAffectedAttribute(attr)}
               />
@@ -1699,7 +1879,8 @@ export default function CharacterSheet() {
               onUpdatePericia={handleUpdatePericia}
               onDeletePericia={handleDeletePericia}
               onRollPericia={handleRollPericia}
-              isTrainingAffected={activeFearTags.some((tag) => tag.effectResult === '11')}
+              isFearAffectedSkill={isFearAffectedSkill}
+              getFearAdjustedTrainingLevel={getFearAdjustedTrainingLevel}
             />
           </div>
 
@@ -1792,82 +1973,16 @@ export default function CharacterSheet() {
         </div>
       )}
 
-      {fearRouletteState.isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl border-2 border-purple-500 bg-black p-4 space-y-4">
-            <div className="flex items-center justify-between border-b border-purple-500 pb-2">
-              <h3 className="font-display text-lg text-purple-300 uppercase">Roleta do Medo</h3>
-              {!fearRouletteState.isRolling && (
-                <button
-                  onClick={closeFearRoulette}
-                  className="text-xs px-2 py-1 border border-purple-500 text-purple-300 hover:bg-purple-500/10"
-                >
-                  Fechar
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center text-xs uppercase font-bold">
-              <div className="border border-purple-500 p-2 text-purple-200">D10: {fearRouletteState.dice?.[0] ?? '-'}</div>
-              <div className="border border-purple-500 p-2 text-purple-200">D10: {fearRouletteState.dice?.[1] ?? '-'}</div>
-              <div className="border border-purple-500 p-2 text-purple-300">Bônus: +{fearRouletteState.bonus}</div>
-            </div>
-
-            <div className="border border-purple-500 p-3 space-y-2 min-h-40">
-              <div className="text-[10px] text-purple-400 uppercase font-bold">
-                {fearRouletteState.isRolling ? 'Sorteando medo...' : `Resultado final: ${fearRouletteState.total}`}
-              </div>
-                <div className="space-y-2">
-                  <div className={`text-sm uppercase tracking-wider font-display ${fearRouletteState.isRolling ? 'text-purple-300' : 'text-purple-200'}`}>
-                    {(fearRouletteState.isRolling
-                      ? fearEffects[fearRouletteState.displayIndex]
-                      : fearRouletteState.finalEffect
-                    )?.nome}
-                  </div>
-
-                  <div className={`text-base md:text-lg font-display ${fearRouletteState.isRolling ? 'text-purple-300 animate-pulse' : 'text-purple-100'}`}>
-                    {(fearRouletteState.isRolling
-                      ? fearEffects[fearRouletteState.displayIndex]
-                      : fearRouletteState.finalEffect
-                    )?.descricaoNarrativa}
-                  </div>
-
-                  <div className="text-[10px] uppercase text-purple-400 font-bold">Efeito Mecânico</div>
-                  <div className="text-xs text-purple-200/60 leading-relaxed">
-                    {(fearRouletteState.isRolling
-                      ? fearEffects[fearRouletteState.displayIndex]
-                      : fearRouletteState.finalEffect
-                    )?.descricaoMecanica}
-                  </div>
-                </div>
-            </div>
-
-            {!fearRouletteState.isRolling && fearRouletteState.finalEffect?.resultado === '2' && (
-              <div className="space-y-2">
-                <div className="text-xs uppercase font-bold text-purple-300">Escolha o atributo para +1 passo</div>
-                <div className="grid grid-cols-5 gap-1">
-                  {ATTRIBUTE_KEYS.map((attribute) => (
-                    <button
-                      key={attribute}
-                      onClick={() => setFearResultAttributeChoice(attribute)}
-                      className={`py-1 text-[10px] uppercase border ${fearResultAttributeChoice === attribute ? 'bg-purple-500 text-black border-purple-500' : 'bg-black text-purple-300 border-purple-500 hover:bg-purple-500/20'}`}
-                    >
-                      {ATTRIBUTE_LABELS[attribute]}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={handleConfirmFearAttribute}
-                  disabled={!fearResultAttributeChoice}
-                  className="w-full py-2 bg-purple-500 text-black font-bold uppercase border border-purple-400 hover:bg-purple-400 disabled:opacity-40"
-                >
-                  Aplicar Efeito
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <FearRouletteOverlay
+        fearRouletteState={fearRouletteState as any}
+        fearEffects={fearEffects}
+        closeFearRoulette={closeFearRoulette}
+        fearResultAttributeChoice={fearResultAttributeChoice}
+        setFearResultAttributeChoice={setFearResultAttributeChoice}
+        fearSecondaryAttributeChoice={fearSecondaryAttributeChoice}
+        setFearSecondaryAttributeChoice={setFearSecondaryAttributeChoice}
+        handleConfirmFearAttribute={handleConfirmFearAttribute}
+      />
 
       {/* Character Manager Modal */}
       <CharacterManager
@@ -1902,14 +2017,14 @@ export default function CharacterSheet() {
         showToggle={openSidebar !== 'inventory' && openSidebar !== 'rituals'}
         onToggle={toggleInsanityPanel}
         insanities={character.insanities}
-        paranormalPowers={character.paranormalPowers}
+        activeFearTags={activeFearTags as any}
         onInsanityAdd={handleAddInsanity}
         onInsanityRemove={handleRemoveInsanity}
         onInsanityUpdate={handleUpdateInsanity}
         onInsanityInvoke={handleInvokeInsanity}
-        onPowerAdd={handleAddPower}
-        onPowerRemove={handleRemovePower}
-        onPowerUpdate={handleUpdatePower}
+        onRollNewFear={handleRollDirectFear}
+        onRemoveFearTag={handleRemoveFearTag}
+        onOpenFearTagDetails={handleOpenFearTagDetails}
       />
 
       <RitualsPanel
