@@ -141,6 +141,7 @@
   body {
     @apply bg-background text-foreground overflow-x-hidden;
   }
+
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -234,9 +235,12 @@
 
   /* Efeito de pulsação */
   @keyframes pulse-red {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7);
     }
+
     50% {
       box-shadow: 0 0 0 10px rgba(255, 23, 68, 0);
     }
@@ -248,9 +252,12 @@
 
   /* Efeito de glitch (sutil) */
   @keyframes glitch-subtle {
-    0%, 100% {
+
+    0%,
+    100% {
       text-shadow: 0 0 0 #FF1744;
     }
+
     50% {
       text-shadow: 2px 0 0 #FF1744;
     }
@@ -283,16 +290,19 @@
       opacity: 0;
       filter: blur(2px);
     }
+
     60% {
       transform: translateY(8px) rotateZ(2deg) rotateY(0deg) scale(1.02);
       opacity: 1;
       filter: blur(0);
     }
+
     80% {
       transform: translateY(4px) rotateZ(1deg) rotateY(90deg) scale(1.02);
       opacity: 1;
       filter: blur(0);
     }
+
     100% {
       transform: translateY(0) rotateZ(0deg) rotateY(0deg) scale(1);
       opacity: 1;
@@ -311,7 +321,7 @@
     overflow: visible;
   }
 
-  .card-draw > * {
+  .card-draw>* {
     backface-visibility: hidden;
     transform-style: preserve-3d;
   }
@@ -322,7 +332,7 @@
 
   .card-back,
   .card-front {
-    transition: transform 0.6s cubic-bezier(0.2,0.9,0.3,1), opacity 0.6s;
+    transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.6s;
     transform-style: preserve-3d;
     backface-visibility: hidden;
   }

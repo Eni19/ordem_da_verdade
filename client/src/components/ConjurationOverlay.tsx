@@ -148,7 +148,7 @@ function DraggablePokerCard({
   };
 
   const suitSymbol = card.suit === 'hearts' ? '♥' : card.suit === 'diamonds' ? '♦' : card.suit === 'clubs' ? '♣' : card.suit === 'spades' ? '♠' : '🃏';
-  
+
   const getCardTextColor = (suit: string) => {
     switch (suit) {
       case 'hearts': return 'text-red-600';
@@ -168,15 +168,15 @@ function DraggablePokerCard({
       default: return 'border-gray-300';
     }
   };
-  
+
   const textColor = getCardTextColor(card.suit);
   const borderColor = isSelected ? 'border-purple-500' : getCardBorderColor(card.suit);
-  
+
   const isAnotherDragging = draggedIndex !== null && draggedIndex !== index;
   const opacityClass = isAnotherDragging ? 'opacity-50' : 'opacity-100';
 
   return (
-    <div 
+    <div
       ref={elRef}
       data-index={index}
       onPointerDown={handlePointerDown}
@@ -186,17 +186,17 @@ function DraggablePokerCard({
       style={{ touchAction: 'none', perspective: '1000px' }}
       className={`poker-card relative w-24 h-36 md:w-32 md:h-48 cursor-grab active:cursor-grabbing select-none ${opacityClass} ${isSelected ? '-translate-y-4' : ''} ${isNewlyDrawn ? 'opacity-0' : ''}`}
     >
-      <div 
-        className="poker-card-inner relative w-full h-full" 
-        style={{ 
-          transformStyle: 'preserve-3d', 
+      <div
+        className="poker-card-inner relative w-full h-full"
+        style={{
+          transformStyle: 'preserve-3d',
           transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
           transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
         }}
       >
         {/* FRONT */}
-        <div 
-          className={`absolute inset-0 rounded-xl bg-white border-2 flex flex-col justify-between p-2 transition-colors ${textColor} ${borderColor} ${isSelected ? 'shadow-[0_0_15px_rgba(168,85,247,0.5)]' : ''}`} 
+        <div
+          className={`absolute inset-0 rounded-xl bg-white border-2 flex flex-col justify-between p-2 transition-colors ${textColor} ${borderColor} ${isSelected ? 'shadow-[0_0_15px_rgba(168,85,247,0.5)]' : ''}`}
           style={{ backfaceVisibility: 'hidden' }}
         >
           <div className="text-lg md:text-xl font-bold leading-none">{card.rank}</div>
@@ -206,8 +206,8 @@ function DraggablePokerCard({
         </div>
 
         {/* BACK */}
-        <div 
-          className="absolute inset-0 rounded-xl border-2 border-purple-500/50 bg-black overflow-hidden shadow-[0_0_10px_rgba(0,0,0,0.8)]" 
+        <div
+          className="absolute inset-0 rounded-xl border-2 border-purple-500/50 bg-black overflow-hidden shadow-[0_0_10px_rgba(0,0,0,0.8)]"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           <img src="/verso_medo.png" alt="Card Back" className="w-full h-full object-cover opacity-90" draggable="false" />
@@ -225,11 +225,11 @@ function BalatroDeck({ count }: { count: number }) {
   return (
     <div id="balatro-deck" ref={deckRef} className="absolute bottom-12 left-12 md:bottom-16 md:left-16 w-24 h-36 md:w-32 md:h-48 z-40" style={{ perspective: '1000px' }}>
       {layers.map((_, i) => (
-        <div 
-          key={i} 
+        <div
+          key={i}
           id={i === layers.length - 1 ? 'balatro-deck-top' : undefined}
           className="absolute inset-0 rounded-xl border-2 border-purple-500/50 bg-black overflow-hidden"
-          style={{ 
+          style={{
             transform: `translate(-${i * 1.5}px, -${i * 1.5}px)`,
             boxShadow: i === 0 ? '5px 5px 15px rgba(0,0,0,0.8)' : 'none'
           }}
@@ -299,7 +299,7 @@ export default function ConjurationOverlay({
         return;
       }
       const deckRect = deckEl.getBoundingClientRect();
-      
+
       const tl = anime.timeline({
         complete: () => {
           setAnimatingIndices([]);
@@ -310,7 +310,7 @@ export default function ConjurationOverlay({
         const cardEl = document.querySelector(`.poker-card[data-index="${idx}"]`) as HTMLElement;
         if (!cardEl) return;
         const cardRect = cardEl.getBoundingClientRect();
-        
+
         // Compensate for the opacity-0 class logic
         anime.set(cardEl, { opacity: 1 });
 
@@ -331,12 +331,12 @@ export default function ConjurationOverlay({
           duration: 600,
           easing: 'easeOutQuint'
         }, delayIndex * 150)
-        .add({
-          targets: inner,
-          rotateY: [180, 0],
-          duration: 600,
-          easing: 'easeOutBack'
-        }, delayIndex * 150 + 200);
+          .add({
+            targets: inner,
+            rotateY: [180, 0],
+            duration: 600,
+            easing: 'easeOutBack'
+          }, delayIndex * 150 + 200);
       });
     }
   }, [animatingIndices, state.hand]);
@@ -437,7 +437,7 @@ export default function ConjurationOverlay({
       // Usando apenas os glifos que você escolheu (A-O, sem K, X e Y)
       const symbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'L', 'M', 'N', 'O'];
       const randomSymbol = () => symbols[Math.floor(Math.random() * symbols.length)];
-      
+
       setDiceState({
         attrDie: randomSymbol(),
         skillDie: randomSymbol(),
@@ -456,10 +456,10 @@ export default function ConjurationOverlay({
         const finalSkill = Math.floor(Math.random() * skillSides) + 1;
         const finalWinner = finalAttr > finalSkill ? 'attr' : 'skill';
         setDiceState({ attrDie: finalAttr, skillDie: finalSkill, winner: finalWinner });
-        
+
         // Mantém a levitação e os anéis, só tira a pulsação de texto para revelar o número
         anime.remove('.mystic-text');
-        
+
         // Força a opacidade de volta para 100% imediatamente para não congelar escuro
         anime.set('.mystic-text', { opacity: 1, scale: 1 });
 
@@ -511,11 +511,11 @@ export default function ConjurationOverlay({
           duration: 2500,
           easing: 'easeOutCubic'
         });
-        
+
         setTimeout(() => {
           const actionArea = document.querySelector('.dice-action-area') as HTMLElement;
           const wrapper = actionWrapperRef.current;
-          
+
           if (actionArea && wrapper) {
             anime({
               targets: actionArea,
@@ -577,7 +577,7 @@ export default function ConjurationOverlay({
 
   const toggleCardSelection = (index: number) => {
     if (state.phase !== 'discard_select' && state.phase !== 'showdown') return;
-    
+
     setState(prev => {
       if (!prev) return prev;
       const isSelected = prev.selectedCards.includes(index);
@@ -603,7 +603,7 @@ export default function ConjurationOverlay({
     const { drawnCards, newDeck } = drawCard(state.deck, state.selectedCards.length);
     const newHand = [...state.hand];
     const replacedIndices: number[] = [];
-    
+
     // Replace discarded cards with new ones
     let drawIndex = 0;
     for (let i = 0; i < state.hand.length; i++) {
@@ -681,7 +681,7 @@ export default function ConjurationOverlay({
 
   const handleReorder = (draggedIdx: number, targetIdx: number) => {
     if (draggedIdx === targetIdx) return;
-    
+
     const newHand = [...state.hand];
     const [draggedCard] = newHand.splice(draggedIdx, 1);
     newHand.splice(targetIdx, 0, draggedCard);
@@ -709,15 +709,14 @@ export default function ConjurationOverlay({
       <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
         <div className="max-w-2xl w-full border-2 border-purple-500 bg-black p-6 space-y-6 text-center shadow-[0_0_50px_rgba(168,85,247,0.3)]">
           <h2 className="text-3xl font-display text-purple-300 uppercase tracking-widest">Showdown</h2>
-          
+
           <div className="flex justify-center gap-2">
             {showdownResult.best5.map((c, i) => (
-              <div key={i} className={`w-16 h-24 sm:w-20 sm:h-28 flex flex-col justify-between p-2 rounded bg-white shadow-md border ${
-                c.suit === 'hearts' ? 'border-red-200 text-red-600' : 
-                c.suit === 'diamonds' ? 'border-amber-300 text-amber-500' : 
-                c.suit === 'clubs' ? 'border-purple-300 text-purple-600' : 
-                'border-gray-400 text-neutral-900'
-              }`}>
+              <div key={i} className={`w-16 h-24 sm:w-20 sm:h-28 flex flex-col justify-between p-2 rounded bg-white shadow-md border ${c.suit === 'hearts' ? 'border-red-200 text-red-600' :
+                  c.suit === 'diamonds' ? 'border-amber-300 text-amber-500' :
+                    c.suit === 'clubs' ? 'border-purple-300 text-purple-600' :
+                      'border-gray-400 text-neutral-900'
+                }`}>
                 <div className="text-sm sm:text-base font-bold text-left">{c.rank}</div>
                 <div className="text-2xl sm:text-3xl text-center">
                   {c.suit === 'hearts' ? '♥' : c.suit === 'diamonds' ? '♦' : c.suit === 'clubs' ? '♣' : c.suit === 'spades' ? '♠' : '🃏'}
@@ -727,7 +726,7 @@ export default function ConjurationOverlay({
           </div>
 
           <div className="text-2xl text-purple-200 font-bold uppercase">{showdownResult.handName} (Grau {showdownResult.grade})</div>
-          
+
           <div className="grid grid-cols-2 gap-4 border-t border-b border-purple-500/50 py-4">
             <div>
               <div className="text-xs text-purple-400 uppercase font-bold">Efeito Resultante</div>
@@ -759,26 +758,25 @@ export default function ConjurationOverlay({
       </div>
 
       <div className="flex-1 w-full max-w-5xl flex flex-col items-center justify-center gap-8 mt-16">
-        
+
         {/* ACTION AREA */}
         <div ref={actionWrapperRef} className="flex items-center justify-center w-full relative z-30">
           {state.phase === 'discard_roll' && (
             <div className="dice-action-area text-center space-y-6 max-w-lg w-full overflow-hidden">
               <div className="text-purple-200 text-sm md:text-base">Escolha o Atributo para rolar junto com Ocultismo.</div>
-              
+
               <div className="flex gap-2 justify-center flex-wrap">
                 {['força', 'agilidade', 'inteligência', 'presença', 'vigor'].map(attr => (
                   <button
                     key={attr}
                     disabled={isRolling || !!diceState}
                     onClick={() => setSelectedAttribute(attr as any)}
-                    className={`px-3 py-1.5 border uppercase font-bold text-xs transition-colors rounded ${
-                      selectedAttribute === attr
+                    className={`px-3 py-1.5 border uppercase font-bold text-xs transition-colors rounded ${selectedAttribute === attr
                         ? 'bg-purple-500 border-purple-500 text-black shadow-[0_0_10px_rgba(168,85,247,0.5)]'
                         : 'border-purple-500/50 text-purple-300 hover:bg-purple-500/20 disabled:opacity-50'
-                    }`}
+                      }`}
                   >
-                    {attr.substring(0,3)}
+                    {attr.substring(0, 3)}
                   </button>
                 ))}
               </div>
@@ -790,7 +788,7 @@ export default function ConjurationOverlay({
                   </button>
                 ) : diceState ? (
                   <div className="dice-row-container flex gap-12 md:gap-24 relative z-10">
-                    
+
                     {/* ATTR DIE */}
                     <div className="conjure-die-attr flex flex-col items-center gap-8">
                       <div className="text-xs md:text-sm uppercase text-purple-300/80 font-display tracking-[0.4em] -mt-6">{selectedAttribute}</div>
@@ -803,7 +801,7 @@ export default function ConjurationOverlay({
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* SKILL DIE */}
                     <div className="conjure-die-skill flex flex-col items-center gap-8">
                       <div className="text-xs md:text-sm uppercase text-purple-300/80 font-display tracking-[0.4em] -mt-6">Ocultismo</div>
@@ -833,7 +831,7 @@ export default function ConjurationOverlay({
                   Sua intuição revela até <span className="font-bold text-purple-400 text-4xl mx-2" style={{ textShadow: '0 0 20px rgba(168,85,247,0.8)' }}>{state.discardLimit}</span> descartes permitidos.
                 </div>
               </div>
-              <button 
+              <button
                 onClick={handleDiscardAndReplace}
                 className="discard-btn opacity-0 translate-y-4 px-8 py-3 border-2 border-purple-500 text-purple-300 font-bold uppercase hover:bg-purple-500 hover:text-black transition-colors relative z-50 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
               >
@@ -846,10 +844,10 @@ export default function ConjurationOverlay({
             <div className="text-center space-y-4 w-full max-w-2xl relative z-50">
               <div className="text-yellow-400 font-bold text-xl uppercase tracking-widest animate-pulse">PRESSÁGIO 20!</div>
               <div className="text-purple-200 text-sm">Escolha uma carta do baralho para adicionar à sua mão (substituirá a 1ª carta).</div>
-              <select 
+              <select
                 className="w-full bg-black border border-purple-500 text-purple-200 p-2 outline-none h-10"
                 onChange={(e) => {
-                  if(e.target.value) handleOmenSelect(Number(e.target.value));
+                  if (e.target.value) handleOmenSelect(Number(e.target.value));
                 }}
               >
                 <option value="">-- Buscar no Baralho --</option>
@@ -880,7 +878,7 @@ export default function ConjurationOverlay({
           {state.phase === 'showdown' && (
             <div className="text-center space-y-4 relative z-50">
               <div className="text-purple-200">Sua mão estendida possui {state.hand.length} cartas. Selecione exatamente 5 para o Showdown.</div>
-              <button 
+              <button
                 onClick={handleShowdown}
                 disabled={state.selectedCards.length !== 5}
                 className="px-8 py-3 bg-purple-500 text-black font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed"
@@ -915,14 +913,14 @@ export default function ConjurationOverlay({
       <BalatroDeck count={state.deck.length} />
 
       <div className="absolute top-8 right-8 flex gap-4 z-50">
-        <button 
-          onClick={() => setShowGuide(true)} 
+        <button
+          onClick={() => setShowGuide(true)}
           className="text-purple-300 border border-purple-500 px-4 py-2 hover:bg-purple-500/20 uppercase text-xs font-bold transition-colors cursor-pointer"
         >
           Guia de Mãos
         </button>
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           className="text-purple-300 border border-purple-500 px-4 py-2 hover:bg-purple-500/20 uppercase text-xs font-bold transition-colors"
         >
           Minimizar Transe (Pausar)
@@ -965,7 +963,7 @@ export default function ConjurationOverlay({
             <div className="pt-2 text-xs text-purple-400/80 text-center italic">
               Obs: Curingas (Jokers) substituem qualquer carta para formar a melhor combinação possível.
             </div>
-            <button 
+            <button
               onClick={() => setShowGuide(false)}
               className="w-full py-2 bg-purple-500/20 border border-purple-500 text-purple-300 font-bold uppercase hover:bg-purple-500 hover:text-black transition-colors rounded"
             >
