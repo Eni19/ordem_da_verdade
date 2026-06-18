@@ -1,0 +1,1301 @@
+\documentclass[a4paper,11pt,openany]{book}
+
+% --------------------------------------------------
+% IDIOMA E ENCODING
+% --------------------------------------------------
+\usepackage[brazil]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% --------------------------------------------------
+% TIPOGRAFIA
+% --------------------------------------------------
+\usepackage{mathpazo} % Fonte Palatino (clássica, excelente para RPGs de mistério)
+\usepackage{helvet}   % Fonte Helvetica para títulos
+\usepackage{microtype} % Melhora o kerning e espaçamento geral das palavras
+
+% --------------------------------------------------
+% PÁGINA E GEOMETRIA
+% --------------------------------------------------
+\usepackage[a4paper,
+left=1.5cm,
+right=1.5cm,
+top=2.5cm,
+bottom=2.5cm]{geometry}
+
+% --------------------------------------------------
+% PACOTES VISUAIS E ESTRUTURAIS
+% --------------------------------------------------
+\usepackage{cuted}
+\usepackage{graphicx}
+\usepackage[table]{xcolor} % Adicionado [table] para suporte avançado a tabelas
+\usepackage{multicol}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[skins]{tcolorbox} % Adicionado [skins] para sombras e estilos avançados
+\usepackage{hyperref}
+\usepackage{amsmath}
+
+% --------------------------------------------------
+% CORES DO SISTEMA
+% --------------------------------------------------
+% Cores ajustadas para uma paleta mais "Dark/Noir"
+\definecolor{CodexRed}{RGB}{139, 0, 0} % Vermelho Sangue escuro
+\definecolor{CodexGray}{RGB}{245, 245, 245} % Cinza pergaminho claro
+\definecolor{CodexDark}{RGB}{35, 35, 40} % Chumbo/Carvão
+
+% --------------------------------------------------
+% HIPERLINKS
+% --------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=CodexRed,
+    urlcolor=CodexRed,
+    citecolor=CodexDark
+}
+
+% --------------------------------------------------
+% CABEÇALHO E RODAPÉ
+% --------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter.\ #1}{}}
+\fancyhead[LE,RO]{\bfseries\sffamily\thepage}
+\fancyhead[RE]{\sffamily\color{CodexDark}\leftmark}
+\fancyhead[LO]{\sffamily\color{CodexDark}\rightmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{CodexRed}\leaders\hrule height \headrulewidth\hfill}}
+
+% --------------------------------------------------
+% FORMATAÇÃO DE CAPÍTULOS E SEÇÕES
+% --------------------------------------------------
+\newcommand{\titrule}{\titlerule}
+
+\titleformat{\chapter}[display]
+  {\sffamily\bfseries\Huge\color{CodexDark}}
+  {\filleft\Large\textcolor{CodexRed}{\MakeUppercase{\chaptername}}\ \Huge\thechapter}
+  {1ex}
+  {\color{CodexRed}\titrule\vspace{1ex}\filright\color{CodexDark}}
+
+\titleformat{\section}
+  {\sffamily\Large\bfseries\color{CodexDark}}
+  {\thesection}{1em}{}
+  [\vspace{-0.5ex}\color{CodexRed}\rule{\linewidth}{0.5pt}]
+
+\titleformat{\subsection}
+  {\sffamily\large\bfseries\color{CodexDark}}
+  {\thesubsection}{1em}{}
+
+% --------------------------------------------------
+% ESPAÇAMENTO ENTRE COLUNAS E LISTAS
+% --------------------------------------------------
+\setlength{\columnsep}{0.8cm}
+\setlist{nosep, itemsep=0.5ex, leftmargin=*} % Listas mais limpas
+
+% --------------------------------------------------
+% CAIXAS DE REGRAS E EXEMPLOS (TCOLORBOX)
+% --------------------------------------------------
+% Caixa de Regra: Visual sólido, focado na mecânica
+\newtcolorbox{regra}{
+    enhanced,
+    colback=CodexGray,
+    colframe=CodexDark,
+    boxrule=0.5pt,
+    leftrule=4pt, % Borda esquerda grossa
+    arc=2mm,
+    drop shadow=black!20, % Sombra suave
+    fontupper=\sffamily % Regras em fonte sem serifa para diferenciar do texto de lore
+}
+
+% Caixa de Exemplo: Visual flutuante e narrativo
+\newtcolorbox{exemplo}{
+    enhanced,
+    colback=white,
+    colframe=CodexRed,
+    boxrule=1pt,
+    arc=2mm,
+    title=\textbf{Exemplo},
+    coltitle=white,
+    fonttitle=\sffamily\bfseries,
+    attach boxed title to top left={yshift=-3mm, xshift=4mm}, % Título sobreposto à borda
+    boxed title style={colback=CodexRed, arc=1.5mm},
+    drop shadow=black!15,
+    fontupper=\itshape % Texto de exemplo em itálico
+}
+
+% --------------------------------------------------
+% DOCUMENTO
+% --------------------------------------------------
+
+\begin{document}
+
+\frontmatter
+
+\begin{titlepage}
+    \centering
+    \vspace*{4cm}
+    {\sffamily\Huge\bfseries\color{CodexRed} CODEX VERITATIS\par}
+    \vspace{1cm}
+    {\Large Sistema de Regras \& Mistério Paranormal\par}
+    \vspace{8cm}
+    {\Large\textbf{Eni}\par}
+    \vfill
+    {\small Versão de Desenvolvimento\par}
+\end{titlepage}
+
+\tableofcontents
+
+\mainmatter
+
+% ==================================================
+% CAPÍTULO 1
+% ==================================================
+
+\chapter{Dados, Atributos e Perícias}
+
+\begin{multicols}{2}
+
+\section{O Sistema de Jogo}
+
+Sempre que um personagem tenta realizar uma ação cujo resultado é incerto, o Mestre pode solicitar um teste.
+
+Todo teste utiliza dois elementos:
+
+\begin{itemize}
+\item Um \textbf{Atributo}.
+\item Uma \textbf{Perícia}.
+\end{itemize}
+
+Os resultados são somados para determinar o sucesso da ação.
+
+\begin{exemplo}
+Um personagem tenta escalar um muro.
+
+O Mestre solicita um teste de \textbf{Força + Atletismo}.
+
+Força 3 (d10) \\
+Atletismo Treinado (d6)
+
+O jogador rola:
+\begin{itemize}
+\item d10 = 7
+\item d6 = 4
+\end{itemize}
+
+Resultado final: 11.
+\end{exemplo}
+
+\section{Dados Naturais}
+
+Os resultados individuais dos dados permanecem importantes.
+
+Muitas habilidades, efeitos de medo, ações defensivas e fenômenos paranormais utilizam os valores naturais dos dados rolados.
+
+\section{Atributos}
+
+Todo personagem possui seis atributos principais, que dividem de forma simétrica as capacidades do investigador entre o domínio físico e a resiliência mental:
+
+\subsection{Força}
+Força bruta, potência física e impacto. Define a violência de seus golpes, o bônus de dano em ataques corpo a corpo e a eficácia estrutural de Bloqueios e manobras.
+
+\subsection{Agilidade}
+Reflexos, coordenação motora fina e velocidade. Governa a mobilidade geral do personagem, a sua rapidez de reação e, principalmente, a sua Evasão passiva contra a morte.
+
+\subsection{Vigor}
+Resistência física, saúde e recuperação biológica. Dita a resiliência do corpo contra traumas microscópicos ou impactos e determina os Pontos de Vida (PV) máximos.
+
+\subsection{Inteligência}
+Memória, conhecimento acadêmico e raciocínio lógico. Mede a capacidade de conectar pistas, decifrar códigos e define a quantidade de perícias treinadas iniciais do investigador.
+
+\subsection{Presença}
+Personalidade, influência, magnetismo social e pilar emocional. Atua como o farol de obstinação do personagem, definindo o seu limite máximo de pontos de Esperança para alterar as probabilidades da narrativa.
+
+\subsection{Vontade}
+Resiliência da alma, firmeza mental e autocontrole diante do profano. Mede a capacidade do cérebro de ignorar o pânico, resistir à invasão de rituais e determina o tamanho da sua reserva de Pontos de Determinação.
+\section{Escala de Atributos}
+
+\begin{table}[H]
+\centering
+\sffamily
+\rowcolors{2}{CodexGray}{white}
+\begin{tabular}{cc}
+\toprule
+\textbf{Valor} & \textbf{Rolagem} \\
+\midrule
+0 & 2d6 (pior) \\
+1 & d6 \\
+2 & d8 \\
+3 & d10 \\
+4 & d12 \\
+5 & 2d12 (melhor) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{regra}
+Quando um atributo aumenta ou diminui em um passo, mova-o uma posição na tabela acima.
+
+Nenhum atributo pode ultrapassar 5 ou ser reduzido abaixo de 0, salvo indicação contrária.
+\end{regra}
+
+\section{Perícias}
+
+Perícias representam treinamento e experiência.
+
+O atributo representa \textit{como} o personagem realiza a ação. A perícia representa \textit{o quanto} ele sabe fazer aquilo.
+
+\section{Treinamento}
+
+\begin{table}[H]
+\centering
+\sffamily
+\rowcolors{2}{CodexGray}{white}
+\begin{tabular}{cc}
+\toprule
+\textbf{Treinamento} & \textbf{Rolagem} \\
+\midrule
+Sem Treino & 2d6 (pior) \\
+Treinado & d6 \\
+Veterano & d8 \\
+Expert & d10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Perícias Restritas}
+
+Algumas perícias exigem treinamento. Sem ao menos \textit{Treinado}, o personagem não pode utilizá-las.
+
+Exemplos:
+\begin{itemize}
+\item Medicina
+\item Ocultismo
+\item Engenharia
+\item Pilotagem
+\item Programação
+\item Linguística
+\end{itemize}
+
+\section{Acertos Críticos e Presságios}
+
+Nem todos os resultados extraordinários acontecem por habilidade. Às vezes, algo interfere.
+
+Durante cada teste, além dos dados de atributo e perícia, um terceiro dado é rolado secretamente: o \textbf{Dado de Presságio}.
+
+O Dado de Presságio representa coincidências impossíveis, sorte absurda, intuições inexplicáveis e pequenas falhas nas regras da realidade.
+
+Normalmente, seu resultado é ignorado. Porém, quando ele revela um valor excepcional, algo incomum acontece.
+
+\subsection{Acerto Crítico}
+
+Se o Dado de Presságio resultar em \textbf{20}, ocorre um \textbf{Acerto Crítico}.
+
+O teste é considerado um sucesso extraordinário. Além de obter sucesso automático, algo favorável acontece além do esperado. A ação é executada da melhor forma possível dentro das circunstâncias.
+
+O efeito exato depende da situação.
+
+\begin{exemplo}
+Um investigador tenta arrombar uma porta antes que a criatura alcance o grupo. O teste normalmente seria apenas um sucesso.
+
+Entretanto, o Dado de Presságio resulta em 20.
+
+A porta é aberta imediatamente e, ao atravessá-la, o grupo descobre uma rota de fuga que não conhecia.
+\end{exemplo}
+
+\subsection{Interferência do Impossível}
+
+Um Acerto Crítico não significa necessariamente habilidade. Às vezes, significa que a realidade simplesmente colaborou.
+
+O projétil ricocheteia exatamente onde precisava. A pessoa certa aparece no momento certo. Uma pista importante permanece intacta apesar dos anos.
+
+O resultado acontece. A explicação pode não existir.
+
+\begin{regra}
+Quando o Dado de Presságio resulta em 20:
+\begin{itemize}
+\item O teste obtém sucesso automático.
+\item O Mestre adiciona uma consequência favorável extraordinária.
+\item Essa consequência deve parecer improvável, mas não impossível.
+\item O resultado nunca deve anular completamente um desafio principal ou encerrar uma cena importante sozinho.
+\end{itemize}
+\end{regra}
+
+\end{multicols}
+
+% ==================================================
+% CAPÍTULO 2
+% ==================================================
+
+\chapter{Esperança e Medo}
+
+\begin{multicols}{2}
+
+\section{O Medo}
+
+\section{O Medo}
+
+% ----------------------------------------------------------------------
+% TABELA DE EFEITOS DE MEDO
+% ----------------------------------------------------------------------
+\begin{table*}[t]
+\centering
+\footnotesize
+\sffamily
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{CodexGray}{white}
+\begin{tabularx}{\textwidth}{c l X}
+\toprule
+\textbf{Resultado} & \textbf{Efeito} & \textbf{Resumo Mecânico} \\
+\midrule
+2 & Encorajamento & Aumente um Atributo em 1 passo até o fim da cena. Recupere 1 PD por nível. \\
+3 & Surto de Adrenalina & Aumente Força OU Agilidade em 1 passo. Reduza Inteligência OU Presença em 1 passo. Sofre -3 em testes de calma. \\
+4 & Amnesia & Reduza Inteligência em 1 passo. Extrema dificuldade para lembrar fatos ou conectar pistas. \\
+5 & Hesitação & Reduza Agilidade em 1 passo para reação, fuga e iniciativa. Age depois dos demais em urgências. \\
+6 & Fraqueza & Reduza Força em 1 passo até o fim da cena. \\
+7 & Tremor Incontrolável & O choro e os espasmos arruínam sua discrição. Sofre -1 passo em Furtividade, Enganação e controle corporal. \\
+8 & Histeria & Reduza Presença em 1 passo. Sofre eminterações, concentração e conjuração. \\
+9 & Visão de Túnel & Sofre -3 de Evasão contra ataques de outras ameaças. Não pode usar reações para proteger aliados. \\
+10 & Desespero & Reduza Vontade em 1 passo. Limite máximo de PD cai e próximos testes de Trauma ficam mais difíceis. \\
+11 & Desorientação & Perde a capacidade de reagir ativamente a ataques e não pode usar Cargas Defensivas. \\
+12 & Paranoia & Recusa ajuda. Aliados precisam passar em Persuasão vs. Vontade para te curar/buffar. Não pode usar a ação Ajudar. \\
+13 & Ansiedade & Sempre que um dado natural rolar 1, o teste falha automaticamente gerando complicação drástica. \\
+14 & Tique Nervoso & Gaste uma Ação de Movimento no início do turno para realizar um tique compulsivo ou perca 1d4 de Determinação (PD). \\
+15 & Assombro (Pesadelos) & Sofre -2 em Percepção/Investigação. No próximo descanso, não recebe Terapia de Campo e deve escolher curar PV ou PD. \\
+16 & Pânico Somático & Reduza os dados de Perícia em 1 passo. Perde o fôlego, fala frases curtas e não faz respiração controlada. \\
+17 & Alucinação & Ao atacar/agir: se o dado de Atributo rolar ÍMPAR, foca na ilusão e falha; se PAR, o ataque segue normalmente. \\
+18 & Fuga Cega & Obrigado a usar pelo menos uma Ação de Movimento no turno para se afastar da origem do medo. \\
+19 & Egoísmo de Sobreviv. & Proibido de gastar ações, itens ou PD para curar ou ajudar aliados se isso te colocar em qualquer risco direto. \\
+20 & Dissociação & Para executar uma Ação Padrão, precisa se automutilar sofrendo 1d4 de dano letal inescapável. \\
+21 & Trauma & Paralisado por 1 rodada e adquire Fobia/Mania temporária. \\
+22 & Paralisia & Incapaz de agir por 1 rodada completa. Depois, exige teste de Vontade para se mover voluntariamente. \\
+23 & Desmaio & Cai inconsciente e Indefeso. Desperta com habilidade médica, dano físico direto, ou no fim da cena. \\
+24+ & Choque Sistêmico & Cai Catatônico (Inconsciente/Indefeso). Retorna com 1 PD, ganha Trauma Permanente e não recupera PV/PD/Cargas em descansos na missão. \\
+\bottomrule
+\end{tabularx}
+\caption{\textbf{Tabela de Efeitos de Medo}}
+\end{table*}
+% ----------------------------------------------------------------------
+
+\begin{regra}
+\textbf{Rolagens e Cascata de Horror:} Quando sofrer um Efeito de Medo, role \textbf{2d10} e adicione \textbf{+1 para cada Medo ativo} (condições, fobias e traumas que o personagem já possui na ficha ou sofre na cena).
+
+\textbf{Efeitos Repetidos:} Efeitos idênticos não se acumulam. Caso a sua rolagem (após a soma dos modificadores) resulte em um número de uma condição que você \textit{já está sofrendo}, aplique imediatamente o próximo efeito numérico superior disponível na tabela. 
+\end{regra}
+% ----------------------------------------------------------------------
+
+O medo é uma das forças mais poderosas que uma pessoa pode experimentar. Diante do desconhecido, do sobrenatural ou da própria morte, a mente humana reage de maneiras imprevisíveis. Algumas pessoas entram em pânico. Outras congelam. Algumas se tornam agressivas. Outras simplesmente se recusam a aceitar o que está acontecendo.
+
+Neste sistema, o medo não é apenas uma emoção. Ele é uma mecânica central da narrativa. O medo altera o comportamento dos personagens, afeta suas capacidades e deixa marcas duradouras em suas mentes.
+
+\section{Sanidade}
+
+A Sanidade representa a estabilidade mental do personagem. Ela mede sua capacidade de lidar com o horror, a pressão emocional e os fenômenos que desafiam sua compreensão da realidade.
+
+Quando um personagem presencia acontecimentos traumáticos, entidades sobrenaturais ou situações particularmente aterrorizantes, ele pode sofrer \textbf{Dano Mental}.
+
+Quando a Sanidade chega a zero, o personagem continua consciente, mas sua mente se torna extremamente vulnerável aos efeitos do medo.
+
+\begin{regra}
+Sempre que sofrer um evento aterrorizante, o Mestre pode exigir um teste de Vontade ou aplicar diretamente um efeito de medo.
+
+A gravidade do evento determina a intensidade da consequência.
+\end{regra}
+
+\section{Perturbado}
+
+Quando um personagem possui menos da metade de sua Sanidade máxima, ele está \textbf{Perturbado}.
+
+Um personagem perturbado encontra dificuldade para separar seus medos da realidade. Além disso, situações traumáticas podem gerar novas Fobias ou Manias.
+
+\begin{regra}
+Sempre que um personagem ficar Perturbado durante uma cena significativa, o Mestre pode determinar que ele adquira uma Fobia ou Mania temporária relacionada aos eventos vivenciados.
+\end{regra}
+
+\section{Fobias e Manias}
+
+Todo personagem possui pelo menos uma Fobia e uma Mania. 
+
+Essas características representam aspectos importantes de sua personalidade, seus medos, obsessões e fragilidades emocionais. Embora possam causar problemas, elas também são uma fonte de Esperança, pois ajudam a definir quem o personagem é diante do horror.
+
+\subsection{Fobias}
+
+Uma Fobia é um medo intenso, irracional ou profundamente enraizado. Quando confrontado com o objeto de sua Fobia, o personagem pode reagir de forma impulsiva, irracional ou emocional.
+
+Alguns exemplos incluem:
+\begin{itemize}
+\item Escuridão (Nictofobia)
+\item Altura (Acrofobia)
+\item Solidão (Monofobia)
+\end{itemize}
+
+Uma Fobia pode ser invocada tanto pelo Mestre quanto pelo jogador quando a situação desperta aquele medo. Quando uma Fobia é invocada, o personagem sofre normalmente um Efeito de Medo.
+
+\begin{itemize}
+\item Se a Fobia for invocada pelo Mestre, o personagem recebe 1 ponto de Esperança.
+\item Se a Fobia for invocada pelo próprio jogador, o personagem recebe 2 pontos de Esperança.
+\end{itemize}
+
+A recompensa maior representa a decisão voluntária do jogador de colocar seu personagem em desvantagem em nome da narrativa.
+
+\subsection{Manias}
+
+Uma Mania é um comportamento compulsivo, obsessivo ou difícil de controlar. Ao contrário das Fobias, Manias não são necessariamente motivadas pelo medo. Elas representam hábitos, obsessões ou impulsos que frequentemente colocam o personagem em situações inconvenientes. Alguns exemplos incluem:
+\begin{itemize}
+\item Piromania
+\item Cleptomania
+\item Mitomania
+\end{itemize}
+
+Manias não provocam Efeitos de Medo automaticamente. Quando uma Mania cria uma complicação significativa para o personagem ou para o grupo, ela pode ser invocada pelo Mestre ou pelo jogador.
+
+Nesses casos, o personagem recebe 1 ponto de Esperança. Exemplos de complicações significativas incluem:
+\begin{itemize}
+\item Revelar a posição do grupo.
+\item Gastar recursos importantes.
+\item Comprometer uma investigação.
+\item Criar conflitos relevantes.
+\item Assumir riscos desnecessários.
+\end{itemize}
+
+\subsection{Compulsões}
+
+Nem toda manifestação de uma Mania gera uma complicação grave. Sempre que uma Mania influenciar de forma relevante as decisões ou o comportamento do personagem, mas sem causar uma complicação significativa, o Mestre pode conceder 1 ponto de Compulsão.
+
+Ao acumular 3 pontos de Compulsão, eles são removidos e o personagem recebe 1 ponto de Esperança.
+
+Essa regra recompensa jogadores que interpretam suas Manias de forma consistente, mesmo quando elas não alteram drasticamente o rumo da história.
+
+\section{Efeitos de Medo}
+
+Quando um personagem é dominado pelo medo, role na Tabela de Efeitos de Medo.
+
+Role \textbf{2d10} e adicione \textbf{+1 para cada Efeito de Medo ativo} que o personagem possuir. Quanto mais medos acumulados um personagem carrega, maior a chance de sofrer reações severas.
+
+\begin{regra}
+Um Medo ativo representa uma Fobia, Mania, Trauma ou outra condição psicológica permanente que esteja afetando o personagem.
+
+Os efeitos permanecem ativos até o fim da cena, até que o personagem recupere Sanidade ou até que o efeito especifique outra duração.
+\end{regra}
+
+\section{Descrição dos Efeitos de Medo}
+
+A Tabela de Efeitos de Medo fornece um resumo rápido para agilizar o combate, mas as descrições a seguir detalham exatamente como cada condição afeta o personagem na narrativa e nas regras. Salvo indicação contrária, os Efeitos de Medo persistem na ficha até o fim da cena ou até que a Origem do Medo seja eliminada ou suprimida.
+
+\subsection*{2. Encorajamento}
+\textit{Às vezes, o medo traz o melhor de nós. Em vez de quebrar, você encontra uma força inesperada e primária que impulsiona sua vontade de viver.}
+
+\textbf{Efeito Mecânico:} Escolha um Atributo. Ele é aumentado em 1 passo até o final da cena. Além disso, você recupera 1 Ponto de Sanidade por nível de personagem (lembrando que não pode ultrapassar o seu máximo de PD).
+
+\subsection*{3. Surto de Adrenalina}
+\textit{Seu corpo assume o controle. O medo acelera seus músculos, seus reflexos e seus impulsos, mas sua mente perde qualquer traço de clareza ou empatia.}
+
+\textbf{Efeito Mecânico:} Até o fim da cena, aumente em 1 passo o seu dado de Força \textbf{ou} Agilidade (à sua escolha). Em contrapartida, reduza em 1 passo o seu dado de Inteligência \textbf{ou} Presença. Além disso, você sofre -3 de penalidade em quaisquer testes que exijam calma, paciência, mira ou delicadeza.
+
+\subsection*{4. Amnesia}
+\textit{Sua memória fica instável. Pensamentos escapam, eventos recentes se embaralham e conexões lógicas que antes pareciam óbvias tornam-se distantes.}
+
+\textbf{Efeito Mecânico:} Reduza em 1 passo seu dado de Inteligência. Narrativamente, o personagem tem extrema dificuldade para lembrar de informações vitais, conectar pistas, interpretar símbolos ou reconstruir eventos recentes.
+
+\subsection*{5. Hesitação}
+\textit{Você trava, gagueja ou perde a janela do momento certo. Seu corpo simplesmente demora demais para obedecer aos comandos do seu cérebro.}
+
+\textbf{Efeito Mecânico:} Reduza em 1 passo seu dado de Agilidade especificamente para testes de reação, fuga, perseguição, iniciativa e equilíbrio. Além disso, na próxima situação urgente (como o início de um combate ou armadilha), você age depois de todos os demais envolvidos, independentemente da sua iniciativa rolada.
+
+\subsection*{6. Fraqueza}
+\textit{O medo atinge diretamente o seu físico. Você começa a passar mal, suar frio e sentir suas forças abandonando seus membros de forma debilitante.}
+
+\textbf{Efeito Mecânico:} Até o fim da cena, reduza em 1 passo todos os seus dados de Força.
+
+\subsection*{7. Tremor Incontrolável}
+\textit{Seus dentes batem violentamente, seu corpo tem espasmos e pequenos soluços de pânico escapam dos seus lábios, por mais que você tente segurá-los.}
+
+\textbf{Efeito Mecânico:} Até o fim da cena, você se torna um risco de exposição. Você sofre -1 passo em testes de Furtividade, Enganação ou qualquer outra ação que exija silêncio absoluto e controle corporal da respiração. 
+
+\subsection*{8. Histeria}
+\textit{Você ri, chora, grita, repete frases desconexas ou perde o controle do volume da própria voz. Seu medo transborda para fora de você, impossível de esconder.}
+
+\textbf{Efeito Mecânico:} Reduza o seu dado de Presença em 1 passo. Você não consegue se comunicar com clareza e sofre -3 de penalidade em testes de Furtividade, Diplomacia, Enganação, Intimidação, concentração para habilidades e qualquer tentativa de comando ou conjuração verbal.
+
+
+
+\subsection*{9. Visão de Túnel}
+\textit{Sua mente foca inteiramente na fonte do seu pavor. Tudo ao seu redor se torna um borrão periférico insignificante.}
+
+\textbf{Efeito Mecânico:} Enquanto este efeito estiver ativo, você sofre uma penalidade de -3 na sua Evasão contra ataques de \textbf{qualquer criatura que não seja a origem do seu medo}. Além disso, você está tão focado na sua própria ameaça que não pode usar reações ativas para proteger ou alertar aliados adjacentes.
+
+\subsection*{10. Desespero}
+\textit{A certeza de que nada vai dar certo contamina a sua alma. A resiliência vai embora.}
+
+\textbf{Efeito Mecânico:} Reduza o seu dado de Vontade em 1 passo. O seu limite máximo de PD cai proporcionalmente na cena, e seus próximos testes para resistir à DT de Trauma tornam-se mecanicamente mais difíceis.
+
+\subsection*{11. Desorientação}
+\textit{Você perde a noção de espaço, tempo e prioridade. Por um momento angustiante, a geografia do cenário e o fluxo da batalha deixam de fazer sentido.}
+
+\textbf{Efeito Mecânico:} Você perde a capacidade de reagir de forma consciente a ataques inimigos e \textbf{não pode usar Cargas Defensivas} (Aparar, Esquivar, Bloquear). 
+
+\subsection*{12. Paranoia}
+\textit{Você desconfia de tudo e acaba se tornando reativo demais. Cada sombra, silêncio ou aliado se aproximando parece esconder uma ameaça velada ou uma traição iminente.}
+
+\textbf{Efeito Mecânico:} Você não pode ser alvo de ações voluntárias benéficas de aliados (como ser alvo de Acalmar, primeiros socorros, entrega de itens ou buffs) sem que o aliado primeiro passe em um teste de Persuasão contra a sua Vontade (você resiste ativamente à ajuda). Além disso, dominado pela desconfiança, você se recusa a dar as costas aos outros e não pode usar a ação de Ajudar aliados durante o combate.
+
+\subsection*{13. Ansiedade}
+\textit{Para você, qualquer pequeno erro parece devastador. Cada falha mínima parece anunciar uma catástrofe inevitável, sabotando sua própria competência.}
+
+\textbf{Efeito Mecânico:} Sempre que um dos seus dados naturais rolar 1 em qualquer teste, a ação falha automaticamente, mesmo que o resultado matemático total (somando modificadores ou outros dados) fosse suficiente para passar. Se o teste já seria uma falha natural, essa falha gera uma complicação narrativa drástica ditada pelo Mestre.
+
+\subsection*{14. Tique Nervoso}
+\textit{Sua mente fragmentada exige que você repita um padrão inútil para tentar organizar o caos, drenando sua atenção do combate real.}
+
+\textbf{Efeito Mecânico:} No início de cada um de seus turnos, você \textbf{deve} gastar uma Ação de Movimento para realizar o seu tique (exemplos: checar obsessivamente a munição que já sabe que tem, balbuciar uma reza, limpar o sangue do rosto). Se você decidir ignorar o tique ou não tiver a ação disponível, a agonia psicológica drena a sua energia vital, fazendo com que você perca \textbf{1d4 Pontos de Determinação (PD)}.
+
+\subsection*{15. Assombro (Pesadelos)}
+\textit{A imagem do horror gruda na parte de trás dos seus olhos. Toda vez que pisca, você vê a morte.}
+
+\textbf{Efeito Mecânico:} Na cena atual, você sofre -2 em Percepção e Investigação. O verdadeiro terror vem depois: no seu próximo Descanso, o pesadelo te impede de dormir. Você deve escolher entre recuperar PV \textbf{ou} PD (não pode ambos) e \textbf{não pode ser alvo} da Terapia de Campo para remover Fraturas Mentais neste descanso.
+
+\subsection*{16. Pânico Somático}
+\textit{O medo fecha sua garganta. Seu coração bate rápido demais, o peito aperta e puxar o ar torna-se um esforço consciente e doloroso.}
+
+\textbf{Efeito Mecânico:} os seus dados de Perícia em 1 passo. Você perde o fôlego e não consegue gritar ou realizar ações de respiração controlada. Você não consegue falar frases longas
+
+\subsection*{17. Alucinação}
+\textit{Você vê, ouve ou sente coisas que simplesmente não estão lá. Para a sua psique estilhaçada, essas percepções são a realidade absoluta.}
+
+\textbf{Efeito Mecânico:} O Mestre passa a descrever ilusões na cena como se fossem alvos reais. Sempre que você realizar um ataque ou ação direcionada, observe o valor natural do seu dado de Atributo principal: se o resultado for \textbf{ÍMPAR}, sua mente focou na alucinação. A ação e os recursos (munição, PD) são gastos, mas o ataque atinge o vazio e falha automaticamente. Se for \textbf{PAR}, sua mente encontrou a ameaça real e o ataque é resolvido normalmente.
+
+\subsection*{18. Fuga Cega}
+\textit{O instinto primário de sobrevivência entra em curto-circuito. Ficar no mesmo ambiente que a ameaça torna-se fisicamente insuportável.}
+
+\textbf{Efeito Mecânico:} Durante o seu turno, você é obrigado a usar pelo menos uma de suas Ações de Movimento para se afastar o máximo possível da origem do medo. Sob nenhuma circunstância você pode se mover voluntariamente em direção à ameaça enquanto este efeito durar.
+
+\subsection*{19. Egoísmo de Sobrevivente}
+\textit{Você precisa sobreviver, custe o que custar. Todo o resto, incluindo a vida de seus amigos, parece secundário diante da urgência de continuar respirando.}
+
+\textbf{Efeito Mecânico:} Até o fim da cena, você está proibido de gastar suas ações, itens ou Pontos de Determinação para curar, acalmar, proteger ou ajudar outro personagem se essa ação colocar você em qualquer nível de risco direto ou consumir recursos que salvariam sua vida.
+
+
+
+
+\subsection*{20. Dissociação}
+\textit{Sua mente "desliga". O mundo ao redor parece um filme distante e irreal.}
+
+\textbf{Efeito Mecânico:} Você sofre -5 em reações e evasão. O corpo está anestesiado; para conseguir focar na realidade e executar qualquer \textbf{Ação Padrão}, você precisa antes causar um choque físico em si mesmo (ex: morder o braço até sangrar). Isso causa \textbf{1d4 de dano físico inescapável} (Ação Livre).
+
+\subsection*{21. Trauma}
+\textit{O horror rasga o tecido da sua alma de forma permanente. Algo nas sombras, no cheiro ou no som desta cena fará parte dos seus pesadelos para sempre.}
+
+\textbf{Efeito Mecânico:} Você fica paralisado (incapaz de agir) por 1 rodada. Além disso, você adquire imediatamente uma Fobia ou Mania temporária atrelada aos eventos do combate. Este trauma dura até o fim da missão atual, penalizando suas ações sempre que o gatilho estiver próximo. Diferente de fobias de histórico, este Trauma concede Esperança no máximo uma única vez por missão.
+
+
+\subsection*{22. Paralisia}
+\textit{Você congela no lugar. Seus músculos endurecem como pedra, e até o menor movimento exige uma força titânica que você não possui no momento.}
+
+\textbf{Efeito Mecânico:} Você fica totalmente incapaz de agir por 1 rodada completa. Após essa rodada, o bloqueio persiste: sempre que quiser realizar uma Ação de Movimento voluntária, você precisará primeiro passar em um teste de Vontade para conseguir vencer a rigidez dos seus músculos.
+
+
+
+\subsection*{23. Desmaio}
+\textit{A sua mente não suporta o peso escurecedor da realidade e simplesmente desliga os disjuntores do seu corpo como um mecanismo drástico de defesa.}
+
+\textbf{Efeito Mecânico:} Você cai imediatamente Inconsciente e recebe a condição Indefeso. Você só despertará se for alvo de uma ação médica bem-sucedida, se sofrer qualquer ponto de dano físico direto que cause dor, ou de forma natural ao final da cena, quando a adrenalina baixar.
+
+\subsection*{24+ Choque Sistêmico}
+\textit{O colapso mental e físico absoluto. A mente apaga os disjuntores do corpo para não ser aniquilada pela impossibilidade do universo que acabou de testemunhar. Você se torna uma casca vazia, letárgica e catatônica.}
+
+\textbf{Efeito Mecânico:} O seu jogo na cena atual acabou. Você cai no chão, recebendo as condições \textbf{Inconsciente} e \textbf{Indefeso}, totalmente incapaz de agir, falar ou se proteger. Para sobreviver, você precisa ser estabilizado e fisicamente arrastado do local do horror por seus aliados (o que os obriga a gastar ações de movimento e sofrer penalidades de carga).
+
+Quando finalmente recuperar a consciência (apenas quando estiverem em um local seguro ou após a adrenalina do combate baixar completamente, a critério do Mestre), os seguintes efeitos brutais são aplicados:
+\begin{itemize}
+    \item \textbf{Alma Exausta:} Você desperta com apenas \textbf{1 Ponto de Determinação (PD)}.
+    \item \textbf{A Cicatriz:} O horror se calcifica no seu córtex. O Mestre escolhe um dos seus Estados de Medo temporários ativos (preferencialmente o de maior valor) e o transforma instantaneamente em um \textbf{Trauma Permanente}. Ele nunca mais poderá ser curado e ocupará um slot definitivo na sua mente até o fim da vida do personagem.
+    \item \textbf{A Fratura Incurável (Punição):} O choque foi tão violento que o seu sistema nervoso se recusa a relaxar. Até o final da missão atual, você \textbf{não recupera} nenhum PV, PD ou Carga Defensiva durante momentos de Descanso, e também se torna imune aos efeitos positivos da ação \textit{Terapia de Campo}. Você passará o resto da investigação lutando com o que sobrou no seu corpo.
+\end{itemize}
+
+\section{Esperança}
+
+A Esperança representa a capacidade humana de continuar avançando apesar do medo. Ela simboliza determinação, coragem, fé, sorte, teimosia e a recusa absoluta em desistir quando a sanidade fraqueja.
+
+Personagens ganham Esperança quando enfrentam seus medos, quando suas Fobias e Manias influenciam a história de forma prejudicial, ou através de puro heroísmo.
+
+\subsection{Limite e Recuperação}
+
+A mente humana não consegue estocar otimismo infinitamente enquanto lida com horrores cósmicos. 
+
+\begin{regra}
+Um personagem pode possuir um máximo de \textbf{3 pontos de Esperança} simultaneamente. 
+
+Se você ganhar um ponto de Esperança enquanto já possuir 3, esse ponto é perdido. Essa limitação força os investigadores a utilizarem sua determinação no momento presente.
+\end{regra}
+
+\textbf{O Fôlego Inicial:} No início de cada sessão de jogo, todo personagem que estiver com 0 pontos de Esperança recebe \textbf{1 ponto de Esperança} automaticamente. Isso representa o descanso entre os horrores e a vontade renovada de investigar.
+
+\subsection{Obtendo Esperança}
+
+As formas sistemáticas de ganhar Esperança durante o jogo são:
+
+\begin{itemize}
+\item \textbf{Invocar uma Fobia:} 1 ponto (pelo Mestre) ou 2 pontos (pelo próprio jogador).
+\item \textbf{Invocar uma Mania:} 1 ponto quando gerar uma complicação significativa.
+\item \textbf{Compulsões Acumuladas:} 1 ponto ao acumular e resetar 3 pontos de Compulsão.
+\item \textbf{Atos de Bravura:} Eventos narrativos dramáticos definidos a critério do Mestre.
+\end{itemize}
+\columnbreak
+\section{Gastando Esperança}
+
+A Esperança é o recurso mais valioso para alterar as probabilidades do jogo e continuar lutando contra o desespero. Salvo indicação contrária, cada uso custa \textbf{1 ponto de Esperança} e sua declaração deve ser feita imediatamente após o gatilho narrativo.
+
+\begin{description}[font=\sffamily\bfseries\color{CodexRed}]
+
+    \item[Forçar a Sorte:] Re-rolar um único dado dos dois que você acabou de rolar. O novo resultado deve ser utilizado obrigatoriamente, mesmo que seja pior. \textit{(Você só pode usar esta opção uma vez por teste).}
+    
+    \item[Editar a Cena:] Introduzir um detalhe plausível no ambiente que possa ajudar os personagens (ex: "tem um pé de cabra no porta-malas"). O Mestre possui a palavra final sobre a aprovação.
+    
+    \item[Epifania:] Fazer uma pergunta direta ao Mestre sobre a situação atual ou receber uma pista útil e imediata relacionada à investigação, destravando a cena.
+    
+    \item[Reação Instintiva:] Sobrevivência pura. Você recupera imediatamente uma Carga Defensiva já utilizada na cena de combate atual.
+    
+    \item[Determinação:] Remover uma condição física ou tática temporal que esteja afetando seu personagem (ex: agarrado, cego por poeira, caído). \textit{(Nota: Esta opção NÃO pode ser usada para remover Efeitos de Medo da Tabela de Medo, Doenças ou Venenos letais).}
+    
+    \item[Respirar Fundo:] Quando o Mestre anunciar a Dificuldade (DT) resultante de um ataque psicológico ou visão perturbadora, você pode gastar 1 ponto de Esperança para recobrar o foco e reduzir essa DT específica pela metade (arredondando para cima) antes de realizar o seu teste de resistência.
+    
+    \item[Fazer Sugestão:] Propor um novo uso improvisado para a Esperança baseado na situação atual. O Mestre decide se a proposta é apropriada e se o custo se mantém em 1 ponto.
+
+\end{description}
+
+
+\end{multicols}
+
+% ==================================================
+% CAPÍTULO 3
+% ==================================================
+
+\chapter{Determinação e Sanidade}
+
+\begin{multicols}{2}
+
+\section{Determinação}
+
+A magia, o esforço sobre-humano e a capacidade de forçar os limites do corpo exigem um combustível. A \textbf{Determinação (PD)} representa o fôlego, o foco absoluto e a reserva de energia espiritual do investigador.
+
+Diferente da Sanidade (que outrora representava uma mera barra de vida psicológica[cite: 1]), a Determinação é um recurso tático gasto voluntariamente. Ela é a energia utilizada para sustentar habilidades, ativar poderes de classe, conjurar rituais e resistir à exaustão física e mental.
+
+\section{Limites de Determinação}
+
+O valor inicial e a progressão de Pontos de Determinação dependem do seu treinamento e da sua resiliência inata, governada pelo atributo de \textbf{Vontade}.
+
+\begin{table}[H]
+\centering
+\sffamily
+\rowcolors{2}{CodexGray}{white}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Classe} & \textbf{PD Inicial} & \textbf{Por Nível} \\
+\midrule
+Combatente & 6 + Von & 3 + Von \\
+Especialista & 8 + Von & 4 + Von \\
+Ocultista & 10 + Von & 5 + Von \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{A Mente Estilhaçada (A Nova Sanidade)}
+
+O horror, em sua forma mais pura, não subtrai pontos abstratos; ele corrói a estrutura da realidade que um investigador considera como verdade, deixando cicatrizes comportamentais profundas. 
+
+A \textbf{Sanidade} deixou de ser uma barra de energia. Ela agora é a sua \textbf{Caixa de Estados}. Toda vez que a sua mente falhar em processar o impossível, você não perde números, você adquire uma \textbf{Fratura Mental} que se manifesta como um Estado de Medo (como Ansiedade, Paranoia ou Alucinação).
+
+\section{O Preço do Conhecimento}
+
+Sempre que um investigador confronta horrores, o universo exige um tributo. O evento ou criatura impõe uma Dificuldade (DT) fixa baseada no quão aterrorizante é a sua presença. 
+
+Para resistir, o jogador deve realizar um teste de \textbf{Vontade + Autocontrole} (ou outra perícia adequada definida pelo Mestre) contra esta DT.
+
+\setlength{\tabcolsep}{4pt}
+\begin{table}[H]
+\centering
+\sffamily
+\rowcolors{2}{CodexGray}{white}
+\begin{tabular}{lc}
+\toprule
+\textbf{Grau da Visão} & \textbf{Dificuldade (DT)} \\
+\midrule
+Inquietante & DT 8 \\
+Perturbadora & DT 11 \\
+Assustadora & DT 14 \\
+Sinistra & DT 17 \\
+Macabra & DT 20 \\
+Aterrorizante & DT 23 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Sucesso:} A mente do investigador suporta a visão. Ele não adquire nenhum Estado de Medo, mas a tensão cobra um pedágio físico: ele perde imediatamente \textbf{1 Ponto de Determinação (PD)} pelo esforço colossal de manter a compostura.
+    \item \textbf{Falha:} A mente fratura. O jogador anota \textbf{+1 Efeito de Medo} em sua ficha e deve seguir imediatamente para as regras de Cascata de Horror.
+\end{itemize}
+
+\section{A Cascata de Horror e o Foco}
+
+A cada falha em testes de trauma, a mente se aproxima do colapso definitivo. 
+
+\begin{regra}
+\textbf{A Cascata de Horror:} Quando sua mente fraturar, você é forçado a rolar na Tabela de Efeitos de Medo. Lance \textbf{2d10 + Total de Efeitos de Medo Ativos na Ficha}. Quanto mais fraturada a mente, mais a matemática empurra a rolagem em direção ao Choque Sistêmico (24+)[cite: 1].
+\end{regra}
+
+\begin{regra}
+\textbf{O Foco Traumático (Regra Padrão):} O cérebro em pânico foca apenas nos horrores primários. Você deve anotar todos os resultados que obtiver na tabela para manter o registro da sua decadência, mas \textbf{aplicará as penalidades mecânicas de, no máximo, os 3 Estados de maior valor numérico simultaneamente}. Efeitos menores são suprimidos narrativamente pelo pânico maior, evitando que o personagem se torne injogável, mas continuam contando como Fraturas para a matemática mortal da Cascata.
+\end{regra}
+
+% \textit{Nota sobre Catarse:} Invocar uma Fobia voluntariamente para ganhar Esperança não conta como uma Fratura Mental. O jogador sofre o efeito temporário do medo na cena, mas não acelera a sua jornada rumo à Catatonia, pois a entrega foi uma escolha consciente.
+
+% \section{O Acordo de Sobrevivência}
+
+% Diante de um horror cuja DT seja alta demais, o investigador pode escolher um pacto desesperado: sacrificar o seu futuro para ignorar o colapso no presente.
+
+% \begin{regra}
+% \textbf{O Sacrifício Heroico:} Após o Mestre declarar a DT do Trauma, mas antes de rolar os dados, você pode declarar o Acordo de Sobrevivência. Você ignora o teste, não sofre Fraturas e não rola na Tabela de Medo. Você age com clareza perfeita na cena atual. Em troca, no fim do combate, o seu \textbf{limite máximo de Determinação é reduzido em 1d4 permanentemente} e você adquire uma Fobia/Mania vitalícia.
+% \end{regra}
+
+\section{A Cura e a Supressão do Medo}
+
+Enquanto a mente acumula fraturas e estados de pânico, os investigadores dispõem de três vias fundamentais para lidar com o horror cósmico: suprimir os sintomas temporariamente durante o combate, tratar os traumas em momentos de calmaria ou superar o medo através da vitória absoluta.
+
+\subsection{A Anestesia: Ação Acalmar (Em Combate)}
+
+Durante o caos, é impossível curar uma mente fraturada enquanto o monstro ainda ruge ou o perigo é iminente. Contudo, aliados podem tentar ancorar o personagem à realidade, suprimindo momentaneamente os sintomas paralisantes do pânico.
+
+\begin{regra}
+\textbf{Acalmar (Ação Padrão):} Requer Diplomacia, Medicina ou Religião treinadas. O curandeiro realiza um teste contra \textbf{DT 11} (Difícil).
+\end{regra}
+
+\begin{itemize}
+    \item \textbf{Sucesso:} Escolha entre restaurar \textbf{1d4 de Determinação} ao alvo ou \textbf{Suprimir um Estado}. A Supressão permite que o alvo ignore as penalidades mecânicas de um Efeito de Medo temporário específico por \textbf{1d4 rodadas} (a Fratura Mental e seu peso na matemática da Cascata permanecem ativos).
+    \item \textbf{Falha:} Você sofre de contágio psicológico por acessar a mente fragmentada do alvo, perdendo \textbf{1d4 de Determinação}. Não é possível tentar Acalmar o mesmo alvo novamente durante a cena atual.
+\end{itemize}
+
+\textit{Desgaste:} Cada uso da ação Acalmar contra o mesmo alvo na mesma cena aplica um redutor cumulativo de -1 no teste do curandeiro.
+
+\subsection{Terapia de Campo (No Descanso)}
+
+A verdadeira cura mental exige tempo, segurança relativa e empatia. Durante um Descanso em um local minimamente seguro, um investigador pode prestar primeiros socorros psicológicos a um aliado (ou a si mesmo).
+
+\begin{regra}
+\textbf{Terapia de Campo:} Como uma ação prolongada de descanso, o curandeiro realiza um teste de \textbf{Presença + Diplomacia, Medicina ou Religião}. \\
+\textbf{Dificuldade:} $\text{DT} = 8 + \text{Efeitos de Medo ativos no alvo}$.
+\end{regra}
+
+\begin{itemize}
+    \item \textbf{Sucesso:} O curandeiro alcança a mente em choque do alvo. O alvo apaga definitivamente \textbf{metade dos seus Estados de Medo temporários ativos} (arredondado para cima), removendo também as Fraturas equivalentes da sua ficha e aliviando a matemática da Cascata de Horror.
+    \item \textbf{Falha:} O alvo ainda está em estado agudo de negação e bloqueia a ajuda. Ele não pode ser alvo de uma nova Terapia de Campo até o término do próximo descanso longo.
+\end{itemize}
+
+\subsection{A Catarse Narrativa (O Triunfo)}
+
+O horror é alimentado pela impotência e fragilidade humana. Quando os investigadores provam que o impossível pode sangrar, a mente deles se repara através da mais pura adrenalina da sobrevivência.
+
+\begin{regra}
+\textbf{A Catarse:} Sempre que o grupo derrotar definitivamente a Origem principal do terror na missão (destruir o monstro chefe, exorcizar o artefato central ou interromper o ritual final), ocorre a Catarse. O alívio esmagador varre a mente dos investigadores: todos os personagens presentes \textbf{removem instantaneamente 1d4 Estados de Medo temporários} de suas fichas, sem a necessidade de testes.
+\end{regra}
+
+\section{Ruptura Definitiva}
+
+A mente possui um limite para o que pode processar.
+
+\begin{itemize}
+    \item \textbf{Catatonia (24+):} Se a rolagem da Cascata de Horror atingir o valor 24 ou mais, o investigador entra em Choque Sistêmico[cite: 1]. O personagem torna-se indefeso, incapaz de agir e desmaia[cite: 1].
+    \item \textbf{A Cicatriz:} Ao retornar à consciência (após a cena ser resolvida), o investigador acorda com 1 Ponto de Determinação e um dos estados temporários transforma-se em um \textbf{Trauma Permanente}.
+    \item \textbf{Aposentadoria e Loucura:} Se um investigador acumular 3 Traumas Permanentes em sua ficha ao longo da campanha, ou se a sua Determinação Máxima chegar a zero devido a múltiplos Acordos de Sobrevivência, ele perde a razão irreversivelmente, tornando-se um NPC sob controle do Mestre.
+\end{itemize}
+
+\subsection*{Regras Opcionais: Modulando o Terror}
+
+Para mesas que buscam um desafio brutal, o Mestre pode adotar as seguintes variações:
+
+\begin{regra}
+\textbf{Regra Opcional 1: O Terror Realista} \\
+A regra de Foco Traumático é ignorada. Todos os Efeitos de Medo adquiridos acumulam suas penalidades mecânicas e narrativas simultaneamente na ficha, gerando uma espiral de degradação rápida.
+\end{regra}
+
+\begin{regra}
+\textbf{Regra Opcional 2: O Limiar da Ruptura (Limite Fixo)} \\
+A mente possui um limite físico inflexível. Se o investigador acumular \textbf{6 Fraturas Mentais} em sua ficha ao longo de uma missão, ele não tem mais o direito de rolar na tabela; a mente colapsa instantaneamente e ele entra no estado definitivo de Catatonia (24+).
+\end{regra}
+
+\end{multicols}
+
+% ==================================================
+% CAPÍTULO 3
+% ==================================================
+
+\chapter{Defesas}
+
+\begin{multicols}{2}
+
+\section{Defesa}
+
+Em um confronto, sobreviver é tão importante quanto atacar. Reflexos rápidos, treinamento adequado e equipamentos de proteção podem significar a diferença entre sair ileso de um combate ou terminar a cena gravemente ferido.
+
+Neste sistema, a defesa é dividida em dois componentes:
+\begin{itemize}
+\item \textbf{Evasão}: capacidade natural e passiva de evitar ataques.
+\item \textbf{Defesas Ativas}: reações conscientes utilizadas diante de um perigo imediato, consumindo recursos.
+\end{itemize}
+
+Enquanto a Evasão está sempre presente, as Defesas Ativas exigem atenção, treinamento e escolhas táticas.
+
+\section{Evasão}
+
+A Evasão representa o quão difícil é acertar um personagem em movimento. Sempre que um ataque é feito, o resultado do atacante deve igualar ou superar a sua Evasão.
+
+\begin{regra}
+\centering
+\Large\bfseries Evasão = 7 + Agilidade + Bônus de Proteção
+\end{regra}
+
+A sua Evasão base é definida pela sua Agilidade, mas o uso de equipamentos físicos de proteção adiciona bônus diretos a esse valor, robustecendo sua capacidade de ignorar golpes.
+
+\begin{table}[H]
+\centering
+\sffamily
+\rowcolors{2}{CodexGray}{white}
+\begin{tabular}{cc}
+\toprule
+\textbf{Agilidade} & \textbf{Evasão Base (Sem Armadura)} \\
+\midrule
+0 & 7 \\
+1 & 8 \\
+2 & 9 \\
+3 & 10 \\
+4 & 11 \\
+5 & 12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{exemplo}
+Lucas possui Agilidade 3 e veste uma Proteção Leve (Bônus +1). 
+
+Sua Evasão total é 11 (7 + 3 + 1).
+
+Um monstro realiza um ataque e obtém resultado final 10. Como o resultado é inferior à Evasão de Lucas, o golpe raspa na armadura sem causar dano.
+\end{exemplo}
+
+\section{Proteções}
+
+Utilizar proteção oferece bônus numéricos vitais para a sua Evasão passiva, mas cobra um preço na sua mobilidade e em como você pode reagir ao perigo.
+
+Existem três categorias principais de estado defensivo:
+
+\begin{itemize}
+\item \textbf{Sem Proteção:} Nenhum bônus na Evasão (+0).
+\item \textbf{Proteção Leve:} Concede \textbf{+1} na Evasão.
+\item \textbf{Proteção Pesada:} Concede \textbf{+3} na Evasão.
+\end{itemize}
+
+Cada categoria dita exatamente quais Defesas Ativas o personagem pode executar durante o combate:
+\setlength{\tabcolsep}{4pt} % padrão é 6pt
+\begin{table}[H]
+\centering
+\sffamily
+\rowcolors{2}{CodexGray}{white}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Defesa Ativa} & \textbf{Sem (+0)} & \textbf{Leve (+1)} & \textbf{Pesada (+3)} \\
+\midrule
+Esquiva & Sim & Sim & Não \\
+Bloqueio & Não & Sim & Sim \\
+Aparar & Sim & Sim & Sim \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Proteções leves oferecem equilíbrio, enquanto proteções pesadas sacrificam a capacidade de esquivar em troca de uma imensa defesa estática.
+
+\section{Cargas Defensivas}
+
+Durante uma cena tensa, a adrenalina e o fôlego humano têm limites. Um personagem consegue reagir conscientemente apenas um número limitado de vezes. Esse recurso vital é representado pelas \textbf{Cargas Defensivas}.
+
+\begin{regra}
+Toda vez que decidir utilizar uma Defesa Ativa, você deve gastar 1 Carga Defensiva.
+\end{regra}
+
+Salvo indicação contrária, personagens possuem \textbf{duas Cargas Defensivas} por confronto. Quando todas forem gastas, o personagem perde a capacidade de executar manobras de resposta e dependerá exclusivamente de sua Evasão passiva até o fim  da cena.
+
+\section{Defesas Ativas}
+
+Quando os dados do Mestre rolam alto e o ataque supera sua Evasão, você ainda tem uma janela de milissegundos para tentar sobreviver gastando uma Carga Defensiva. 
+Você deve declarar a sua manobra antes de saber o dano que sofrerá. Cada manobra possui prós e contras dramáticos:
+\begin{itemize}
+\item \textbf{Bloqueio} garante uma mitigação segura, focada em absorção.
+\item \textbf{Esquiva} é focada na mobilidade e pode anular completamente os efeitos limítrofes do inimigo.
+\item \textbf{Aparar} é uma troca franca e violenta: alto risco de falhar, mas com chance de punir o agressor.
+\end{itemize}
+\columnbreak
+\section{Bloqueio}
+
+Bloquear consiste em interpor sua arma, escudo ou as próprias placas da armadura para atenuar a violência de um golpe. É a manobra mais confiável para sobrevivência pura.
+
+\begin{regra}
+Requer Fortitude treinada e uso de Proteção Leve ou Pesada.
+\end{regra}
+
+Quando for atingido por um ataque corpo a corpo, você pode gastar 1 Carga Defensiva para bloquear. Conte a quantidade de dados de dano que o atacante rolou.
+
+\subsection*{Proteção Leve}
+Role Dados de Bloqueio iguais à \textbf{metade} dos dados de dano do ataque, arredondada para baixo (mínimo 1).
+
+\subsection*{Proteção Pesada}
+Role Dados de Bloqueio iguais à \textbf{metade} dos dados de dano do ataque, arredondada para cima (mínimo 1).
+
+Para cada Dado de Bloqueio a que tem direito, role o seu dado de \textbf{Fortitude}. Compare os seus resultados com os dados de dano rolados pelo inimigo.
+Você pode anular um dado de dano do inimigo cujo valor seja \textbf{igual ou menor} ao resultado do seu dado de Fortitude. 
+\textit{Nota: Se estiver de Proteção Pesada, a grossura da armadura ajuda. Cada resultado seu pode anular um dado inimigo de valor até 1 ponto maior que o seu rolar.}
+
+\section{Esquiva}
+
+Esquivar é o ato de escapar da trajetória do perigo. Diferente do bloqueio, que absorve o impacto, a esquiva busca anular completamente a ameaça, seja através de agilidade física, antecipação tática ou blefe.
+
+\begin{regra}
+Requer Reflexos treinado. Proteções Pesadas não podem esquivar.
+\end{regra}
+
+Gaste 1 Carga Defensiva e role \textbf{Atributo Coerente + Reflexos}. O atributo utilizado depende estritamente de como o personagem descreve sua reação à ameaça, sujeito à aprovação do Mestre:
+
+\begin{itemize}
+    \item \textbf{Agilidade:} A esquiva física clássica. Saltar para trás, jogar-se no chão ou desviar através de reflexos musculares rápidos.
+    \item \textbf{Inteligência:} Antecipação e leitura. Perceber o padrão de ataque da criatura, calcular a trajetória de um projétil ou usar a geografia do cenário a seu favor antes do golpe chegar.
+    \item \textbf{Presença:} Finta e frieza. Enganar a leitura do adversário fingindo que vai para um lado e indo para o outro, ou manter o sangue-frio para dar um passo preciso no último milissegundo.
+    \item \textit{Nota: Força e Vigor normalmente não podem ser usados para Esquiva, pois representam o domínio do Bloqueio e do Aparar.
+    }
+\end{itemize}
+
+O resultado da sua rolagem afeta o valor total do ataque inimigo, dependendo do equipamento que você carrega:
+\\
+\begin{itemize}
+    \item \textbf{Sem Proteção:} Você está leve e irrestrito. Subtraia o \textbf{maior} dado que você rolou do resultado total do ataque inimigo.
+    \item \textbf{Proteção Leve:} O peso afeta seus movimentos. Subtraia apenas o \textbf{menor} dado que você rolou do resultado total do ataque inimigo.
+\end{itemize}
+
+Se, após a subtração, o novo total do ataque inimigo ficar \textbf{abaixo da sua Evasão passiva}, o golpe vira um erro e você sai totalmente ileso.
+
+\begin{regra}
+A Esquiva atua apenas na margem de acerto. Ela reduz o resultado matemático total do ataque, mas nunca modifica os dados naturais rolados pelo Mestre na mesa.
+\end{regra}
+
+\section{Aparar}
+
+Aparar abandona a prudência em prol da trocação franca. Você tenta desviar o vetor de força da arma inimiga usando a sua própria, buscando avidamente uma falha na guarda do monstro ou adversário. É uma manobra de altíssimo risco e letalidade.
+
+\begin{regra}
+Requer Luta treinada e empunhar uma arma corpo a corpo adequada.
+\end{regra}
+
+Quando for alvo de um ataque corpo a corpo que superou sua Evasão, gaste 1 Carga Defensiva e role \textbf{Força + Luta} ou \textbf{Agilidade + Luta}. 
+
+A resolução desta manobra ocorre em duas etapas independentes:
+
+\subsection*{1. O Choque de Armas (Mitigação)}
+Compare o \textbf{resultado total} do seu teste com o resultado total do ataque inimigo. 
+Se o seu resultado for \textbf{igual ou maior}, você suportou o impacto e \textbf{reduz o dano total sofrido pela metade} (arredondado para baixo). 
+Se o seu resultado for \textbf{menor}, sua guarda cedeu sob o peso do ataque inimigo e você \textbf{sofre o dano integral}.
+
+\subsection*{2. A Brecha (Oportunidade)}
+Independentemente de ter vencido ou perdido o Choque de Armas, olhe para a mesa e compare os \textbf{valores naturais} dos dados rolados por você com os do Mestre.
+Se pelo menos um dos seus dados exibir o \textbf{mesmo número exato} de um dos dados do atacante, você encontrou o tempo perfeito na postura do adversário.
+
+Você ganha o direito de desferir um \textbf{Contra-Ataque imediato} contra o agressor, resolvido logo após você absorver o golpe inimigo. 
+
+\begin{regra}
+\textbf{Letalidade Focada:} O dano causado por um Contra-Ataque advindo de uma Brecha utiliza estritamente o \textbf{dano base da arma somado ao seu Atributo}. É proibido ativar habilidades extras, feitiços, talentos ou gastar recursos adicionais para tentar amplificar este dano fora do seu turno.
+\end{regra}
+
+\begin{exemplo}
+O monstro ataca e rola um 8 e um 6 (total 14, superando a Evasão do jogador). 
+
+O jogador decide Aparar. Ele rola Força + Luta e tira 6 e 5 (total 11).
+
+\textbf{Resolução:} Como 11 é menor que 14, o jogador perdeu o \textit{Choque de Armas} e sofre todo o dano da criatura. Contudo, um dos dados do jogador (6) é igual a um dos dados do monstro (6). O jogador encontrou \textit{A Brecha}! Mesmo sofrendo um golpe violento e sangrando, ele encontra a falha na guarda do monstro e realiza um Contra-Ataque com sua arma corpo a corpo como retaliação direta.
+\end{exemplo}
+
+\end{multicols}
+
+% ==================================================
+% CAPÍTULO 4 - A ARTE DA CONJURAÇÃO
+% ==================================================
+
+\chapter{A Arte da Conjuração}
+
+\begin{multicols}{2}
+
+Neste sistema, a magia exige sacrifício, tempo e a manipulação das leis da probabilidade. Os Ocultistas não gastam pontos abstratos de ``mana'' instantaneamente; eles apostam sua própria sanidade contra o Outro Lado utilizando um baralho físico na mesa. A eficiência e a agressividade de suas manifestações são um reflexo direto de seu intelecto e maestria com as cartas, enquanto sua Presença atua como o pilar de sua resiliência e volume de Sanidade.
+
+\section{O Baralho e as Mãos de Poder}
+
+A conjuração utiliza um baralho padrão de \textbf{54 cartas} (52 cartas + 2 Coringas). A força de um ritual é definida pela melhor mão de poker de 5 cartas que o Ocultista conseguir montar ao fim de seu transe. 
+
+Os \textbf{Coringas} assumem o valor e naipe de qualquer carta que o jogador desejar.
+
+\begin{table}[H]
+\centering
+\sffamily
+\rowcolors{2}{CodexGray}{white}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{cll}
+\toprule
+\textbf{Grau} & \textbf{Mão Equivalente} & \textbf{Descrição Narrativa} \\
+\midrule
+\textbf{0} & Carta Alta & \textbf{Caos Puro.} Falha de conexão. \\
+\textbf{1} & Um Par & \textbf{Conexão Básica.} Manifestação frágil. \\
+\textbf{2} & Dois Pares / Trinca & \textbf{Controle.} Manifestação normal. \\
+\textbf{3} & Seq. / Flush / Full & \textbf{Dominação.} Magia consistente. \\
+\textbf{4} & Quadra / St. Flush & \textbf{Anomalia.} Manifestação poderosa. \\
+\textbf{5} & Royal Flush / Quina & \textbf{Intervenção.} Efeito impossível. \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\section{A Mão Estendida}
+
+Quando um Ocultista inicia o transe ritualístico, o limite de cartas que ele puxa do baralho para iniciar sua mão é ditado pelo seu nível de Treinamento na perícia \textit{Ocultismo}.
+
+\begin{itemize}
+    \item \textbf{Destreinado:} Não possui capacidade mental para conjurar rituais ativos.
+    \item \textbf{Treinado (d6):} Puxa \textbf{5 cartas}. A base do Poker. Exige trocas cuidadosas para estabilizar a magia.
+    \item \textbf{Veterano (d8):} Puxa \textbf{6 cartas}. A rede de segurança. Ter uma carta sobressalente facilita a busca por combinações.
+    \item \textbf{Expert (d10):} Puxa \textbf{7 cartas}. O domínio completo. Ter mais cartas à disposição expande drasticamente as chances de estruturar rituais complexos.
+\end{itemize}
+
+\begin{regra}
+\textbf{A Regra das 5 Cartas:} Independentemente do tamanho da Mão Estendida (6 ou 7 cartas), no momento final da conjuração (o \textit{Showdown}), o jogador deve escolher \textbf{exatamente 5 cartas} para compor seu jogo e descartar as sobressalentes.
+\end{regra}
+
+\section{O Fluxo do Combate}
+
+A conjuração ativa de um ritual se desenvolve de forma sequencial ao longo de rodadas de combate. Um Ocultista pode sustentar o transe por um período de \textbf{2 a 3 rodadas} para moldar as probabilidades do baralho antes de liberar a energia.
+
+\subsection{Passo 1: Abertura do Transe (Turno 1)}
+O Ocultista inicia o processo gastando sua \textbf{Ação Padrão} na primeira rodada. Ele puxa do baralho a quantidade de cartas definida pela sua \textit{Mão Estendida} (5, 6 ou 7 cartas). Neste turno inicial, a energia ainda está se concentrando, portanto o feitiço \textbf{não pode ser disparado}.
+
+\subsection{Passo 2: Filtragem Paranormal (A Fase de Descarte)}
+Em cada turno que passar em transe (incluindo o Turno 1 e os turnos subsequentes), o Ocultista tenta expurgar o caos do baralho realizando um teste de \textbf{Inteligência + Ocultismo}. O resultado individual das faces dita a eficácia da filtragem:
+
+\begin{regra}
+\textbf{Fórmula de Descarte:} O jogador pode descartar uma quantidade de cartas de sua mão igual à \textbf{metade do maior valor natural exibido entre os dados (arredondado para baixo, com mínimo de 1 carta)}.
+\end{regra}
+
+Após descartar as cartas indesejadas, ele compra imediatamente o mesmo número de cartas do topo do baralho para recompletar sua Mão Estendida.
+
+\begin{exemplo}
+Um Ocultista rola Inteligência + Ocultismo e obtém as faces 4 e 9. O maior valor natural é 9. Dividido por dois resulta em 4,5. Arredondado para baixo, o limite permite ao jogador descartar e repor até 4 cartas de sua mão neste turno.
+\end{exemplo}
+
+\begin{regra}
+\textbf{O Dado de Presságio:} Se o valor natural do Dado de Presságio isolado for exatamente 20, ocorre uma quebra nas regras da realidade. O Ocultista pode realizar seus descartes sem limite numérico e escolher \textbf{uma carta específica diretamente de dentro do baralho inteiro} para adicionar à sua mão, embaralhando o maço em seguida.
+\end{regra}
+
+\subsection{Passo 3: O Ponto de Decisão}
+Ao fim da Fase de Descarte de cada rodada (a partir da segunda rodada de transe), o Ocultista avalia as 5 melhores cartas que consegue reunir em sua mão e deve escolher entre duas ações táticas:
+
+\begin{enumerate}
+    \item \textbf{Showdown (Manifestação):} O Ocultista bate na mesa, revela seu jogo final de 5 cartas e dispara o ritual instantaneamente. O transe se encerra e os efeitos são calculados na matriz.
+    \item \textbf{Segurar Transe (Canalização):} O Ocultista decide que seu jogo ainda não é bom o suficiente ou deseja uma manifestação mais poderosa. O feitiço não é disparado. No próximo turno, ele deverá gastar uma nova \textbf{Ação Padrão} para manter o transe, o que garante a ele uma nova Fase de Descarte e Compra para lapidar a mão.
+\end{enumerate}
+
+\textit{Nota: O limite físico do transe é de 3 rodadas. Ao atingir o Turno 3, o Showdown torna-se obrigatório.}
+
+\end{multicols}
+
+% ----------------------------------------------------------------------
+% TABELA: MATRIZ DE CONJURAÇÃO
+% ----------------------------------------------------------------------
+\begin{table*}[t]
+\centering
+\sffamily
+\renewcommand{\arraystretch}{1.4}
+\rowcolors{2}{CodexGray}{white}
+\begin{tabularx}{\textwidth}{c X X X}
+\toprule
+\textbf{Grau da Mão} & \textbf{Magia de 1º Círculo} & \textbf{Magia de 2º Círculo} & \textbf{Magia de 3º Círculo} \\
+\midrule
+\textbf{Grau 0} & \textcolor{CodexRed}{\textbf{\sffamily\bfseries Ruptura}} & \textcolor{CodexRed}{\textbf{\sffamily\bfseries Ruptura}} & \textcolor{CodexRed}{\textbf{\sffamily\bfseries Ruptura}} \\
+\textbf{Grau 1} & Padrão & \textcolor{CodexRed}{\textbf{\sffamily\bfseries Ruptura}} & \textcolor{CodexRed}{\textbf{\sffamily\bfseries Ruptura}} \\
+\textbf{Grau 2} & Discente & Padrão & \textcolor{CodexRed}{\textbf{\sffamily\bfseries Ruptura}} \\
+\textbf{Grau 3} & Verdadeiro & Discente & Padrão \\
+\textbf{Grau 4} & Anomalia & Verdadeiro & Verdadeiro \\
+\textbf{Grau 5} & Anomalia & Anomalia & Anomalia \\
+\bottomrule
+\end{tabularx}
+\caption{\textbf{Matriz de Conjuração Paranormal}}
+\end{table*}
+% ----------------------------------------------------------------------
+
+\begin{multicols}{2}
+
+\section{Os Efeitos da Conjuração}
+
+Dependendo do resultado cruzado na Matriz no momento do Showdown, a magia se manifesta de formas diferentes ou colapsa sobre o próprio conjurador:
+
+\begin{description}[font=\sffamily\bfseries\color{CodexRed}]
+    
+    \item[Ruptura:] O feitiço falha catastroficamente. A energia volta contra o Ocultista, causando consequências severas proporcionalmente ao círculo tentado, sem manifestar o efeito desejado do ritual.
+    
+    \item[Padrão:] O feitiço funciona na sua versão básica.
+    
+    \item[Discente:] O feitiço funciona na sua versão aprimorada (Discente).
+    
+    \item[Verdadeiro:] O feitiço atinge sua potência máxima descrita no livro (Verdadeiro).
+    
+    \item[Anomalia:] O Ritual ocorre de maneira inteiramente narrativa entre o Mestre e o jogador, que colaboram para descrever como a manifestação altera drasticamente o ambiente ao redor.
+    
+\end{description}
+
+\section{Teste de Ancoragem (Degradação)}
+
+Se o Ocultista estiver realizando a Conjuração Ativa (segundo ou terceiro turno) e sofrer dano físico antes de manifestar o feitiço, o trauma e a agonia ameaçam rasgar a estabilidade de sua concentração. O ritual não é cancelado automaticamente, mas sofre o risco iminente de colapso.
+
+Ao sofrer qualquer quantia de dano, o jogador deve realizar imediatamente um \textbf{Teste de Ancoragem} rolando \textbf{Vigor + Vontade} ou \textbf{Presença + Vontade}. A Dificuldade do teste é determinada pela violência do golpe sofrido através da seguinte fórmula:
+
+\begin{regra}
+\centering
+\Large\bfseries DT = 8 + Metade do Dano Total Sofrido
+\end{regra}
+\textit{Nota: O valor da divisão da metade do dano deve ser arredondado para baixo.}
+
+\begin{itemize}
+    \item \textbf{Sucesso:} O Ocultista trinca os dentes e suporta a agonia física profunda. A canalização e o transe seguem intactos e protegidos em sua mente.
+    \item \textbf{Falha (O Showdown Forçado):} A dor quebra o controle sobre o Outro Lado, vazando a energia acumulada prematuramente. O Ocultista é forçado a realizar um \textbf{Showdown Imediato} naquele exato instante. Ele deve escolher suas 5 melhores cartas atuais do jeito exato que estão em sua mão, sem direito a realizar novos descartes ou compras para se salvar.
+\end{itemize}
+
+\section{A Resistência do Alvo}
+
+A maioria dos rituais prejudiciais ou ofensivos permite que as criaturas tentem evitar a distorção completa da realidade em seus corpos ou mentes através de um teste de resistência ativa.
+
+A Dificuldade do teste imposto pelo Ocultista não é fixa; ela é maleável e cresce organicamente baseada no círculo do feitiço e no sucesso de sua própria arrumação de cartas no Poker, calculada da seguinte forma:
+
+\begin{regra}
+\centering
+\Large\bfseries DT = 8 + Grau da Mão Final + Círculo do Ritual
+\end{regra}
+
+Cada ritual indicará exatamente como o sucesso no teste de resistência atenua o feitiço, utilizando os seguintes termos padronizados:
+
+\begin{description}[font=\sffamily\bfseries\color{CodexRed}]
+    \item[Anula:] O ritual falha por completo e não gera nenhum tipo de efeito adverso sobre o alvo que obteve sucesso no teste.
+    \item[Reduz à Metade:] O efeito matemático bruto ou a quantidade de dados de dano do ritual é cortada em 50\% (arredondado para baixo) sobre o alvo que passou.
+    \item[Parcial:] O feitiço atinge o alvo, mas de forma mitigada. O ser afetado sofre os efeitos descritos no ``Núcleo'' do ritual
+    \item[Desacredita:] Exclusivo para manifestações ilusórias. O alvo deve resistir usando Inteligência ou Presença. Se um ser interagir de perto com o ritual e passar no teste, ele quebra a ilusão em sua mente. O feitiço continua existindo no ambiente, mas não tem efeito sobre este ser, que pode avisar seus aliados (como uma ação livre) para que também ganhem o direito de tentar desacreditar.
+\end{description}
+
+\end{multicols}
+
+% ==================================================
+% CAPÍTULO X - A PEDRA DE ROSETA
+% ==================================================
+
+\chapter{A Pedra de Roseta: Traduzindo o Paranormal}
+
+\begin{multicols}{2}
+
+Adaptar conteúdos e mecânicas de outros sistemas d20 (como o \textit{Ordem Paranormal}) para o \textit{Codex Veritatis} não é uma questão de conversão matemática direta, mas sim de traduzir a sensação de poder e o impacto narrativo sem quebrar a economia do jogo.
+
+Enquanto sistemas tradicionais operam com múltiplos d20 e bônus fixos na casa das dezenas (+10, +15), o \textit{Codex Veritatis} brilha em uma curva de soma de dados variáveis (ex: d10 + d8) com um teto numérico restrito e orgânico. Um bônus inflado importado cegamente tornaria os testes obsoletos e apagaria a tensão.
+
+As diretrizes a seguir compõem a ``Pedra de Roseta'', um guia definitivo de tradução para o Mestre converter habilidades, poderes e modificadores mantendo a justiça estatística, o frio na barriga da rolagem e o equilíbrio visceral do \textit{Game Design}.
+
+\section{Bônus Estáticos em Perícias}
+
+Esta é a conversão mais tátil do sistema. Para evitar que os bônus fixos de perícia (+5, +10, +15) inflem demasiadamente os resultados ou garantam sucessos automáticos entediantes, eles são convertidos em \textbf{Dados de Impulso}. Estes dados extras são rolados junto com o teste, garantindo que a tensão do acaso permaneça, mas recompensando o nível de treinamento do personagem com tetos numéricos progressivamente maiores.
+
+\begin{description}[font=\sffamily\bfseries\color{CodexRed}]
+
+    
+    \item[Bônus de +5:] Traduz-se para o ganho de \textbf{+1d4} de Impulso somado ao resultado do teste.
+    
+    \item[Bônus de +10:] Traduz-se para o ganho de \textbf{+1d6} de Impulso somado ao resultado do teste.
+    
+    \item[Bônus de +15:] Traduz-se para o ganho de \textbf{+1d8} de Impulso somado ao resultado do teste.
+\end{description}
+
+\subsection{Regras Opcionais: O Controle do Caos}
+
+Para mesas que preferem uma abordagem menos dependente da sorte, ou para momentos em que o profissionalismo absoluto do personagem não deveria abrir margem para erros pífios, o Mestre pode implementar as seguintes abordagens sobre os Dados de Impulso:
+
+\begin{regra}
+\textbf{Regra Opcional 1: O Piso de Consistência (Valor Fixo)} \\
+O jogador pode abdicar permanentemente de rolar os Dados de Impulso para assumir um valor estático e seguro. Este valor é sempre igual a \textbf{metade do número máximo de faces do dado}. Assim, um poder de +5 (+1d4) garante \textbf{+2} fixo; um poder de +10 (+1d6) garante \textbf{+3} fixo; e um poder de +15 (+1d8) garante \textbf{+4} fixo.
+\end{regra}
+
+\begin{regra}
+\textbf{Regra Opcional 2: A Aposta Tática (A Escolha do Jogador)} \\
+Esta é a dinâmica recomendada para maximizar a agência. Antes de realizar qualquer teste que envolva um Dado de Impulso, o jogador tem o direito de avaliar a situação e \textbf{escolher em voz alta} se deseja assumir o valor fixo (Segurança) ou se deseja rolar o dado na mesa (Risco). Uma vez feita a escolha e o teste iniciado, o resultado é definitivo, mesmo que o dado venha a rolar um valor "1".
+\end{regra}
+\section{Bônus de Dados Extras}
+
+Sistemas d20 frequentemente concedem rolagens de $+1d20$ para maximizar acertos críticos. No \textit{Codex Veritatis}, a flutuação do personagem é ditada pelo Atributo.
+
+\begin{itemize}
+    \item \textbf{+1d20 no Teste:} Traduz-se para \textbf{Vantagem no Atributo}. O jogador rola um dado extra do seu Atributo base para aquele teste e mantém o melhor resultado.
+    \item \textbf{+2d20 no Teste:} Traduz-se para \textbf{Vantagem no Atributo e Pericia}. Rola-se uma vantagem para o dado de perícia e de atributo
+\end{itemize}
+
+\section{Aumentos de Atributo}
+
+\begin{regra}
+\textbf{+1 em Atributo:} Traduz-se para o \textbf{Aumento de 1 Passo} na Escala de Atributos do personagem (ex: de d8 para d10). Se o atributo do personagem já estiver no limite estrutural de 5 (2d12), a conversão transforma-se em um \textbf{+2 fixo} adicionado ao resultado de todas as rolagens daquele atributo, representando a maestria biológica.
+\end{regra}
+
+\section{Bônus de Defesa e Evasão}
+
+A Defesa passiva no \textit{Codex} dita a letalidade do jogo e é mantida sob forte controle. Traduzir valores massivos (+10, +15 de defesa) destruiria a ameaça dos confrontos. A conversão reparte esses bônus em defesas ativas e punições matemáticas para o agressor.
+
+\begin{description}[font=\sffamily\bfseries\color{CodexRed}]
+    \item[+2 na Defesa:] Traduz-se para \textbf{+1 na Evasão Passiva}.
+    
+    \item[+5 na Defesa:] Traduz-se para \textbf{Desvantagem para o Atacante}. Devido à sua postura assustadora ou ilusória, o monstro é obrigado a rolar o dado principal do seu ataque duas vezes e manter obrigatoriamente o pior resultado.
+    
+    \item[+10 na Defesa:] Intocável. Traduz-se para o ganho permanente de \textbf{+1 Carga Defensiva Extra} por cena de confronto. O personagem tem um fôlego sobre-humano, permitindo-lhe realizar mais Esquivas, Bloqueios ou Aparos do que os seus aliados antes de atingir a exaustão física.
+\end{description}
+
+\section{Margem de Ameaça e Críticos}
+
+No \textit{Codex Veritatis}, o acerto crítico não flui da arma ou do dado de ataque, mas da interferência misteriosa do Dado de Presságio que corre em paralelo nas sombras.
+
+\begin{regra}
+\textbf{Expansão do Presságio:} Qualquer habilidade ou modificador que reduza a margem para realizar um acerto crítico (ex: "Margem de Ameaça +1" ou "Crítico no 19") traduz-se para o afrouxamento da realidade. O Acerto Crítico (a Interferência do Impossível) passa a ocorrer se o seu Dado de Presságio resultar nos valores \textbf{19 ou 20}.
+\end{regra}
+
+\end{multicols}
+
+% ----------------------------------------------------------------------
+% TABELA RESUMO: A PEDRA DE ROSETA
+% ----------------------------------------------------------------------
+\begin{table*}[t]
+\centering
+\sffamily
+\renewcommand{\arraystretch}{1.4}
+\rowcolors{2}{CodexGray}{white}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{A Mecânica Original (Ordem Paranormal)} & \textbf{A Tradução (Codex Veritatis)} \\
+\midrule
+\textbf{Bônus Estático de Perícia (+5)} & Adiciona \textbf{+1d4} de Impulso (Fixo Opcional: \textbf{+2}). \\
+\textbf{Bônus Estático de Perícia (+10)} & Adiciona \textbf{+1d6} de Impulso (Fixo Opcional: \textbf{+3}). \\
+\textbf{Bônus Estático de Perícia (+15)} & Adiciona \textbf{+1d8} de Impulso (Fixo Opcional: \textbf{+4}). \\
+\textbf{Bônus de Rolagem (+1d20)} & Recebe \textbf{Vantagem no Atributo} (Rola +1 dado de Atributo, mantém o melhor). \\
+\textbf{Aumento de Atributo (+1)} & Sofre um \textbf{Aumento de 1 Passo} na Tabela de Atributos (Max 2d12). \\
+\textbf{Aumento de Defesa (+2)} & Soma \textbf{+1} na Evasão Passiva. \\
+\textbf{Aumento de Defesa (+5)} & Impõe \textbf{Desvantagem} nas rolagens do Atacante (o inimigo fica com o pior). \\
+\textbf{Aumento de Defesa (+10)} & Ganha \textbf{+1 Carga Defensiva Extra} para utilizar na cena de combate. \\
+\textbf{Aumento de Margem de Ameaça (+1)} & Ganha \textbf{Expansão do Presságio} (O Dado de Presságio agora crida rolando 19 ou 20). \\
+\bottomrule
+\end{tabularx}
+\caption{\textbf{Resumo de Tradução Tática: A Pedra de Roseta}}
+\end{table*}
+% ----------------------------------------------------------------------
+\end{document}

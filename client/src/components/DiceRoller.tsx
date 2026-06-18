@@ -17,6 +17,8 @@ interface SkillRollRequest {
   trainingLabel: string;
   attributeValue: number;
   trainingDie: number;
+  modifier?: number;
+  isAnsiedadeActive?: boolean;
   weaponName?: string;
   criticalThreshold?: number;
   criticalMultiplier?: number;

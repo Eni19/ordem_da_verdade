@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, Trash2, Zap } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { RitualSymbol } from '@/data/symbols';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,38 +31,25 @@ interface Ritual {
   activeVersion: number;
 }
 
-interface RitualComponent {
-  id: string;
-  name: string;
-  description: string;
-}
-
-interface RitualConjureState {
+interface PokerConjureState {
   ritualId: string;
-  symbolChoices: RitualSymbol[];
-  selectedSymbol: RitualSymbol | null;
-  step: number;
-  chosenComponentId?: string | null;
+  turn: number;
 }
-
 
 interface RitualsPanelProps {
   isOpen: boolean;
   showToggle: boolean;
   onToggle: () => void;
   rituals: Ritual[];
-  components: RitualComponent[];
   onAddRitual: (ritual: Ritual) => void;
   onUpdateRitual: (id: string, ritual: Ritual) => void;
-  ritualConjureState: RitualConjureState | null;
-  onChooseRitualSymbol: (symbol: RitualSymbol) => void;
   onSetRitualVersion: (id: string, activeVersion: number) => void;
-  onContinueRitual: (ritualId: string) => void;
-  onContinueWithoutComponents: (ritualId: string) => void;
-  onCancelConjure?: () => void;
-  onResolveRitual: (ritualId: string) => void;
   onRemoveRitual: (id: string) => void;
   onConjureRitual: (ritual: Ritual) => void;
+  activeConjuration?: PokerConjureState | null;
+  onResumeConjuration?: () => void;
+  onForceShowdown?: () => void;
+  onCancelConjuration?: () => void;
 }
 
 const RITUAL_TYPES: Array<{ value: RitualType; label: string }> = [
@@ -77,18 +63,15 @@ export default function RitualsPanel({
   showToggle,
   onToggle,
   rituals,
-  components,
   onAddRitual,
   onUpdateRitual,
-  ritualConjureState,
-  onChooseRitualSymbol,
   onSetRitualVersion,
-  onContinueRitual,
-  onContinueWithoutComponents,
-  onCancelConjure,
-  onResolveRitual,
   onRemoveRitual,
   onConjureRitual,
+  activeConjuration,
+  onResumeConjuration,
+  onForceShowdown,
+  onCancelConjuration,
 }: RitualsPanelProps) {
   const [showRitualForm, setShowRitualForm] = useState(false);
   const [newRitual, setNewRitual] = useState<Omit<RitualVersion, 'id'>>({
@@ -124,39 +107,12 @@ export default function RitualsPanel({
     target.style.height = `${target.scrollHeight}px`;
   };
 
-  const [revealed, setRevealed] = useState<boolean[]>([false, false, false]);
   const [collapsedIds, setCollapsedIds] = useState<Record<string, boolean>>({});
   const [removingRitualIds, setRemovingRitualIds] = useState<Record<string, boolean>>({});
 
   const toggleCollapse = (id: string) => {
     setCollapsedIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-
-  useEffect(() => {
-    // When a new conjure modal opens with no selected symbol, reveal cards one by one
-    if (!ritualConjureState || ritualConjureState.selectedSymbol) {
-      setRevealed([false, false, false]);
-      return;
-    }
-
-    setRevealed([false, false, false]);
-    const timeouts: number[] = [];
-    ritualConjureState.symbolChoices.forEach((_, idx) => {
-      const delay = idx * 450 + 600; // stagger reveal
-      const t = window.setTimeout(() => {
-        setRevealed((prev) => {
-          const copy = [...prev];
-          copy[idx] = true;
-          return copy;
-        });
-      }, delay);
-      timeouts.push(t);
-    });
-
-    return () => {
-      timeouts.forEach((t) => clearTimeout(t));
-    };
-  }, [ritualConjureState]);
 
   useEffect(() => {
     const textareas = document.querySelectorAll<HTMLTextAreaElement>('[data-ritual-effect-textarea="true"]');
@@ -218,10 +174,7 @@ export default function RitualsPanel({
     }
   };
 
-  const activeConjureRitual = ritualConjureState?.ritualId ?? null;
 
-  const isSelectedSymbolReady = Boolean(ritualConjureState?.selectedSymbol);
-  const conjureStep = ritualConjureState?.step ?? 0;
 
   return (
     <div className="fixed right-0 top-0 h-screen z-50">
@@ -249,73 +202,6 @@ export default function RitualsPanel({
         {isOpen && (
           <ScrollArea className="h-full" style={{ paddingTop: '3rem' }}>
             <div className="p-4 space-y-6">
-              {ritualConjureState && ritualConjureState.selectedSymbol && (
-                <div className="border border-purple-500 bg-purple-950/20 p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] text-purple-400 uppercase font-bold">Símbolo escolhido</div>
-                    <div className="space-x-2">
-                      <button
-                        onClick={() => onCancelConjure && onCancelConjure()}
-                        className="text-[10px] px-2 py-1 border border-purple-500 text-purple-300 hover:bg-purple-500/10"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="text-sm text-purple-200 font-bold uppercase">
-                    {ritualConjureState.selectedSymbol.simbolo}
-                  </div>
-                  <div className="text-xs text-purple-100/80 leading-relaxed">
-                    {ritualConjureState.selectedSymbol.efeito}
-                  </div>
-                  <div className="text-[10px] text-purple-400 uppercase font-bold">
-                    {ritualConjureState.selectedSymbol.tag}
-                  </div>
-
-                  {conjureStep === 1 && (
-                    <button
-                      onClick={() => onContinueRitual(ritualConjureState.ritualId)}
-                      className="w-full py-2 bg-purple-500 text-black font-bold uppercase border border-purple-400 hover:bg-purple-400 transition-colors text-xs"
-                    >
-                      Continuar Ritual
-                    </button>
-                  )}
-
-                  {conjureStep === 2 && (
-                    <div className="space-y-2">
-                      <div className="text-[10px] text-purple-400 uppercase font-bold">Etapa 2 de 3</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          disabled
-                          className="h-9 bg-black border border-purple-500 text-purple-300 text-xs font-bold uppercase"
-                        >
-                          Escolher componente
-                        </button>
-                        <button
-                          onClick={() => onContinueWithoutComponents(ritualConjureState.ritualId)}
-                          className="h-9 bg-purple-500 text-black font-bold uppercase border border-purple-400 hover:bg-purple-400 transition-colors text-xs"
-                        >
-                          Continuar sem componentes
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {conjureStep === 3 && (
-                    <div>
-                      <div className="text-[10px] text-purple-400 uppercase font-bold">Etapa final</div>
-                      <button
-                        onClick={() => onResolveRitual(ritualConjureState!.ritualId)}
-                        className="w-full py-2 bg-purple-500 text-black font-bold uppercase border border-purple-400 hover:bg-purple-400 transition-colors text-xs"
-                      >
-                        Resolver Ritual
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div>
                 <div className="flex items-center justify-between mb-3 border-b-2 border-purple-500 pb-2">
                   <h3 className="font-display text-lg text-purple-300 uppercase">Rituais</h3>
@@ -327,6 +213,40 @@ export default function RitualsPanel({
                     Adicionar
                   </button>
                 </div>
+
+                {activeConjuration && (
+                  <div className="mb-4 border-2 border-purple-500 bg-purple-900/30 p-3 rounded shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-purple-300 uppercase text-sm">Transe Ativo</h4>
+                        <p className="text-xs text-purple-200">
+                          {rituals.find(r => r.id === activeConjuration.ritualId)?.versions[0]?.name || 'Ritual'} - Turno {activeConjuration.turn}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={onCancelConjuration} className="p-1 text-red-400 hover:text-red-300 transition-colors" title="Romper Transe (Cancelar)">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 mt-3">
+                      <button 
+                        onClick={onResumeConjuration}
+                        className="w-full py-2 bg-purple-500 text-black font-bold uppercase text-xs hover:bg-purple-400 transition-colors"
+                      >
+                        {activeConjuration.turn === 3 ? "Concluir Ritual (Showdown)" : "Retomar Transe"}
+                      </button>
+                      {activeConjuration.turn < 3 && activeConjuration.turn > 1 && (
+                        <button 
+                          onClick={onForceShowdown}
+                          className="w-full py-1.5 border border-purple-500 text-purple-300 font-bold uppercase text-[10px] hover:bg-purple-500/20 transition-colors"
+                        >
+                          Resolver Imediatamente
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3 mb-4">
                   {rituals.map((ritual) => {
@@ -566,14 +486,16 @@ export default function RitualsPanel({
 
                             <div>
                               <button
-                                onClick={() =>
-                                  isSelectedSymbolReady && activeConjureRitual === ritual.id
-                                    ? onContinueRitual(ritual.id)
-                                    : onConjureRitual(ritual)
-                                }
-                                className="w-full py-2 bg-purple-500 text-black font-bold uppercase border border-purple-400 hover:bg-purple-400 transition-colors text-xs"
+                                onClick={() => onConjureRitual(ritual)}
+                                disabled={!!activeConjuration && activeConjuration.ritualId !== ritual.id}
+                                className={`w-full py-2 font-bold uppercase border transition-colors text-xs flex items-center justify-center gap-2 ${
+                                  activeConjuration && activeConjuration.ritualId !== ritual.id
+                                    ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
+                                    : 'bg-purple-500 text-black border-purple-400 hover:bg-purple-400'
+                                }`}
                               >
-                                {isSelectedSymbolReady && activeConjureRitual === ritual.id ? 'Continuar Ritual' : 'Conjurar Ritual'}
+                                <Zap size={14} />
+                                {activeConjuration && activeConjuration.ritualId === ritual.id ? 'Em Transe' : 'Conjurar Ritual'}
                               </button>
                             </div>
                           </div>
@@ -583,62 +505,7 @@ export default function RitualsPanel({
                   })}
                 </div>
 
-                {ritualConjureState && !ritualConjureState.selectedSymbol && (
-                  <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="w-full max-w-4xl border-2 border-purple-500 bg-black p-4 space-y-4 max-h-[90vh] overflow-y-auto">
-                      <div className="flex items-center justify-between border-b border-purple-500 pb-2">
-                        <div>
-                          <h3 className="font-display text-lg text-purple-300 uppercase">Escolha um símbolo</h3>
-                          <p className="text-xs text-purple-200/70">Selecione uma das três cartas para iniciar o ritual.</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-[10px] text-purple-400 uppercase font-bold">Etapa 1 de 3</div>
-                          <button
-                            onClick={() => onCancelConjure && onCancelConjure()}
-                            className="text-[10px] px-2 py-1 border border-purple-500 text-purple-300 hover:bg-purple-500/10"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
 
-                      <div className="relative">
-                        {/* fog particles removed */}
-
-                        <div className="grid gap-4 md:grid-cols-3">
-                          {ritualConjureState.symbolChoices.map((symbol, idx) => (
-                            <div
-                              key={symbol.simbolo}
-                              className={`border border-purple-500 bg-purple-950/10 p-4 space-y-3 card-draw ${revealed[idx] ? 'card-flip' : ''}`}
-                              style={{ animationDelay: `${idx * 300}ms` }}
-                            >
-                              <div className="card-inner relative w-full min-h-[14rem] md:min-h-[16rem]">
-                                <div className="card-back absolute inset-0 flex items-center justify-center text-purple-300 text-sm font-bold uppercase">
-                                  {/* Back of card - generic sigil */}
-                                  <div className="w-12 h-12 rounded border border-purple-400/30 flex items-center justify-center opacity-60">✦</div>
-                                </div>
-
-                                <div className="card-front absolute inset-0 p-1 text-purple-200">
-                                  <div className="text-sm font-bold uppercase text-purple-200">{symbol.simbolo}</div>
-                                  <div className="text-[10px] text-purple-400 uppercase font-bold">{symbol.tag}</div>
-                                  <p className="text-xs text-purple-100/80 leading-relaxed">{symbol.efeito}</p>
-                                </div>
-                              </div>
-
-                              <button
-                                onClick={() => revealed[idx] && onChooseRitualSymbol(symbol)}
-                                disabled={!revealed[idx]}
-                                className={`w-full py-2 ${revealed[idx] ? 'bg-purple-500 text-black' : 'bg-black text-purple-400/40'} font-bold uppercase border border-purple-400 hover:bg-purple-400 transition-colors text-xs`}
-                              >
-                                {revealed[idx] ? 'Escolher' : 'Revelando...'}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 <div
                   className={`transition-all duration-500 ease-in-out overflow-hidden ${
@@ -765,15 +632,6 @@ export default function RitualsPanel({
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-3 border-b-2 border-purple-500 pb-2">
-                  <h3 className="font-display text-lg text-purple-300 uppercase">Componentes</h3>
-                </div>
-                <div className="border border-purple-500 p-3 text-xs text-purple-200/80">
-                  {components.length === 0 ? 'Area reservada para componentes.' : `${components.length} componente(s) cadastrado(s).`}
                 </div>
               </div>
             </div>

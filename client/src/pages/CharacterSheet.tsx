@@ -12,11 +12,12 @@ import EvasionPanel, { type EvasionProtection } from '@/components/EvasionPanel'
 import InventoryPanel from '@/components/InventoryPanel';
 import InsanityPanel from '@/components/InsanityPanel';
 import RitualsPanel from '@/components/RitualsPanel';
+import ConjurationOverlay from '@/components/ConjurationOverlay';
 import SaveLoad from '@/components/SaveLoad';
 import CharacterManager from '@/components/CharacterManager';
 import { FearRouletteOverlay } from '@/components/FearRouletteOverlay';
-import symbols, { type RitualSymbol } from '@/data/symbols';
 import fearEffects, { type FearEffect } from '@/data/fear';
+import type { Card, HandGrade, SpellEffect } from '@/utils/pokerLogic';
 
 /**
  * Dark Occult Minimalism - Ficha de RPG Daggerheart
@@ -140,18 +141,17 @@ interface Ritual {
   activeVersion: number;
 }
 
-interface RitualComponent {
-  id: string;
-  name: string;
-  description: string;
-}
-
-interface RitualConjureState {
+interface PokerConjureState {
   ritualId: string;
-  symbolChoices: RitualSymbol[];
-  selectedSymbol: RitualSymbol | null;
-  step: number; // 1 = escolha do símbolo, 2 = escolha de componente, 3 = final
-  chosenComponentId?: string | null;
+  turn: 1 | 2 | 3;
+  phase: 'draw' | 'discard_roll' | 'discard_select' | 'omen_select' | 'decision' | 'showdown' | 'resolved';
+  deck: Card[];
+  hand: Card[];
+  discardLimit: number;
+  selectedCards: string[]; // card IDs
+  handGrade?: HandGrade;
+  spellEffect?: SpellEffect;
+  targetDT?: number;
 }
 
 interface LoadedRitual extends Partial<Omit<Ritual, 'versions'>> {
@@ -191,7 +191,6 @@ interface CharacterData {
   insanities: Insanity[];
   paranormalPowers: ParanormalPower[];
   rituals: Ritual[];
-  ritualComponents: RitualComponent[];
   activeFearTags: ActiveFearTag[];
 }
 
@@ -202,6 +201,11 @@ interface SkillRollRequest {
   trainingLabel: string;
   attributeValue: number;
   trainingDie: number;
+  weaponName?: string;
+  criticalThreshold?: number;
+  criticalMultiplier?: number;
+  damageDiceCount?: number;
+  damageDiceSides?: number;
   modifier?: number;
   isAnsiedadeActive?: boolean;
 }
@@ -295,7 +299,8 @@ export default function CharacterSheet() {
   const [pendingRoll, setPendingRoll] = useState<SkillRollRequest | null>(null);
   const [pendingDamageRoll, setPendingDamageRoll] = useState<DamageRollRequest | null>(null);
   const [openSidebar, setOpenSidebar] = useState<'inventory' | 'insanity' | 'rituals' | null>(null);
-  const [ritualConjureState, setRitualConjureState] = useState<RitualConjureState | null>(null);
+  const [pokerConjureState, setPokerConjureState] = useState<PokerConjureState | null>(null);
+  const [isConjurationOverlayOpen, setIsConjurationOverlayOpen] = useState(false);
   const [ritualResolveState, setRitualResolveState] = useState<
     | {
         ritualId: string;
@@ -395,7 +400,6 @@ export default function CharacterSheet() {
     insanities: [],
     paranormalPowers: [],
     rituals: [],
-    ritualComponents: [],
     activeFearTags: [],
   });
 
@@ -471,7 +475,6 @@ export default function CharacterSheet() {
     insanities: character.insanities,
     paranormalPowers: character.paranormalPowers,
     rituals: character.rituals,
-    ritualComponents: character.ritualComponents,
     activeFearTags: character.activeFearTags,
   }), [character]);
 
@@ -547,7 +550,6 @@ export default function CharacterSheet() {
       insanities: [],
       paranormalPowers: [],
       rituals: [],
-      ritualComponents: [],
       activeFearTags: [],
     });
   };
@@ -592,28 +594,7 @@ export default function CharacterSheet() {
     return Math.max(0, Math.min(5, modified));
   };
 
-  const getConfusionAdjustedAttribute = (attribute: AttributeKey) => {
-    const isConfused = activeFearTags.some((tag) => tag.effectResult === '13');
 
-    if (!isConfused || attribute === 'vigor') {
-      return { attribute, wasSwapped: false };
-    }
-
-    if (Math.random() < 0.5) {
-      return { attribute, wasSwapped: false };
-    }
-
-    const swappedAttribute: AttributeKey =
-      attribute === 'força'
-        ? 'agilidade'
-        : attribute === 'agilidade'
-          ? 'força'
-          : attribute === 'inteligência'
-            ? 'presença'
-            : 'inteligência';
-
-    return { attribute: swappedAttribute, wasSwapped: true };
-  };
 
   const getFearAdjustedTrainingDie = (trainingDie: number, skillName: string) => {
     const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
@@ -939,8 +920,7 @@ export default function CharacterSheet() {
     if (!pericia) return;
 
     const selectedAttributeKey = selectedAttribute as AttributeKey;
-    const adjustedAttribute = getConfusionAdjustedAttribute(selectedAttributeKey);
-    const normalizedAttribute = getEffectiveAttributeValue(adjustedAttribute.attribute);
+    const normalizedAttribute = getEffectiveAttributeValue(selectedAttributeKey);
 
     const baseTrainingDie = pericia.isGeneric ? 4 : TRAINING_DIE_MAP[pericia.training];
     const trainingDie = getFearAdjustedTrainingDie(baseTrainingDie, pericia.name);
@@ -952,7 +932,7 @@ export default function CharacterSheet() {
     setPendingRoll({
       id: Date.now(),
       periciaName: pericia.name || 'Pericia sem nome',
-      attributeLabel: `${ATTRIBUTE_LABELS[adjustedAttribute.attribute]}${adjustedAttribute.wasSwapped ? ' (Confusão)' : ''}`,
+      attributeLabel: `${ATTRIBUTE_LABELS[selectedAttributeKey]}`,
       trainingLabel,
       attributeValue: normalizedAttribute,
       trainingDie,
@@ -965,8 +945,7 @@ export default function CharacterSheet() {
     if (!weapon.attribute || !weapon.skill) return;
 
     const attributeKey = weapon.attribute as AttributeKey;
-    const adjustedAttribute = getConfusionAdjustedAttribute(attributeKey);
-    const normalizedAttribute = getEffectiveAttributeValue(adjustedAttribute.attribute);
+    const normalizedAttribute = getEffectiveAttributeValue(attributeKey);
     
     // Find the training die for the weapon skill
     const skillTrainingDie = SKILL_DICE[weapon.skill as keyof typeof SKILL_DICE] || 6;
@@ -974,7 +953,7 @@ export default function CharacterSheet() {
     setPendingRoll({
       id: Date.now(),
       periciaName: weapon.name || 'Arma sem nome',
-      attributeLabel: `${ATTRIBUTE_LABELS[adjustedAttribute.attribute] || weapon.attribute}${adjustedAttribute.wasSwapped ? ' (Confusão)' : ''}`,
+      attributeLabel: `${ATTRIBUTE_LABELS[attributeKey] || weapon.attribute}`,
       trainingLabel: `${weapon.skill} (1d${skillTrainingDie})`,
       attributeValue: normalizedAttribute,
       trainingDie: skillTrainingDie,
@@ -1174,15 +1153,7 @@ export default function CharacterSheet() {
     });
   };
 
-  const getRandomSymbolChoices = (): RitualSymbol[] => {
-    const pool = [...symbols];
-    for (let index = pool.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(Math.random() * (index + 1));
-      [pool[index], pool[swapIndex]] = [pool[swapIndex], pool[index]];
-    }
 
-    return pool.slice(0, 3);
-  };
 
   const handleSetRitualVersion = (id: string, activeVersion: number) => {
     setCharacter((prev) => ({
@@ -1254,7 +1225,7 @@ export default function CharacterSheet() {
     });
   };
 
-  const handleConjureRitual = (_ritual: Ritual) => {
+  const handleStartConjuration = (_ritual: Ritual) => {
     const ritual = _ritual;
     const activeVersion = ritual.versions[ritual.activeVersion] ?? ritual.versions[0];
 
@@ -1268,43 +1239,42 @@ export default function CharacterSheet() {
       return;
     }
 
-    setRitualConjureState({
+    const ocultismoPericia = character.pericias.find(p => p.name === 'Ocultismo');
+    // Destreinado falls under this catch if we had 'destreinado', but in this system it's either in the array with a training or not.
+    // Generic is id=0.
+    if (!ocultismoPericia || ocultismoPericia.isGeneric) {
+        alert("Apenas personagens com treinamento em Ocultismo podem iniciar um Transe Ritualístico.");
+        return;
+    }
+
+    setPokerConjureState({
       ritualId: ritual.id,
-      symbolChoices: getRandomSymbolChoices(),
-      selectedSymbol: null,
-      step: 1,
-      chosenComponentId: null,
+      turn: 1,
+      phase: 'draw',
+      deck: [], // Deck is created in the overlay
+      hand: [],
+      discardLimit: 0,
+      selectedCards: [],
     });
-    setOpenSidebar('rituals');
+    
+    setIsConjurationOverlayOpen(true);
+    setOpenSidebar(null); // Fecha a sidebar para o modal brilhar
   };
 
-  const handleChooseRitualSymbol = (symbol: RitualSymbol) => {
-    setRitualConjureState((prev) =>
-      prev ? { ...prev, selectedSymbol: symbol } : prev
-    );
+  const handleResumeConjuration = () => {
+    setIsConjurationOverlayOpen(true);
+    setOpenSidebar(null);
   };
 
-  const handleContinueRitual = (_ritualId: string) => {
-    setRitualConjureState((prev) => {
-      if (!prev) return prev;
-      if (prev.step === 1 && prev.selectedSymbol) {
-        return { ...prev, step: 2 };
-      }
-      if (prev.step === 2) {
-        return { ...prev, step: 3 };
-      }
-      return prev;
-    });
-    setOpenSidebar('rituals');
+  const handleForceShowdown = () => {
+    setPokerConjureState(prev => prev ? { ...prev, phase: 'showdown', selectedCards: [] } : prev);
+    setIsConjurationOverlayOpen(true);
+    setOpenSidebar(null);
   };
 
-  const handleContinueWithoutComponents = (ritualId: string) => {
-    setRitualConjureState((prev) => (prev && prev.ritualId === ritualId ? { ...prev, step: 3 } : prev));
-    setOpenSidebar('rituals');
-  };
-
-  const handleCancelConjure = () => {
-    setRitualConjureState(null);
+  const handleCancelConjuration = () => {
+    setPokerConjureState(null);
+    setIsConjurationOverlayOpen(false);
   };
 
   const handleResolveRitual = (ritualId: string) => {
@@ -1348,11 +1318,10 @@ export default function CharacterSheet() {
     const difficulty = 7 + costValue;
 
     const attributeKey = (ritualResolveState.selectedAttribute ?? 'força') as AttributeKey;
-    const adjustedAttribute = getConfusionAdjustedAttribute(attributeKey);
-    const attributeValue = getEffectiveAttributeValue(adjustedAttribute.attribute);
+    const attributeValue = getEffectiveAttributeValue(attributeKey);
     const pericia = character.pericias.find((p) => p.id === ritualResolveState.selectedPericiaId) ?? character.pericias[0];
     const baseTrainingDie = pericia?.isGeneric ? 4 : TRAINING_DIE_MAP[pericia?.training ?? 'treinado'];
-    const trainingDie = getDespairAdjustedTrainingDie(baseTrainingDie);
+    const trainingDie = getFearAdjustedTrainingDie(baseTrainingDie, pericia?.name || 'Ocultismo');
 
     setRitualResolveState((prev) => (prev ? { ...prev, isRolling: true, difficulty } : prev));
 
@@ -1392,7 +1361,7 @@ export default function CharacterSheet() {
 
   const handleCloseResolve = () => {
     setRitualResolveState(null);
-    setRitualConjureState(null);
+    setPokerConjureState(null);
   };
 
   const handleAddInsanity = (insanity: Insanity) => {
@@ -1631,13 +1600,16 @@ export default function CharacterSheet() {
     cloudId?: string | null
   ) => {
     const loadedSkills: Skill[] = Array.isArray(data.skills)
-      ? data.skills.map((skill) => ({
-          id: skill.id,
-          name: skill.name ?? 'Habilidade',
-          origin: skill.origin ?? skill.source ?? '',
-          cost: skill.cost != null ? String(skill.cost) : '',
-          effect: skill.effect ?? skill.description ?? skill.damage ?? '',
-        }))
+      ? data.skills.map((skill) => {
+          const s = skill as any;
+          return {
+            id: s.id,
+            name: s.name ?? 'Habilidade',
+            origin: s.origin ?? s.source ?? '',
+            cost: s.cost != null ? String(s.cost) : '',
+            effect: s.effect ?? s.description ?? s.damage ?? '',
+          };
+        })
       : [];
 
     const loadedPericias: Pericia[] = Array.isArray(data.pericias)
@@ -1692,13 +1664,7 @@ export default function CharacterSheet() {
         })
       : [];
 
-    const loadedRitualComponents: RitualComponent[] = Array.isArray(data.ritualComponents)
-      ? data.ritualComponents.map((component) => ({
-          id: component.id,
-          name: component.name ?? '',
-          description: component.description ?? '',
-        }))
-      : [];
+
 
     setCharacter((prev) => ({
       ...prev,
@@ -1729,8 +1695,7 @@ export default function CharacterSheet() {
       skills: loadedSkills.length > 0 ? loadedSkills : prev.skills,
       pericias: ensureGenericPericia(loadedPericias.length > 0 ? loadedPericias : prev.pericias),
       rituals: loadedRituals.length > 0 ? loadedRituals : prev.rituals,
-      ritualComponents:
-        loadedRitualComponents.length > 0 ? loadedRitualComponents : prev.ritualComponents,
+
       evasion: {
         protection: data.evasion?.protection ?? prev.evasion.protection,
         defensiveCharges: Math.max(
@@ -2031,9 +1996,9 @@ export default function CharacterSheet() {
         fearEffects={fearEffects}
         closeFearRoulette={closeFearRoulette}
         fearResultAttributeChoice={fearResultAttributeChoice}
-        setFearResultAttributeChoice={setFearResultAttributeChoice}
+        setFearResultAttributeChoice={(attr) => setFearResultAttributeChoice(attr as AttributeKey | null)}
         fearSecondaryAttributeChoice={fearSecondaryAttributeChoice}
-        setFearSecondaryAttributeChoice={setFearSecondaryAttributeChoice}
+        setFearSecondaryAttributeChoice={(attr) => setFearSecondaryAttributeChoice(attr as AttributeKey | null)}
         handleConfirmFearAttribute={handleConfirmFearAttribute}
       />
 
@@ -2085,95 +2050,48 @@ export default function CharacterSheet() {
         showToggle={openSidebar !== 'inventory' && openSidebar !== 'insanity'}
         onToggle={toggleRitualsPanel}
         rituals={character.rituals}
-        components={character.ritualComponents}
         onAddRitual={handleAddRitual}
         onUpdateRitual={handleUpdateRitual}
-        ritualConjureState={ritualConjureState}
-        onChooseRitualSymbol={handleChooseRitualSymbol}
         onSetRitualVersion={handleSetRitualVersion}
-        onContinueRitual={handleContinueRitual}
-        onContinueWithoutComponents={handleContinueWithoutComponents}
-        onCancelConjure={handleCancelConjure}
-        onResolveRitual={handleResolveRitual}
         onRemoveRitual={handleRemoveRitual}
-        onConjureRitual={handleConjureRitual}
+        onConjureRitual={handleStartConjuration}
+        activeConjuration={pokerConjureState}
+        onResumeConjuration={handleResumeConjuration}
+        onForceShowdown={handleForceShowdown}
+        onCancelConjuration={handleCancelConjuration}
       />
 
-      {/* Resolve Ritual Modal */}
-      {ritualResolveState && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl border-2 border-purple-500 bg-black p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg text-purple-300 uppercase">Resolver Ritual</h3>
-              <button onClick={handleCloseResolve} className="text-xs text-purple-300 border border-purple-500 px-2 py-1">Fechar</button>
-            </div>
-
-            {!ritualResolveState.rolls || ritualResolveState.isRolling === undefined ? (
-              <div className="space-y-2">
-                <div className="text-xs text-purple-200">Escolha atributo</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {ATTRIBUTE_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => setRitualResolveState((prev) => (prev ? { ...prev, selectedAttribute: key } : prev))}
-                      className={`py-2 text-xs uppercase border ${ritualResolveState.selectedAttribute === key ? 'bg-purple-500 text-black' : 'text-purple-300 border-purple-500'}`}
-                    >
-                      {ATTRIBUTE_LABELS[key]}
-                    </button>
-                  ))}
-                </div>
-
-                <div>
-                  <div className="text-xs text-purple-200">Escolha pericia</div>
-                  <select
-                    value={ritualResolveState.selectedPericiaId ?? ''}
-                    onChange={(e) => setRitualResolveState((prev) => (prev ? { ...prev, selectedPericiaId: e.target.value } : prev))}
-                    className="w-full bg-black border border-purple-500 p-2 text-purple-200"
-                  >
-                    <option value="">(usar primeira)</option>
-                    {character.pericias.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePerformResolveRoll}
-                    className="flex-1 bg-purple-500 text-black py-2 uppercase font-bold"
-                  >
-                    Rolar
-                  </button>
-                  <button onClick={handleCloseResolve} className="flex-1 border border-purple-500 text-purple-300 py-2 uppercase">Cancelar</button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-xs text-purple-200 uppercase">Resultado</div>
-                <div className="flex gap-3">
-                  <div className="h-16 w-16 border-2 border-blue-500 flex items-center justify-center text-2xl font-bold">{ritualResolveState.rolls?.[0]}</div>
-                  <div className="h-16 w-16 border-2 border-purple-600 flex items-center justify-center text-2xl font-bold">{ritualResolveState.rolls?.[1]}</div>
-                  <div className="flex-1 border-2 border-red-500 p-3">
-                    <div className="text-sm font-bold text-purple-200">Total: {ritualResolveState.total}</div>
-                    <div className={`mt-1 text-xs font-bold ${ritualResolveState.passed ? 'text-green-400' : 'text-red-400'}`}>{ritualResolveState.passed ? 'Sucesso' : 'Falha'}</div>
-                    <div className="text-[10px] text-purple-300 mt-2">Dificuldade: {ritualResolveState.difficulty}</div>
-                  </div>
-                </div>
-
-                <div className="border border-purple-500 p-3">
-                  <div className="text-xs text-purple-200 uppercase font-bold">Efeito do Ritual</div>
-                  <div className="mt-2 text-sm text-purple-100">{(character.rituals.find((r) => r.id === ritualResolveState.ritualId)?.versions[0]?.description) || 'Descrição do ritual'}</div>
-                  <div className="mt-2 text-[10px] text-purple-300">Símbolo: {ritualConjureState?.selectedSymbol?.simbolo ?? 'Nenhum'}</div>
-                  <div className="mt-1 text-[10px] text-purple-300">Componentes: Nenhum selecionado</div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button onClick={handleCloseResolve} className="flex-1 bg-purple-500 text-black py-2 uppercase font-bold">Fechar</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      {isConjurationOverlayOpen && pokerConjureState && (
+        <ConjurationOverlay
+          state={pokerConjureState as any}
+          setState={setPokerConjureState as any}
+          ritualName={
+            character.rituals.find(r => r.id === pokerConjureState.ritualId)
+              ?.versions[character.rituals.find(r => r.id === pokerConjureState.ritualId)?.activeVersion || 0]?.name || 'Ritual'
+          }
+          ritualCircle={
+            character.rituals.find(r => r.id === pokerConjureState.ritualId)
+              ?.versions[character.rituals.find(r => r.id === pokerConjureState.ritualId)?.activeVersion || 0]?.circle || '1'
+          }
+          ocultismoLevel={
+            character.pericias.find(p => p.name === 'Ocultismo')?.training || 'treinado'
+          }
+          inteligencia={character.attributes.inteligência}
+          getRollConfig={(attr) => {
+            const attributeValue = getEffectiveAttributeValue(attr);
+            const pericia = character.pericias.find(p => p.name === 'Ocultismo');
+            const baseTrainingDie = pericia?.isGeneric ? 4 : TRAINING_DIE_MAP[pericia?.training ?? 'treinado'];
+            const trainingDie = getFearAdjustedTrainingDie(baseTrainingDie, 'Ocultismo');
+            return {
+              attributeValue,
+              trainingDie,
+              wasSwapped: false,
+              realAttribute: attr
+            };
+          }}
+          onClose={() => setIsConjurationOverlayOpen(false)}
+          onConclude={handleCancelConjuration}
+        />
       )}
     </div>
   );

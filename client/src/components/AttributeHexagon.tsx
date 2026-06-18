@@ -43,7 +43,7 @@ export default function AttributeHexagon({ attribute, value, onChange, isFearAff
     // Altere o valor de 'anime.speed' abaixo para controlar a velocidade global de reprodução.
     // > 1 acelera as animações | entre 0 e 1 (ex: 0.4) desacelera, deixando o movimento mais lento e suave.
     // ==========================================
-    anime.speed = 0.38;
+    (anime as any).speed = 0.38;
 
     const createParticle = () => {
       if (!hexRef.current) return;

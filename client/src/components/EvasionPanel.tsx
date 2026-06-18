@@ -61,7 +61,7 @@ export default function EvasionPanel({
   useEffect(() => {
     if ((!isEvasionAffected && !areChargesDisabled) || !hexRef.current) return;
 
-    anime.speed = 0.38;
+    (anime as any).speed = 0.38;
 
     const createParticle = () => {
       if (!hexRef.current) return;

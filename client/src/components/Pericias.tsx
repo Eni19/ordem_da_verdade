@@ -312,7 +312,7 @@ export default function Pericias({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    anime.speed = 0.38;
+    (anime as any).speed = 0.38;
 
     const createParticle = (el: HTMLElement) => {
       const particle = document.createElement('div');
