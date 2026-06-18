@@ -1,8 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import anime from 'animejs';
-import { useEffect, useRef } from 'react';
 
 type TrainingLevel = 'treinado' | 'veterano' | 'expert';
 type AttributeKey = 'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor' | 'vontade';
@@ -20,6 +19,7 @@ interface PericiasProps {
   onUpdatePericia: (id: string, field: keyof Pericia, value: string) => void;
   onDeletePericia: (id: string) => void;
   onRollPericia: (id: string, attribute: AttributeKey) => void;
+  onReorderPericias?: (draggedId: string, targetId: string) => void;
   isFearAffectedSkill?: (name: string) => boolean;
   getFearAdjustedTrainingLevel?: (training: string, skillName: string) => string;
 }
@@ -39,16 +39,275 @@ const TRAINING_OPTIONS: Array<{ value: TrainingLevel; label: string }> = [
   { value: 'expert', label: 'Expert (1d10)' },
 ];
 
+function DraggablePericiaItem({
+  pericia,
+  draggedPericiaId,
+  setDraggedPericiaId,
+  pendingRoll,
+  setPendingRoll,
+  isAffected,
+  isGeneric,
+  adjustedTraining,
+  isEffectivelyUntrained,
+  onUpdatePericia,
+  onRollPericia,
+  onDeletePericia,
+  onReorderPericias,
+}: {
+  pericia: Pericia;
+  draggedPericiaId: string | null;
+  setDraggedPericiaId: (id: string | null) => void;
+  pendingRoll: { periciaId: string; attribute: AttributeKey } | null;
+  setPendingRoll: React.Dispatch<React.SetStateAction<{ periciaId: string; attribute: AttributeKey } | null>>;
+  isAffected: boolean;
+  isGeneric: boolean;
+  adjustedTraining: string;
+  isEffectivelyUntrained: boolean;
+  onUpdatePericia: (id: string, field: keyof Pericia, value: string) => void;
+  onRollPericia: (id: string, attribute: AttributeKey) => void;
+  onDeletePericia: (id: string) => void;
+  onReorderPericias?: (draggedId: string, targetId: string) => void;
+}) {
+  const elRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const currentTy = useRef(0);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('button')
+    ) {
+      return;
+    }
+
+    isDragging.current = true;
+    startY.current = e.clientY;
+    currentTy.current = 0;
+
+    setDraggedPericiaId(pericia.id);
+
+    if (elRef.current) {
+      elRef.current.setPointerCapture(e.pointerId);
+      elRef.current.style.zIndex = '50';
+      anime({
+        targets: elRef.current,
+        scale: 1.02,
+        boxShadow: isAffected
+          ? '0 0 15px rgba(168,85,247,0.5)'
+          : '0 0 15px rgba(255, 23, 68, 0.4)',
+        duration: 50,
+        easing: 'easeOutQuad',
+      });
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || !elRef.current) return;
+    const dy = e.clientY - startY.current;
+    currentTy.current = dy;
+    anime.set(elRef.current, { translateY: currentTy.current });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || !elRef.current) return;
+    isDragging.current = false;
+
+    elRef.current.releasePointerCapture(e.pointerId);
+    elRef.current.style.zIndex = '1';
+
+    setDraggedPericiaId(null);
+
+    anime({
+      targets: elRef.current,
+      scale: 1,
+      translateY: 0,
+      boxShadow: '0 0 0px rgba(0,0,0,0)',
+      duration: 400,
+      easing: 'easeOutElastic(1, .8)',
+    });
+
+    const parent = elRef.current.parentElement;
+    if (parent && onReorderPericias) {
+      const myRect = elRef.current.getBoundingClientRect();
+      const myCenter = myRect.top + myRect.height / 2;
+
+      const children = Array.from(parent.children) as HTMLElement[];
+      let targetId: string | null = null;
+
+      for (const child of children) {
+        if (child === elRef.current) continue;
+        const rect = child.getBoundingClientRect();
+        if (myCenter > rect.top && myCenter < rect.bottom) {
+          targetId = child.getAttribute('data-pericia-id');
+          break;
+        }
+      }
+
+      if (targetId && targetId !== pericia.id) {
+        onReorderPericias(pericia.id, targetId);
+      }
+    }
+  };
+
+  const isRollMenuActive = pendingRoll?.periciaId === pericia.id;
+  const isAnotherDragging = draggedPericiaId && draggedPericiaId !== pericia.id;
+
+  return (
+    <div
+      ref={elRef}
+      data-pericia-id={pericia.id}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className={`group border p-2 space-y-2 flex-shrink-0 transition-opacity duration-200 cursor-grab active:cursor-grabbing relative select-none ${
+        isAnotherDragging ? 'opacity-40' : 'opacity-100'
+      } ${
+        isAffected
+          ? `fear-affected-skill border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)] ${
+              isRollMenuActive ? 'bg-purple-500' : 'bg-purple-950/20 hover:bg-purple-900/40'
+            }`
+          : `border-primary ${isRollMenuActive ? 'bg-primary' : 'bg-black hover:bg-primary'}`
+      }`}
+      style={{ touchAction: 'none' }}
+    >
+      <div className="flex items-center gap-2 relative z-10">
+        <input
+          type="text"
+          value={pericia.name}
+          onChange={(e) => onUpdatePericia(pericia.id, 'name', e.target.value)}
+          disabled={isGeneric}
+          className={`flex-1 min-w-0 bg-transparent border font-display text-sm focus:outline-none focus:ring-0 uppercase px-2 py-1 h-8 transition-colors duration-200 ${
+            isGeneric ? 'cursor-not-allowed opacity-75' : ''
+          } ${
+            isRollMenuActive
+              ? 'border-black text-black placeholder:text-black'
+              : isAffected
+              ? 'border-purple-500 text-purple-200 group-hover:border-purple-400 group-hover:text-purple-100 placeholder:text-purple-400'
+              : 'border-primary text-primary group-hover:border-black group-hover:text-black group-hover:placeholder:text-black'
+          }`}
+          placeholder="Nome"
+        />
+
+        <div
+          className={`w-36 border text-sm p-1 focus:outline-none h-8 transition-colors duration-200 relative overflow-hidden ${
+            isRollMenuActive
+              ? isAffected
+                ? 'bg-purple-500 border-black text-black'
+                : 'bg-primary border-black text-black'
+              : isAffected
+              ? 'bg-purple-950/40 border-purple-500 text-purple-200 shadow-[0_0_10px_rgba(168,85,247,0.3)] group-hover:bg-purple-900/50 group-hover:border-purple-400 group-hover:text-purple-100'
+              : 'bg-input border-primary text-primary group-hover:bg-primary group-hover:border-black group-hover:text-black'
+          }`}
+        >
+          {isEffectivelyUntrained ? (
+            <span className={`h-full flex items-center text-xs ${isAffected ? 'text-purple-200' : ''}`}>
+              Sem treino (1d4)
+            </span>
+          ) : (
+            <select
+              value={adjustedTraining}
+              disabled={isAffected}
+              onChange={(e) => onUpdatePericia(pericia.id, 'training', e.target.value)}
+              className={`w-full bg-transparent h-full outline-none ${
+                isAffected ? 'text-purple-100 opacity-80 cursor-not-allowed' : ''
+              }`}
+            >
+              {TRAINING_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} className="bg-black text-primary">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <button
+          onClick={() =>
+            setPendingRoll((prev) =>
+              prev?.periciaId === pericia.id ? null : { periciaId: pericia.id, attribute: 'força' }
+            )
+          }
+          className={`w-20 h-8 font-bold uppercase text-sm border-2 transition-all ${
+            isRollMenuActive
+              ? isAffected
+                ? 'bg-black text-purple-400 border-black hover:bg-black hover:text-purple-300'
+                : 'bg-black text-primary border-black hover:bg-black hover:text-primary'
+              : isAffected
+              ? 'bg-purple-500 text-black border-purple-500 group-hover:bg-black group-hover:text-purple-400 group-hover:border-purple-500 hover:bg-black hover:text-purple-400'
+              : 'bg-primary text-black border-primary group-hover:bg-black group-hover:text-primary group-hover:border-black hover:bg-black hover:text-primary'
+          }`}
+        >
+          Rolar
+        </button>
+
+        {!isGeneric && (
+          <button
+            onClick={() => onDeletePericia(pericia.id)}
+            className={`transition-colors p-0 flex-shrink-0 h-8 w-8 border flex items-center justify-center ${
+              isRollMenuActive
+                ? 'text-black border-black hover:text-secondary'
+                : isAffected
+                ? 'text-purple-300 border-purple-500 hover:text-purple-100 group-hover:text-purple-300 group-hover:border-purple-400'
+                : 'text-primary border-primary hover:text-secondary group-hover:text-black group-hover:border-black'
+            }`}
+            aria-label="Remover pericia"
+          >
+            <Trash2 size={12} />
+          </button>
+        )}
+
+        {isGeneric && <div className="h-8 w-8 flex-shrink-0" aria-hidden="true" />}
+      </div>
+
+      {pendingRoll?.periciaId === pericia.id && (
+        <div
+          className={`border p-2 space-y-2 ${
+            isAffected ? 'border-purple-500/60 bg-purple-950/90' : 'border-primary/60 bg-black/70'
+          }`}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {ATTRIBUTE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  onRollPericia(pericia.id, option.value);
+                  setPendingRoll(null);
+                }}
+                className={`h-8 px-2 text-sm uppercase font-bold border transition-all ${
+                  isAffected
+                    ? 'bg-black text-purple-300 border-purple-500 hover:bg-purple-500 hover:text-black'
+                    : 'bg-black text-primary border-primary hover:bg-primary hover:text-black'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Pericias({
   pericias,
   onAddPericia,
   onUpdatePericia,
   onDeletePericia,
   onRollPericia,
+  onReorderPericias,
   isFearAffectedSkill,
   getFearAdjustedTrainingLevel,
 }: PericiasProps) {
   const [pendingRoll, setPendingRoll] = useState<{ periciaId: string; attribute: AttributeKey } | null>(null);
+  const [draggedPericiaId, setDraggedPericiaId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -64,22 +323,22 @@ export default function Pericias({
       let startY = 0;
       let angle = 0;
 
-      if (border === 0) { 
+      if (border === 0) {
         startX = Math.random() * 100;
         startY = 0;
-        angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3); 
-      } else if (border === 1) { 
+        angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3);
+      } else if (border === 1) {
         startX = 100;
         startY = Math.random() * 100;
-        angle = (Math.random() - 0.5) * (Math.PI / 3); 
-      } else if (border === 2) { 
+        angle = (Math.random() - 0.5) * (Math.PI / 3);
+      } else if (border === 2) {
         startX = Math.random() * 100;
         startY = 100;
-        angle = Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3); 
-      } else { 
+        angle = Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3);
+      } else {
         startX = 0;
         startY = Math.random() * 100;
-        angle = Math.PI + (Math.random() - 0.5) * (Math.PI / 3); 
+        angle = Math.PI + (Math.random() - 0.5) * (Math.PI / 3);
       }
 
       particle.style.left = `calc(${startX}% - 2px)`;
@@ -107,14 +366,14 @@ export default function Pericias({
           if (particle.parentNode) {
             particle.parentNode.removeChild(particle);
           }
-        }
+        },
       });
     };
 
     const interval = setInterval(() => {
       if (!containerRef.current) return;
       const elements = containerRef.current.querySelectorAll('.fear-affected-skill');
-      elements.forEach(el => {
+      elements.forEach((el) => {
         createParticle(el as HTMLElement);
       });
     }, 150);
@@ -136,142 +395,39 @@ export default function Pericias({
       </div>
 
       <ScrollArea className="flex-1 border border-primary bg-black p-2 min-h-0">
-        <div className="space-y-2 pr-3">
+        <div className="space-y-2 pr-3 pb-4">
           {pericias.length === 0 ? (
             <div className="flex items-center justify-center text-muted-foreground text-center py-4">
               <p className="font-mono text-xs">Adicione pericias para rolar testes.</p>
             </div>
           ) : (
             pericias.map((pericia) => {
-              const isRollMenuActive = pendingRoll?.periciaId === pericia.id;
               const isGeneric = pericia.isGeneric ?? false;
               const isAffected = isFearAffectedSkill ? isFearAffectedSkill(pericia.name) : false;
-              
-              const adjustedTraining = getFearAdjustedTrainingLevel ? getFearAdjustedTrainingLevel(pericia.training, pericia.name) as TrainingLevel | 'destreinado' : pericia.training;
+
+              const adjustedTraining = getFearAdjustedTrainingLevel
+                ? (getFearAdjustedTrainingLevel(pericia.training, pericia.name) as TrainingLevel | 'destreinado')
+                : pericia.training;
               const isEffectivelyUntrained = isGeneric || adjustedTraining === 'destreinado';
 
               return (
-              <div
-                key={pericia.id}
-                className={`group border p-2 space-y-2 flex-shrink-0 transition-colors duration-200 relative ${
-                  isAffected 
-                    ? `fear-affected-skill border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)] ${isRollMenuActive ? 'bg-purple-500' : 'bg-purple-950/20 hover:bg-purple-900/40'}`
-                    : `border-primary ${isRollMenuActive ? 'bg-primary' : 'bg-black hover:bg-primary'}`
-                }`}
-              >
-                <div className="flex items-center gap-2 relative z-10">
-                  <input
-                    type="text"
-                    value={pericia.name}
-                    onChange={(e) => onUpdatePericia(pericia.id, 'name', e.target.value)}
-                    disabled={isGeneric}
-                    className={`flex-1 min-w-0 bg-transparent border font-display text-sm focus:outline-none focus:ring-0 uppercase px-2 py-1 h-8 transition-colors duration-200 ${
-                      isGeneric ? 'cursor-not-allowed opacity-75' : ''
-                    } ${
-                      isRollMenuActive
-                        ? 'border-black text-black placeholder:text-black'
-                        : isAffected
-                          ? 'border-purple-500 text-purple-200 group-hover:border-purple-400 group-hover:text-purple-100 placeholder:text-purple-400'
-                          : 'border-primary text-primary group-hover:border-black group-hover:text-black group-hover:placeholder:text-black'
-                    }`}
-                    placeholder="Nome"
-                  />
-
-                  <div
-                    className={`w-36 border text-sm p-1 focus:outline-none h-8 transition-colors duration-200 relative overflow-hidden ${
-                      isRollMenuActive
-                        ? isAffected
-                          ? 'bg-purple-500 border-black text-black'
-                          : 'bg-primary border-black text-black'
-                        : isAffected
-                          ? 'bg-purple-950/40 border-purple-500 text-purple-200 shadow-[0_0_10px_rgba(168,85,247,0.3)] group-hover:bg-purple-900/50 group-hover:border-purple-400 group-hover:text-purple-100'
-                          : 'bg-input border-primary text-primary group-hover:bg-primary group-hover:border-black group-hover:text-black'
-                    }`}
-                  >
-                    {isEffectivelyUntrained ? (
-                      <span className={`h-full flex items-center text-xs ${isAffected ? 'text-purple-200' : ''}`}>
-                        Sem treino (1d4)
-                      </span>
-                    ) : (
-                      <select
-                        value={adjustedTraining}
-                        disabled={isAffected}
-                        onChange={(e) => onUpdatePericia(pericia.id, 'training', e.target.value)}
-                        className={`w-full bg-transparent h-full ${isAffected ? 'text-purple-100 opacity-80 cursor-not-allowed' : ''}`}
-                      >
-                        {TRAINING_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value} className="bg-black text-primary">
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      setPendingRoll((prev) =>
-                        prev?.periciaId === pericia.id
-                          ? null
-                          : { periciaId: pericia.id, attribute: 'força' }
-                      )
-                    }
-                    className={`w-20 h-8 font-bold uppercase text-sm border-2 transition-all ${
-                      isRollMenuActive
-                        ? isAffected 
-                          ? 'bg-black text-purple-400 border-black hover:bg-black hover:text-purple-300'
-                          : 'bg-black text-primary border-black hover:bg-black hover:text-primary'
-                        : isAffected
-                          ? 'bg-purple-500 text-black border-purple-500 group-hover:bg-black group-hover:text-purple-400 group-hover:border-purple-500 hover:bg-black hover:text-purple-400'
-                          : 'bg-primary text-black border-primary group-hover:bg-black group-hover:text-primary group-hover:border-black hover:bg-black hover:text-primary'
-                    }`}
-                  >
-                    Rolar
-                  </button>
-
-                  {!isGeneric && (
-                    <button
-                      onClick={() => onDeletePericia(pericia.id)}
-                      className={`transition-colors p-0 flex-shrink-0 h-8 w-8 border flex items-center justify-center ${
-                        isRollMenuActive
-                          ? 'text-black border-black hover:text-secondary'
-                          : isAffected
-                            ? 'text-purple-300 border-purple-500 hover:text-purple-100 group-hover:text-purple-300 group-hover:border-purple-400'
-                            : 'text-primary border-primary hover:text-secondary group-hover:text-black group-hover:border-black'
-                      }`}
-                      aria-label="Remover pericia"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  )}
-
-                  {isGeneric && <div className="h-8 w-8 flex-shrink-0" aria-hidden="true" />}
-                </div>
-
-                {pendingRoll?.periciaId === pericia.id && (
-                  <div className={`border p-2 space-y-2 ${isAffected ? 'border-purple-500/60 bg-purple-950/90' : 'border-primary/60 bg-black/70'}`}>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {ATTRIBUTE_OPTIONS.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            onRollPericia(pericia.id, option.value);
-                            setPendingRoll(null);
-                          }}
-                          className={`h-8 px-2 text-sm uppercase font-bold border transition-all ${
-                            isAffected
-                              ? 'bg-black text-purple-300 border-purple-500 hover:bg-purple-500 hover:text-black'
-                              : 'bg-black text-primary border-primary hover:bg-primary hover:text-black'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
+                <DraggablePericiaItem
+                  key={pericia.id}
+                  pericia={pericia}
+                  draggedPericiaId={draggedPericiaId}
+                  setDraggedPericiaId={setDraggedPericiaId}
+                  pendingRoll={pendingRoll}
+                  setPendingRoll={setPendingRoll}
+                  isAffected={isAffected}
+                  isGeneric={isGeneric}
+                  adjustedTraining={adjustedTraining}
+                  isEffectivelyUntrained={isEffectivelyUntrained}
+                  onUpdatePericia={onUpdatePericia}
+                  onRollPericia={onRollPericia}
+                  onDeletePericia={onDeletePericia}
+                  onReorderPericias={onReorderPericias}
+                />
+              );
             })
           )}
         </div>

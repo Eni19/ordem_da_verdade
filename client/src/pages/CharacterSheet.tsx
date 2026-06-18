@@ -85,6 +85,7 @@ interface Insanity {
   name: string;
   description: string;
   type: 'fobia' | 'mania' | 'surto';
+  compulsoes?: number;
 }
 
 type AttributeKey = 'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor' | 'vontade';
@@ -875,6 +876,26 @@ export default function CharacterSheet() {
     });
   };
 
+  const handleReorderPericias = (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+
+    setCharacter((prev) => {
+      const fromIndex = prev.pericias.findIndex((p) => p.id === draggedId);
+      const toIndex = prev.pericias.findIndex((p) => p.id === targetId);
+
+      if (fromIndex === -1 || toIndex === -1) return prev;
+
+      const reordered = [...prev.pericias];
+      const [moved] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, moved);
+
+      return {
+        ...prev,
+        pericias: reordered,
+      };
+    });
+  };
+
   const handleAddPericia = () => {
     const newPericia: Pericia = {
       id: Date.now().toString(),
@@ -1410,10 +1431,41 @@ export default function CharacterSheet() {
     });
   };
 
-  const handleInvokeInsanity = (insanity: Insanity) => {
-    const gain = insanity.type === 'fobia' ? 2 : 1;
-    setCharacter((prev) => ({ ...prev, hope: Math.min(prev.hope + gain, 3) }));
+  const handleInvokeInsanity = (insanity: Insanity, action?: 'fobia-mestre' | 'fobia-jogador' | 'mania-complicacao' | 'mania-influencia') => {
+    if (action === 'mania-influencia') {
+      const currentCompulsoes = insanity.compulsoes || 0;
+      if (currentCompulsoes >= 2) {
+        // atingiu 3: zera as compulsões e ganha 1 esperança
+        setCharacter((prev) => ({
+          ...prev,
+          hope: Math.min(prev.hope + 1, 3),
+          insanities: prev.insanities.map(i => i.id === insanity.id ? { ...i, compulsoes: 0 } : i)
+        }));
+      } else {
+        // apenas adiciona 1 compulsão
+        setCharacter((prev) => ({
+          ...prev,
+          insanities: prev.insanities.map(i => i.id === insanity.id ? { ...i, compulsoes: currentCompulsoes + 1 } : i)
+        }));
+      }
+      return;
+    }
 
+    let gain = 0;
+    if (action === 'fobia-mestre' || action === 'mania-complicacao') {
+      gain = 1;
+    } else if (action === 'fobia-jogador') {
+      gain = 2;
+    } else if (!action) {
+      // Fallback genérico
+      gain = insanity.type === 'fobia' ? 2 : 1;
+    }
+
+    if (gain > 0) {
+      setCharacter((prev) => ({ ...prev, hope: Math.min(prev.hope + gain, 3) }));
+    }
+
+    // Se não for fobia, encerra (não gira a roleta de medo)
     if (insanity.type !== 'fobia') {
       return;
     }
@@ -1879,6 +1931,7 @@ export default function CharacterSheet() {
               onUpdatePericia={handleUpdatePericia}
               onDeletePericia={handleDeletePericia}
               onRollPericia={handleRollPericia}
+              onReorderPericias={handleReorderPericias}
               isFearAffectedSkill={isFearAffectedSkill}
               getFearAdjustedTrainingLevel={getFearAdjustedTrainingLevel}
             />

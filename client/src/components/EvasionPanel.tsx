@@ -66,7 +66,7 @@ export default function EvasionPanel({
     const createParticle = () => {
       if (!hexRef.current) return;
       const particle = document.createElement('div');
-      particle.className = 'absolute w-1 h-1 rounded-full pointer-events-none';
+      particle.className = 'absolute w-1 h-1 rounded-full pointer-events-none z-20';
 
       const border = Math.floor(Math.random() * 4);
       let startX = 0;
@@ -128,7 +128,30 @@ export default function EvasionPanel({
   }, [isEvasionAffected, areChargesDisabled]);
 
   return (
-    <div ref={hexRef} className={`card-occult space-y-2 transition-colors relative overflow-hidden ${isEvasionAffected || areChargesDisabled ? 'border-purple-500/60 bg-purple-950/20 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : ''}`}>
+    <div className={`card-occult space-y-2 transition-colors relative ${isEvasionAffected || areChargesDisabled ? 'border-purple-500/60 bg-purple-950/20 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : ''}`}>
+      {/* Container de partículas aninhado para permitir vazamento controlado sem gerar barras de rolagem */}
+      {(isEvasionAffected || areChargesDisabled) && (
+        <div 
+          className="absolute pointer-events-none overflow-hidden z-20"
+          style={{
+            left: '-40px',
+            top: '-40px',
+            right: '-12px',
+            bottom: '-12px'
+          }}
+        >
+          <div 
+            ref={hexRef} 
+            className="absolute pointer-events-none" 
+            style={{
+              left: '40px',
+              top: '40px',
+              right: '12px',
+              bottom: '12px'
+            }}
+          />
+        </div>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2 text-center relative z-10">
           <h3 className={`font-display text-sm uppercase ${isEvasionAffected ? 'text-purple-300' : 'text-sky-300'}`}>Evasão</h3>

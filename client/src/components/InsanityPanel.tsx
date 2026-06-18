@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, Trash2, Plus } from 'lucide-react';
 import anime from 'animejs';
 
@@ -7,6 +7,7 @@ interface Insanity {
   name: string;
   description: string;
   type: 'fobia' | 'mania' | 'surto';
+  compulsoes?: number;
 }
 
 interface ActiveFearTag {
@@ -30,13 +31,13 @@ interface InsanityPanelProps {
   onInsanityAdd: (insanity: Insanity) => void;
   onInsanityRemove: (id: string) => void;
   onInsanityUpdate: (id: string, insanity: Insanity) => void;
-  onInsanityInvoke?: (insanity: Insanity) => void;
+  onInsanityInvoke?: (insanity: Insanity, action?: 'fobia-mestre' | 'fobia-jogador' | 'mania-complicacao' | 'mania-influencia') => void;
   onRollNewFear: () => void;
   onRemoveFearTag: (id: string) => void;
   onOpenFearTagDetails: (id: string) => void;
 }
 
-function DraggableFearTag({ tag, onOpen, index }: { tag: ActiveFearTag; onOpen: (id: string) => void; index: number }) {
+function DraggableFearTag({ tag, onOpen, index, onDragMove }: { tag: ActiveFearTag; onOpen: (id: string) => void; index: number; onDragMove?: (x: number, y: number) => void }) {
   const elRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: 0, y: 0 });
@@ -46,7 +47,6 @@ function DraggableFearTag({ tag, onOpen, index }: { tag: ActiveFearTag; onOpen: 
   const hasMoved = useRef(false);
 
   useEffect(() => {
-    // Initial staggered position so they don't all overlap
     if (elRef.current) {
       const col = index % 2;
       const row = Math.floor(index / 2);
@@ -69,9 +69,8 @@ function DraggableFearTag({ tag, onOpen, index }: { tag: ActiveFearTag; onOpen: 
     }
 
     if (innerRef.current) {
-      innerRef.current.style.transform = 'scale(1.05)';
-      innerRef.current.style.boxShadow = '0 0 20px rgba(249, 115, 22, 0.4)';
-      innerRef.current.style.borderColor = 'rgba(249, 115, 22, 1)';
+      innerRef.current.style.transform = 'scale(1.1) skewX(-5deg)';
+      innerRef.current.style.filter = 'hue-rotate(90deg)';
     }
   };
 
@@ -84,7 +83,6 @@ function DraggableFearTag({ tag, onOpen, index }: { tag: ActiveFearTag; onOpen: 
     let newX = startPos.current.x + dx;
     let newY = startPos.current.y + dy;
 
-    // Constrain to parent boundaries
     if (elRef.current && elRef.current.parentElement) {
       const parent = elRef.current.parentElement;
       const maxX = parent.clientWidth - elRef.current.clientWidth;
@@ -98,6 +96,8 @@ function DraggableFearTag({ tag, onOpen, index }: { tag: ActiveFearTag; onOpen: 
     if (elRef.current) {
       elRef.current.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`;
     }
+
+    if (onDragMove) onDragMove(pos.current.x, pos.current.y);
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -109,9 +109,8 @@ function DraggableFearTag({ tag, onOpen, index }: { tag: ActiveFearTag; onOpen: 
     }
 
     if (innerRef.current) {
-      innerRef.current.style.transform = 'scale(1)';
-      innerRef.current.style.boxShadow = '0 0 10px rgba(249, 115, 22, 0.05)';
-      innerRef.current.style.borderColor = 'rgba(249, 115, 22, 0.3)';
+      innerRef.current.style.transform = 'scale(1) skewX(0deg)';
+      innerRef.current.style.filter = 'none';
     }
 
     if (!hasMoved.current) {
@@ -126,14 +125,24 @@ function DraggableFearTag({ tag, onOpen, index }: { tag: ActiveFearTag; onOpen: 
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       style={{ cursor: 'grab', touchAction: 'none' }}
-      className="fear-tag-item absolute z-10 w-28 h-14"
+      className="fear-tag-item absolute z-10 w-[140px] h-[45px]"
     >
       <div
         ref={innerRef}
-        className="fear-tag-content w-full h-full bg-gradient-to-br from-orange-950/80 to-black border border-orange-500/30 rounded p-1.5 flex flex-col items-center justify-center select-none shadow-[0_0_10px_rgba(249,115,22,0.05)] backdrop-blur-sm transition-all duration-200 opacity-0"
+        className="relative w-full h-full flex flex-col items-center justify-center select-none transition-transform duration-75"
       >
-        <div className="text-orange-100 text-xs font-display font-bold uppercase text-center line-clamp-2 w-full leading-tight drop-shadow-[0_0_3px_rgba(249,115,22,0.5)]" title={tag.effectName}>
-          {tag.effectName}
+        <div 
+          className="fear-text-container relative z-10 text-zinc-100 text-[18px] font-display font-bold uppercase text-center w-full leading-tight" 
+          title={tag.effectName}
+          style={{ textShadow: '1.5px 0 0 rgba(255, 0, 0, 0.8), -1.5px 0 0 rgba(0, 255, 255, 0.8)' }}
+        >
+          {tag.effectName.split(' ').map((word, wIdx) => (
+            <span key={wIdx} className="inline-block mx-[2px]">
+              {word.split('').map((char, cIdx) => (
+                <span key={cIdx} className="fear-letter inline-block opacity-0" data-char={char}>{char}</span>
+              ))}
+            </span>
+          ))}
         </div>
       </div>
     </div>
@@ -159,137 +168,67 @@ export default function InsanityPanel({
   const [newInsanityDesc, setNewInsanityDesc] = useState('');
   const [newInsanityType, setNewInsanityType] = useState<Insanity['type']>('fobia');
   const fearListRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (isOpen && fearListRef.current) {
-      const items = fearListRef.current.querySelectorAll('.fear-tag-content');
-      if (items.length > 0) {
+    if (!isOpen) return;
+
+    if (videoRef.current) {
+      // Deixando o novo vídeo mais devagar sem causar travamento extremo
+      videoRef.current.playbackRate = 0.7;
+    }
+
+    if (fearListRef.current) {
+      const texts = fearListRef.current.querySelectorAll('.fear-text-container');
+      const letters = fearListRef.current.querySelectorAll('.fear-letter');
+      
+      anime.remove(texts);
+      anime.remove(letters);
+      
+      if (letters.length > 0) {
+        const characters = '!@#$%^&*()_+{}|:<>?~';
+        
         anime({
-          targets: items,
+          targets: letters,
           opacity: [0, 1],
-          scale: [0.85, 1],
+          translateY: [10, 0],
           duration: 800,
-          delay: anime.stagger(100),
-          easing: 'easeOutElastic(1, .8)',
+          delay: anime.stagger(30, {start: 100}),
+          easing: 'easeOutExpo',
+          update: function(anim) {
+            // Efeito Scramble
+            letters.forEach((el) => {
+              if (anim.progress < 95 && Math.random() > 0.5) {
+                el.textContent = characters.charAt(Math.floor(Math.random() * characters.length));
+              } else if (anim.progress >= 95) {
+                el.textContent = el.getAttribute('data-char') || '';
+              }
+            });
+          },
+          complete: function() {
+            letters.forEach((el) => {
+              el.textContent = el.getAttribute('data-char') || '';
+            });
+          }
+        });
+      }
+
+      if (texts.length > 0) {
+        // Efeito Glitch constante sutil tipo VHS
+        anime({
+          targets: texts,
+          translateX: () => anime.random(-2, 2),
+          translateY: () => anime.random(-1, 1),
+          skewX: () => anime.random(-3, 3),
+          duration: 100,
+          delay: () => anime.random(2000, 5000),
+          direction: 'alternate',
+          loop: true,
+          easing: 'easeInOutQuad'
         });
       }
     }
-  }, [isOpen, activeFearTags.length]);
-
-  useEffect(() => {
-    if (!isOpen || !canvasRef.current || !fearListRef.current || activeFearTags.length === 0) return;
-
-    let animationId: number;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Nodos em background flutuando pela rede
-    const bgNodes = Array.from({ length: 20 }).map(() => ({
-      x: Math.random() * (fearListRef.current?.clientWidth || 300),
-      y: Math.random() * (fearListRef.current?.clientHeight || 300),
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-    }));
-
-    const draw = (time: number) => {
-      const parent = fearListRef.current;
-      if (!parent) return;
-      if (canvas.width !== parent.clientWidth || canvas.height !== parent.clientHeight) {
-        canvas.width = parent.clientWidth;
-        canvas.height = parent.clientHeight;
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      bgNodes.forEach(node => {
-        node.x += node.vx;
-        node.y += node.vy;
-        if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
-        if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
-      });
-
-      const items = Array.from(parent.querySelectorAll('.fear-tag-item')) as HTMLElement[];
-      const tagNodes = items.map(el => {
-        const transform = el.style.transform;
-        const match = transform.match(/translate\(([^p]+)px,\s*([^p]+)px\)/);
-        let x = 0; let y = 0;
-        if (match) {
-          x = parseFloat(match[1]) + el.clientWidth / 2;
-          y = parseFloat(match[2]) + el.clientHeight / 2;
-        }
-        return { x, y, isTag: true };
-      });
-
-      const allNodes = [...tagNodes, ...bgNodes.map(n => ({ ...n, isTag: false }))];
-
-      ctx.lineWidth = 1;
-
-      for (let i = 0; i < allNodes.length; i++) {
-        for (let j = i + 1; j < allNodes.length; j++) {
-          const dx = allNodes[i].x - allNodes[j].x;
-          const dy = allNodes[i].y - allNodes[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          const maxDist = allNodes[i].isTag || allNodes[j].isTag ? 220 : 120;
-
-          if (dist < maxDist) {
-            ctx.beginPath();
-            ctx.moveTo(allNodes[i].x, allNodes[i].y);
-            ctx.lineTo(allNodes[j].x, allNodes[j].y);
-
-            // Firing energy dash
-            ctx.setLineDash([4, 8]);
-            ctx.lineDashOffset = -time / 30;
-
-            const opacity = Math.max(0, 1 - dist / maxDist);
-            const isTagConnection = allNodes[i].isTag && allNodes[j].isTag;
-            const isHalfTag = allNodes[i].isTag || allNodes[j].isTag;
-
-            ctx.strokeStyle = isTagConnection
-              ? `rgba(249, 115, 22, ${opacity * 0.9})`
-              : isHalfTag
-                ? `rgba(249, 115, 22, ${opacity * 0.4})`
-                : `rgba(249, 115, 22, ${opacity * 0.15})`;
-            ctx.stroke();
-          }
-        }
-      }
-
-      tagNodes.forEach(node => {
-        const dists = [
-          { x: node.x, y: 0, d: node.y },
-          { x: node.x, y: canvas.height, d: canvas.height - node.y },
-          { x: 0, y: node.y, d: node.x },
-          { x: canvas.width, y: node.y, d: canvas.width - node.x }
-        ];
-
-        dists.sort((a, b) => a.d - b.d);
-        for (let k = 0; k < 2; k++) {
-          const wall = dists[k];
-          if (wall.d < 200) {
-            ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(wall.x, wall.y);
-
-            ctx.setLineDash([2, 6]);
-            ctx.lineDashOffset = time / 20;
-
-            ctx.strokeStyle = `rgba(249, 115, 22, ${Math.max(0, 1 - wall.d / 200) * 0.6})`;
-            ctx.stroke();
-          }
-        }
-      });
-
-      ctx.setLineDash([]);
-
-      animationId = requestAnimationFrame(draw);
-    };
-
-    animationId = requestAnimationFrame(draw);
-
-    return () => cancelAnimationFrame(animationId);
   }, [isOpen, activeFearTags.length]);
 
   const autoResizeTextarea = (target: HTMLTextAreaElement) => {
@@ -304,6 +243,7 @@ export default function InsanityPanel({
         name: newInsanityName,
         description: newInsanityDesc,
         type: newInsanityType,
+        compulsoes: newInsanityType === 'mania' ? 0 : undefined,
       };
       onInsanityAdd(newInsanity);
       setNewInsanityName('');
@@ -383,13 +323,69 @@ export default function InsanityPanel({
                     rows={2}
                     placeholder="Descrição"
                   />
-                  <div className="mt-2">
-                    <button
-                      onClick={() => onInsanityInvoke ? onInsanityInvoke(insanity) : window.alert(`Invocando ${insanity.name} (${insanity.type})`)}
-                      className="w-full bg-orange-500 text-black font-bold py-1 uppercase text-xs"
-                    >
-                      Invocar Insanidade
-                    </button>
+                  <div className="mt-2 space-y-1">
+                    {insanity.type === 'fobia' && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => onInsanityInvoke && onInsanityInvoke(insanity, 'fobia-mestre')}
+                          className="flex-1 bg-orange-500 text-black font-bold py-1 uppercase text-[10px] leading-tight hover:bg-orange-400"
+                          title="Invocar pelo Mestre: Ganha 1 Esperança e sofre Efeito de Medo"
+                        >
+                          Invocar (Mestre)
+                        </button>
+                        <button
+                          onClick={() => onInsanityInvoke && onInsanityInvoke(insanity, 'fobia-jogador')}
+                          className="flex-1 bg-orange-500 text-black font-bold py-1 uppercase text-[10px] leading-tight hover:bg-orange-400"
+                          title="Invocar pelo Jogador: Ganha 2 Esperança e sofre Efeito de Medo"
+                        >
+                          Invocar (Jogador)
+                        </button>
+                      </div>
+                    )}
+                    {insanity.type === 'mania' && (
+                      <>
+                        <div className="flex justify-between items-center bg-orange-950/30 px-2 py-1 border border-orange-500/50 mb-1">
+                          <span className="text-[10px] text-orange-300 uppercase font-bold">Compulsões</span>
+                          <div className="flex gap-1">
+                            {[0, 1, 2].map((idx) => (
+                              <div
+                                key={idx}
+                                className={`w-3 h-3 border border-orange-500 rounded-full transition-colors ${
+                                  (insanity.compulsoes || 0) > idx ? 'bg-orange-500' : 'bg-transparent'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => {
+                              if (onInsanityInvoke) onInsanityInvoke(insanity, 'mania-complicacao');
+                              onToggle();
+                            }}
+                            className="flex-1 bg-orange-500 text-black font-bold py-1 uppercase text-[10px] leading-tight hover:bg-orange-400"
+                            title="Gerou Complicação (Invocar): Ganha 1 Esperança e fecha painel"
+                          >
+                            Invocar
+                          </button>
+                          <button
+                            onClick={() => onInsanityInvoke && onInsanityInvoke(insanity, 'mania-influencia')}
+                            className="w-8 flex-shrink-0 bg-orange-500 text-black font-bold py-1 flex items-center justify-center hover:bg-orange-400"
+                            title="Influenciou Ações: Ganha 1 Ponto de Compulsão"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {insanity.type === 'surto' && (
+                      <button
+                        onClick={() => onInsanityInvoke && onInsanityInvoke(insanity)}
+                        className="w-full bg-orange-500 text-black font-bold py-1 uppercase text-xs hover:bg-orange-400"
+                      >
+                        Invocar Surto
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -464,7 +460,7 @@ export default function InsanityPanel({
               <h3 className="font-display text-lg text-orange-300 uppercase">Sanidade</h3>
               <button
                 onClick={onRollNewFear}
-                className="bg-orange-500 text-black font-bold px-2 py-1 hover:bg-orange-400 transition-colors flex items-center gap-1 text-xs uppercase animate-pulse"
+                className="bg-zinc-400 text-black font-bold px-2 py-1 hover:bg-zinc-300 transition-colors flex items-center gap-1 text-xs uppercase animate-pulse shadow-[0_0_8px_rgba(161,161,170,0.2)]"
                 title="Acionar um novo efeito de medo na roleta"
               >
                 <Plus size={14} />
@@ -473,11 +469,22 @@ export default function InsanityPanel({
             </div>
 
             <div
-              className="relative w-full min-h-[300px] bg-orange-950/5 border border-dashed border-orange-500/30 overflow-hidden"
+              className="relative w-full min-h-[400px] bg-orange-950/5 border border-dashed border-orange-500/30 overflow-hidden"
               ref={fearListRef}
             >
-              <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none" />
-              <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #f97316 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+              {/* Rorschach Video Background */}
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-50 overflow-hidden flex items-center justify-center">
+                <video
+                  ref={videoRef}
+                  src="/rorschach_2.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="min-w-full min-h-full object-cover mix-blend-screen"
+                />
+              </div>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_40%,_rgba(0,0,0,0.8)_100%)] pointer-events-none z-0"></div>
 
               {activeFearTags.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center text-xs text-orange-400/60 pointer-events-none z-10">
