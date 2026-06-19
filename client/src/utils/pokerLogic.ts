@@ -8,7 +8,6 @@ export interface Card {
 }
 
 export type HandGrade = 0 | 1 | 2 | 3 | 4 | 5;
-export type SpellEffect = 'Ruptura' | 'Padrão' | 'Discente' | 'Verdadeiro' | 'Anomalia';
 
 const SUITS: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
 const RANKS: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -177,16 +176,26 @@ function getCombinations<T>(array: T[], size: number): T[][] {
   return result;
 }
 
-export function getConjurationEffect(grade: HandGrade, circle: 1 | 2 | 3): SpellEffect {
+export type SpellEffect = 'Ruptura' | 'Padrão' | 'Discente' | 'Discente Maximizado' | 'Anomalia Narrativa';
+
+export function getConjurationEffect(grade: HandGrade, circle: 1 | 2 | 3, isRetained: boolean = false): SpellEffect {
   const matrix: Record<HandGrade, Record<1 | 2 | 3, SpellEffect>> = {
     0: { 1: 'Ruptura', 2: 'Ruptura', 3: 'Ruptura' },
     1: { 1: 'Padrão', 2: 'Ruptura', 3: 'Ruptura' },
     2: { 1: 'Discente', 2: 'Padrão', 3: 'Ruptura' },
-    3: { 1: 'Verdadeiro', 2: 'Discente', 3: 'Padrão' },
-    4: { 1: 'Anomalia', 2: 'Verdadeiro', 3: 'Verdadeiro' },
-    5: { 1: 'Anomalia', 2: 'Anomalia', 3: 'Anomalia' },
+    3: { 1: 'Discente Maximizado', 2: 'Discente', 3: 'Padrão' },
+    4: { 1: 'Discente Maximizado', 2: 'Discente Maximizado', 3: 'Discente Maximizado' },
+    5: { 1: 'Anomalia Narrativa', 2: 'Anomalia Narrativa', 3: 'Anomalia Narrativa' },
   };
-  return matrix[grade][circle];
+  let effect = matrix[grade][circle];
+
+  if (isRetained) {
+    if (effect === 'Anomalia Narrativa' || effect === 'Discente Maximizado') {
+      effect = 'Discente';
+    }
+  }
+
+  return effect;
 }
 
 export function getTargetResistanceDT(handGrade: HandGrade, circle: number): number {

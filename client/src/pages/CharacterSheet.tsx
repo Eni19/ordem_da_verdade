@@ -122,7 +122,7 @@ interface ParanormalPower {
   description: string;
 }
 
-type RitualType = 'dano' | 'aflicao' | 'utilidade';
+type RitualType = 'dano' | 'aflicao' | 'suporte';
 
 interface RitualVersion {
   name: string;
@@ -139,12 +139,13 @@ interface Ritual {
   id: string;
   versions: RitualVersion[];
   activeVersion: number;
+  slotIndex?: number;
 }
 
 interface PokerConjureState {
   ritualId: string;
   turn: 1 | 2 | 3;
-  phase: 'draw' | 'discard_roll' | 'discard_select' | 'omen_select' | 'decision' | 'showdown' | 'resolved';
+  phase: 'draw' | 'discard_roll' | 'discard_select' | 'omen_select' | 'decision' | 'showdown' | 'resolved' | 'immediate_showdown';
   deck: Card[];
   hand: Card[];
   discardLimit: number;
@@ -300,6 +301,8 @@ export default function CharacterSheet() {
   const [pendingDamageRoll, setPendingDamageRoll] = useState<DamageRollRequest | null>(null);
   const [openSidebar, setOpenSidebar] = useState<'inventory' | 'insanity' | 'rituals' | null>(null);
   const [pokerConjureState, setPokerConjureState] = useState<PokerConjureState | null>(null);
+  const [suspendedConjurations, setSuspendedConjurations] = useState<Record<string, PokerConjureState>>({});
+  const [lastConjuredEffect, setLastConjuredEffect] = useState<{ritualId: string, effect: string, type: string} | null>(null);
   const [isConjurationOverlayOpen, setIsConjurationOverlayOpen] = useState(false);
   const [ritualResolveState, setRitualResolveState] = useState<
     | {
@@ -1229,15 +1232,8 @@ export default function CharacterSheet() {
     const ritual = _ritual;
     const activeVersion = ritual.versions[ritual.activeVersion] ?? ritual.versions[0];
 
-    if (activeVersion?.retained) {
-      handleUpdateRitual(ritual.id, {
-        ...ritual,
-        versions: ritual.versions.map((version, index) =>
-          index === ritual.activeVersion ? { ...version, retained: false } : version
-        ),
-      });
-      return;
-    }
+    // We removed the block that prevented starting a conjuration for a retained ritual.
+    // Retained rituals can now be conjured (and they will be suspended at turn 3).
 
     const ocultismoPericia = character.pericias.find(p => p.name === 'Ocultismo');
     // Destreinado falls under this catch if we had 'destreinado', but in this system it's either in the array with a training or not.
@@ -1257,8 +1253,12 @@ export default function CharacterSheet() {
       selectedCards: [],
     });
     
+    setLastConjuredEffect(null); // Limpa o efeito anterior ao iniciar novo transe
+
     setIsConjurationOverlayOpen(true);
-    setOpenSidebar(null); // Fecha a sidebar para o modal brilhar
+    if (!activeVersion?.retained) {
+      setOpenSidebar(null); // Fecha a sidebar apenas para rituais não retidos
+    }
   };
 
   const handleResumeConjuration = () => {
@@ -1272,9 +1272,64 @@ export default function CharacterSheet() {
     setOpenSidebar(null);
   };
 
-  const handleCancelConjuration = () => {
+  const handleCancelConjuration = (effect?: string) => {
+    if (effect && pokerConjureState) {
+      const ritualId = pokerConjureState.ritualId;
+      const type = character.rituals.find(r => r.id === ritualId)
+        ?.versions[character.rituals.find(r => r.id === ritualId)?.activeVersion || 0]?.type || 'suporte';
+      setLastConjuredEffect({ ritualId, effect, type });
+
+      // If it was a suspended conjuration that we just concluded, remove it from suspended list
+      if (suspendedConjurations[ritualId]) {
+        setSuspendedConjurations(prev => {
+          const newSuspended = { ...prev };
+          delete newSuspended[ritualId];
+          return newSuspended;
+        });
+
+        // Un-retain it and restore max sanity
+        const ritualToUpdate = character.rituals.find(r => r.id === ritualId);
+        if (ritualToUpdate) {
+          const currentVersion = ritualToUpdate.versions[ritualToUpdate.activeVersion] ?? ritualToUpdate.versions[0];
+          const costValue = parseInt(currentVersion?.cost || '0') || 0;
+          
+          setCharacter(prev => ({
+            ...prev,
+            sanity: {
+              current: prev.sanity.current,
+              max: prev.sanity.max + costValue, // restaura max
+            },
+            rituals: prev.rituals.map(r => r.id === ritualId ? {
+              ...r,
+              versions: r.versions.map((v, i) => i === r.activeVersion ? { ...v, retained: false } : v)
+            } : r)
+          }));
+        }
+      }
+    }
     setPokerConjureState(null);
     setIsConjurationOverlayOpen(false);
+  };
+
+  const handleSuspendConjuration = (state: PokerConjureState) => {
+    setSuspendedConjurations(prev => ({
+      ...prev,
+      [state.ritualId]: state
+    }));
+    setPokerConjureState(null);
+    setLastConjuredEffect(null); // Limpa o efeito para não mostrar card vazio
+    setIsConjurationOverlayOpen(false);
+    setOpenSidebar('rituals'); // Volta para a tela de rituais
+  };
+
+  const handleReleaseRitual = (ritualId: string) => {
+    const suspendedState = suspendedConjurations[ritualId];
+    if (suspendedState) {
+      // Retoma o transe diretamente na fase de showdown
+      setPokerConjureState({ ...suspendedState, phase: 'immediate_showdown' });
+      setIsConjurationOverlayOpen(true);
+      setOpenSidebar(null);
+    }
   };
 
   const handleResolveRitual = (ritualId: string) => {
@@ -1631,7 +1686,7 @@ export default function CharacterSheet() {
       cost: version?.cost ?? '',
       duration: version?.duration ?? '',
       resistance: Number(version?.resistance ?? 0),
-      type: version?.type ?? 'utilidade',
+      type: version?.type ?? 'suporte',
       description: version?.description ?? '',
       retained: Boolean(version?.retained ?? false),
     });
@@ -2056,9 +2111,13 @@ export default function CharacterSheet() {
         onRemoveRitual={handleRemoveRitual}
         onConjureRitual={handleStartConjuration}
         activeConjuration={pokerConjureState}
+        suspendedConjurations={suspendedConjurations}
         onResumeConjuration={handleResumeConjuration}
         onForceShowdown={handleForceShowdown}
         onCancelConjuration={handleCancelConjuration}
+        onReleaseRitual={handleReleaseRitual}
+        lastConjuredEffect={lastConjuredEffect}
+        onClearLastEffect={() => setLastConjuredEffect(null)}
       />
 
       {isConjurationOverlayOpen && pokerConjureState && (
@@ -2072,6 +2131,14 @@ export default function CharacterSheet() {
           ritualCircle={
             character.rituals.find(r => r.id === pokerConjureState.ritualId)
               ?.versions[character.rituals.find(r => r.id === pokerConjureState.ritualId)?.activeVersion || 0]?.circle || '1'
+          }
+          ritualType={
+            (character.rituals.find(r => r.id === pokerConjureState.ritualId)
+              ?.versions[character.rituals.find(r => r.id === pokerConjureState.ritualId)?.activeVersion || 0]?.type || 'suporte') as any
+          }
+          isRetained={
+            character.rituals.find(r => r.id === pokerConjureState.ritualId)
+              ?.versions[character.rituals.find(r => r.id === pokerConjureState.ritualId)?.activeVersion || 0]?.retained || false
           }
           ocultismoLevel={
             character.pericias.find(p => p.name === 'Ocultismo')?.training || 'treinado'
@@ -2091,6 +2158,7 @@ export default function CharacterSheet() {
           }}
           onClose={() => setIsConjurationOverlayOpen(false)}
           onConclude={handleCancelConjuration}
+          onSuspend={handleSuspendConjuration}
         />
       )}
     </div>

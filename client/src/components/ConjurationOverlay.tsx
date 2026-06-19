@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import anime from 'animejs';
 import { Card, drawCard, getConjurationEffect, evaluate5CardHand, getTargetResistanceDT, createDeck, HandGrade } from '@/utils/pokerLogic';
 
+export type ConjurationPhase = 'draw' | 'discard_roll' | 'discard_select' | 'omen_select' | 'decision' | 'showdown' | 'immediate_showdown';
+
 export interface PokerConjureState {
   ritualId: string;
   turn: number;
-  phase: 'draw' | 'discard_roll' | 'discard_select' | 'omen_select' | 'decision' | 'showdown';
+  phase: ConjurationPhase;
   deck: Card[];
   hand: Card[];
   discardLimit: number;
@@ -17,6 +19,7 @@ interface ConjurationOverlayProps {
   setState: React.Dispatch<React.SetStateAction<PokerConjureState | null>>;
   ritualName: string;
   ritualCircle: string;
+  ritualType: 'dano' | 'aflicao' | 'suporte';
   ocultismoLevel: string; // e.g. 'treinado', 'veterano', 'expert'
   inteligencia: number;
   getRollConfig: (attr: 'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor') => {
@@ -26,7 +29,9 @@ interface ConjurationOverlayProps {
     realAttribute: string;
   };
   onClose: () => void;
-  onConclude: () => void;
+  onConclude: (effect?: string) => void;
+  isRetained?: boolean;
+  onSuspend?: (state: PokerConjureState) => void;
 }
 
 function DraggablePokerCard({
@@ -217,6 +222,20 @@ function DraggablePokerCard({
   );
 }
 
+function AnimatedText({ text, className = '' }: { text: string; className?: string }) {
+  // We split by spaces but preserve them by adding margin or an explicit space
+  const words = text.split(' ');
+  return (
+    <span className={className}>
+      {words.map((word, i) => (
+        <span key={i} className="inline-block showdown-word opacity-0 translate-y-3 mr-1">
+          {word}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function BalatroDeck({ count }: { count: number }) {
   const deckRef = useRef<HTMLDivElement>(null);
   const thickness = Math.min(count, 52) / 4;
@@ -250,11 +269,14 @@ export default function ConjurationOverlay({
   setState,
   ritualName,
   ritualCircle,
+  ritualType,
   ocultismoLevel,
   inteligencia,
   getRollConfig,
   onClose,
   onConclude,
+  isRetained = false,
+  onSuspend,
 }: ConjurationOverlayProps) {
   const [selectedAttribute, setSelectedAttribute] = useState<'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor'>('inteligência');
   const [localRollResult, setLocalRollResult] = useState<number | null>(null);
@@ -268,8 +290,16 @@ export default function ConjurationOverlay({
   const actionWrapperRef = useRef<HTMLDivElement>(null);
   const hasAnimatedInitialHand = useRef(false);
 
-  // Define Hand Size
-  const handSize = 5 + (parseInt(ritualCircle) || 1); // 1st=6, 2nd=7, 3rd=8, 4th=9
+  // Define Hand Size based on Ocultismo training
+  const getHandSize = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'expert': return 7;
+      case 'veterano': return 6;
+      case 'treinado': return 5;
+      default: return 5;
+    }
+  };
+  const handSize = getHandSize(ocultismoLevel);
 
   // Removemos a animação staggada estática antiga pois agora voaremos do baralho
   // useEffect(() => { ... }) foi removido
@@ -367,6 +397,61 @@ export default function ConjurationOverlay({
         }, '-=600');
     }
   }, [state?.phase]);
+
+  // Showdown animation
+  useEffect(() => {
+    if (showdownResult) {
+      const tl = anime.timeline({
+        easing: 'easeOutExpo'
+      });
+
+      // Show container
+      tl.add({
+        targets: '.showdown-container',
+        opacity: [0, 1],
+        scale: [0.95, 1],
+        duration: 800,
+      });
+
+      // Stagger cards
+      tl.add({
+        targets: '.showdown-card',
+        translateY: [30, 0],
+        opacity: [0, 1],
+        rotateZ: () => anime.random(-10, 10),
+        delay: anime.stagger(150),
+        duration: 800,
+      }, '-=400');
+
+      // Title & stats
+      tl.add({
+        targets: '.showdown-title, .showdown-stat',
+        opacity: [0, 1],
+        translateY: [20, 0],
+        delay: anime.stagger(100),
+        duration: 800,
+      }, '-=200');
+
+      // Words in description
+      tl.add({
+        targets: '.showdown-word',
+        opacity: [0, 1],
+        translateY: [10, 0],
+        scale: [0.9, 1],
+        delay: anime.stagger(30),
+        duration: 600,
+        easing: 'easeOutBack'
+      }, '-=400');
+      
+      // The final button
+      tl.add({
+        targets: '.showdown-btn',
+        opacity: [0, 1],
+        translateY: [20, 0],
+        duration: 800
+      }, '-=200');
+    }
+  }, [showdownResult]);
 
   const getAttrDiceConfig = (rawAttrValue: any): { qty: number, sides: number } => {
     const attrValue = Number(rawAttrValue);
@@ -596,7 +681,8 @@ export default function ConjurationOverlay({
   const handleDiscardAndReplace = () => {
     if (!state.selectedCards.length) {
       // Opted to discard 0 cards
-      setState(prev => prev ? { ...prev, phase: prev.turn === 3 ? 'showdown' : 'decision', selectedCards: [] } : prev);
+      const nextPhase = state.turn === 3 ? 'showdown' : 'decision';
+      setState(prev => prev ? { ...prev, phase: nextPhase, selectedCards: [] } : prev);
       return;
     }
 
@@ -615,11 +701,12 @@ export default function ConjurationOverlay({
 
     setAnimatingIndices(replacedIndices);
 
+    const nextPhase = state.turn === 3 ? 'showdown' : 'decision';
     setState(prev => prev ? {
       ...prev,
       deck: newDeck,
       hand: newHand,
-      phase: prev.turn === 3 ? 'showdown' : 'decision',
+      phase: nextPhase,
       selectedCards: []
     } : prev);
   };
@@ -637,36 +724,83 @@ export default function ConjurationOverlay({
 
     setAnimatingIndices([0]);
 
+    const nextPhase = state.turn === 3 ? 'showdown' : 'decision';
+    
     setState(prev => prev ? {
       ...prev,
       deck: newDeck,
       hand: newHand,
-      phase: prev.turn === 3 ? 'showdown' : 'decision',
+      phase: nextPhase,
       selectedCards: []
     } : prev);
   };
 
   const handleSustentarTranse = () => {
-    setState(prev => prev ? {
-      ...prev,
-      turn: prev.turn + 1,
-      phase: 'discard_roll',
-      selectedCards: []
-    } : prev);
-    setLocalRollResult(null);
-    onClose(); // Pausa a overlay
+    if (!isRetained) {
+      setState(prev => prev ? {
+        ...prev,
+        turn: prev.turn + 1,
+        phase: 'discard_roll',
+        selectedCards: []
+      } : prev);
+      setLocalRollResult(null);
+      setDiceState(null);
+      onClose(); // Pausa a overlay apenas se não for retido
+      return;
+    }
+
+    if (actionWrapperRef.current) {
+      anime({
+        targets: actionWrapperRef.current,
+        opacity: [1, 0],
+        duration: 300,
+        easing: 'easeInOutQuad',
+        complete: () => {
+          setState(prev => prev ? {
+            ...prev,
+            turn: prev.turn + 1,
+            phase: 'discard_roll',
+            selectedCards: []
+          } : prev);
+          setLocalRollResult(null);
+          setDiceState(null);
+          
+          anime({
+            targets: actionWrapperRef.current,
+            opacity: [0, 1],
+            duration: 300,
+            easing: 'easeInOutQuad'
+          });
+        }
+      });
+    } else {
+      setState(prev => prev ? {
+        ...prev,
+        turn: prev.turn + 1,
+        phase: 'discard_roll',
+        selectedCards: []
+      } : prev);
+      setLocalRollResult(null);
+      setDiceState(null);
+    }
   };
 
   const handleShowdown = () => {
-    if (state.hand.length > 5) {
-      if (state.selectedCards.length === 5) {
-        const finalHand = state.selectedCards.map(idx => state.hand[idx]);
+    if (state.hand.length > 5 && state.selectedCards.length === 5) {
+      const finalHand = state.selectedCards.map(idx => state.hand[idx]);
+      if (isRetained && onSuspend) {
+        onSuspend({ ...state, hand: finalHand, phase: 'showdown', selectedCards: [] });
+      } else {
         const evaluation = evaluate5CardHand(finalHand);
         setShowdownResult({ grade: evaluation.grade, handName: evaluation.name, best5: finalHand });
       }
     } else {
-      const evaluation = evaluate5CardHand(state.hand);
-      setShowdownResult({ grade: evaluation.grade, handName: evaluation.name, best5: state.hand });
+      if (isRetained && onSuspend) {
+        onSuspend({ ...state, phase: 'showdown', selectedCards: [] });
+      } else {
+        const evaluation = evaluate5CardHand(state.hand);
+        setShowdownResult({ grade: evaluation.grade, handName: evaluation.name, best5: state.hand });
+      }
     }
   };
 
@@ -674,10 +808,21 @@ export default function ConjurationOverlay({
     if (state.hand.length > 5) {
       setState(prev => prev ? { ...prev, phase: 'showdown', selectedCards: [] } : prev);
     } else {
+      if (isRetained && onSuspend) {
+        onSuspend({ ...state, phase: 'showdown', selectedCards: [] });
+      } else {
+        const evaluation = evaluate5CardHand(state.hand);
+        setShowdownResult({ grade: evaluation.grade, handName: evaluation.name, best5: state.hand });
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (state.phase === 'immediate_showdown') {
       const evaluation = evaluate5CardHand(state.hand);
       setShowdownResult({ grade: evaluation.grade, handName: evaluation.name, best5: state.hand });
     }
-  };
+  }, [state.phase, state.hand]);
 
   const handleReorder = (draggedIdx: number, targetIdx: number) => {
     if (draggedIdx === targetIdx) return;
@@ -702,17 +847,17 @@ export default function ConjurationOverlay({
 
 
   if (showdownResult) {
-    const effect = getConjurationEffect(showdownResult.grade, (parseInt(ritualCircle) || 1) as 1 | 2 | 3);
+    const effect = getConjurationEffect(showdownResult.grade, (parseInt(ritualCircle) || 1) as 1 | 2 | 3, isRetained);
     const dt = getTargetResistanceDT(showdownResult.grade, parseInt(ritualCircle) || 1);
 
     return (
       <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full border-2 border-purple-500 bg-black p-6 space-y-6 text-center shadow-[0_0_50px_rgba(168,85,247,0.3)]">
-          <h2 className="text-3xl font-display text-purple-300 uppercase tracking-widest">Showdown</h2>
+        <div className="showdown-container opacity-0 max-w-2xl w-full border-2 border-purple-500 bg-black p-6 space-y-6 text-center shadow-[0_0_50px_rgba(168,85,247,0.3)]">
+          <h2 className="showdown-title opacity-0 text-3xl font-display text-purple-300 uppercase tracking-widest">Showdown</h2>
 
           <div className="flex justify-center gap-2">
             {showdownResult.best5.map((c, i) => (
-              <div key={i} className={`w-16 h-24 sm:w-20 sm:h-28 flex flex-col justify-between p-2 rounded bg-white shadow-md border ${c.suit === 'hearts' ? 'border-red-200 text-red-600' :
+              <div key={i} className={`showdown-card opacity-0 w-16 h-24 sm:w-20 sm:h-28 flex flex-col justify-between p-2 rounded bg-white shadow-md border ${c.suit === 'hearts' ? 'border-red-200 text-red-600' :
                   c.suit === 'diamonds' ? 'border-amber-300 text-amber-500' :
                     c.suit === 'clubs' ? 'border-purple-300 text-purple-600' :
                       'border-gray-400 text-neutral-900'
@@ -725,20 +870,44 @@ export default function ConjurationOverlay({
             ))}
           </div>
 
-          <div className="text-2xl text-purple-200 font-bold uppercase">{showdownResult.handName} (Grau {showdownResult.grade})</div>
+          <div className="showdown-title opacity-0 text-2xl text-purple-200 font-bold uppercase">{showdownResult.handName} (Grau {showdownResult.grade})</div>
 
           <div className="grid grid-cols-2 gap-4 border-t border-b border-purple-500/50 py-4">
-            <div>
-              <div className="text-xs text-purple-400 uppercase font-bold">Efeito Resultante</div>
-              <div className="text-lg text-purple-100">{effect}</div>
+            <div className="showdown-stat opacity-0">
+              <div className="text-xs text-purple-400 uppercase font-bold">Conjuração</div>
+              <div className={`text-lg font-bold ${effect === 'Ruptura' ? 'text-red-400' : effect === 'Anomalia Narrativa' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse' : 'text-purple-100'}`}>{effect}</div>
             </div>
-            <div>
+            <div className="showdown-stat opacity-0">
               <div className="text-xs text-purple-400 uppercase font-bold">DT do Ritual</div>
               <div className="text-lg text-purple-100">{dt}</div>
             </div>
           </div>
+          
+          <div className="text-sm text-purple-300 bg-purple-900/20 p-4 border border-purple-500/30 rounded text-left leading-relaxed min-h-[100px]">
+            {effect === 'Ruptura' && (
+              <span><AnimatedText className="text-red-400 font-bold" text="Ruptura: O feitiço falha catastroficamente. A energia volta contra o Ocultista, causando consequências severas e rompendo o tecido da realidade ao seu redor, sem manifestar o efeito desejado do ritual." /></span>
+            )}
+            {effect === 'Padrão' && (
+              <span><AnimatedText className="text-white font-bold" text="Padrão:" /> <AnimatedText text="O feitiço funciona na sua versão básica." /></span>
+            )}
+            {effect === 'Discente' && (
+              <span><AnimatedText className="text-white font-bold" text="Discente:" /> <AnimatedText text="O feitiço funciona na sua versão aprimorada (Discente)." /></span>
+            )}
+            {effect === 'Discente Maximizado' && ritualType === 'dano' && (
+              <span><AnimatedText className="text-amber-400 font-bold" text="Discente Maximizado - Dano (Sobrecarga Bruta):" /> <AnimatedText text="A aleatoriedade é obliterada. O jogador não rola os dados de dano ou de cura. O ritual aplica automaticamente o valor numérico máximo possível da sua forma Discente (Exemplo: Um ritual que curaria 5d12 restaura instantaneamente 60 pontos)." /></span>
+            )}
+            {effect === 'Discente Maximizado' && ritualType === 'aflicao' && (
+              <span><AnimatedText className="text-amber-400 font-bold" text="Discente Maximizado - Aflição (Decreto Inevitável):" /> <AnimatedText text="A distorção é inescapável. O alvo perde o direito ao teste de resistência. A condição, penalidade ou aflição descrita na versão Discente é aplicada em sua totalidade, ignorando a fortitude física ou mental da criatura." /></span>
+            )}
+            {effect === 'Discente Maximizado' && ritualType === 'suporte' && (
+              <span><AnimatedText className="text-amber-400 font-bold" text="Discente Maximizado - Suporte (Expansão de Domínio):" /> <AnimatedText text="Magias que manipulam a realidade, o ambiente ou oferecem suporte rompem suas limitações físicas. O Ocultista escolhe uma expansão: Multiplicação (dobra o número de alvos permitidos), Projeção (aumenta o alcance em um passo, ex: Curto para Médio) ou Propagação (controle absoluto e customizado sobre a área de efeito)." /></span>
+            )}
+            {effect === 'Anomalia Narrativa' && (
+              <span><AnimatedText className="text-cyan-400 font-bold" text="Anomalia Narrativa:" /> <AnimatedText text="O Ritual atinge um patamar além das métricas. Ocorre de maneira inteiramente narrativa entre o Mestre e o jogador, que colaboram para descrever como a manifestação poderosa altera drasticamente as leis do ambiente e soluciona o conflito." /></span>
+            )}
+          </div>
 
-          <button onClick={onConclude} className="px-8 py-3 bg-purple-500 text-black font-bold uppercase hover:bg-purple-400 transition-colors">
+          <button onClick={() => onConclude(effect)} className="showdown-btn opacity-0 px-8 py-3 bg-purple-500 text-black font-bold uppercase hover:bg-purple-400 transition-colors">
             Finalizar Transe
           </button>
         </div>
