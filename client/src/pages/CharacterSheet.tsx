@@ -8,7 +8,7 @@ import Pericias from '@/components/Pericias';
 import HopeCounter from '@/components/HopeCounter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { TensaoOverlay } from '@/components/TensaoOverlay';
-import EvasionPanel, { type EvasionProtection } from '@/components/EvasionPanel';
+import EvasionPanel from '@/components/EvasionPanel';
 import InventoryPanel from '@/components/InventoryPanel';
 import InsanityPanel from '@/components/InsanityPanel';
 import RitualsPanel from '@/components/RitualsPanel';
@@ -49,12 +49,18 @@ interface InventoryItem {
   id: string;
   name: string;
   description: string;
-  type: 'common' | 'dead_weight' | 'backpack' | 'quick_draw';
+  type: 'common' | 'dead_weight' | 'backpack' | 'quick_draw' | 'weapon' | 'protection';
   shape: boolean[][];
   rotation: 0 | 90 | 180 | 270;
   containerId: string | 'main' | 'pocket' | 'unassigned';
   position: { x: number, y: number } | null;
+  panelPosition?: { x: number, y: number };
   gridSize?: { cols: number, rows: number };
+  defenseBonus?: number;
+  protectionType?: 'light' | 'heavy';
+  tags?: WeaponTag[];
+  hasExtraEffect?: boolean;
+  extraEffect?: string;
 }
 
 interface WeaponTag {
@@ -968,15 +974,7 @@ export default function CharacterSheet() {
     setCharacter({ ...character, hope: value });
   };
 
-  const handleEvasionProtectionChange = (value: EvasionProtection) => {
-    setCharacter((prev) => ({
-      ...prev,
-      evasion: {
-        ...prev.evasion,
-        protection: value,
-      },
-    }));
-  };
+
 
   const handleDefensiveChargesChange = (value: number) => {
     setCharacter((prev) => {
@@ -2036,13 +2034,12 @@ export default function CharacterSheet() {
             <div className="mt-2">
               <EvasionPanel
                 agility={getEffectiveAttributeValue('agilidade')}
-                protection={character.evasion.protection}
+                protectionBonus={character.inventory.find(i => i.type === 'protection')?.defenseBonus || 0}
                 defensiveCharges={character.evasion.defensiveCharges}
                 maxDefensiveCharges={character.evasion.maxDefensiveCharges}
                 evasionPenalty={totalEvasionPenalty}
                 isEvasionAffected={activeFearTags.some(t => t.effectResult === '9') || isOverloaded}
                 areChargesDisabled={activeFearTags.some(t => t.effectResult === '11')}
-                onProtectionChange={handleEvasionProtectionChange}
                 onDefensiveChargesChange={handleDefensiveChargesChange}
                 onMaxDefensiveChargesChange={handleMaxDefensiveChargesChange}
               />
@@ -2202,6 +2199,7 @@ export default function CharacterSheet() {
         inventory={character.inventory}
         mainContainer={character.mainContainer || 'mochila_simples'}
         forca={character.attributes.força}
+        isOverloaded={isOverloaded}
         onAddItem={handleAddInventoryItem}
         onUpdateItem={handleUpdateInventoryItem}
         onUpdateMainContainer={(container) => setCharacter(prev => ({ ...prev, mainContainer: container }))}

@@ -7,45 +7,32 @@ export type EvasionProtection = 'none' | 'light' | 'heavy';
 
 interface EvasionPanelProps {
   agility: number;
-  protection: EvasionProtection;
+  protectionBonus: number;
   defensiveCharges: number;
   maxDefensiveCharges: number;
   evasionPenalty?: number;
   isEvasionAffected?: boolean;
   areChargesDisabled?: boolean;
-  onProtectionChange: (value: EvasionProtection) => void;
   onDefensiveChargesChange: (value: number) => void;
   onMaxDefensiveChargesChange: (value: number) => void;
 }
 
 const MAX_POSSIBLE_CHARGES = 4;
 
-const PROTECTION_OPTIONS: Array<{
-  value: EvasionProtection;
-  label: string;
-  bonus: number;
-}> = [
-  { value: 'none', label: 'Sem proteção', bonus: 0 },
-  { value: 'light', label: 'Proteção leve', bonus: 1 },
-  { value: 'heavy', label: 'Proteção pesada', bonus: 3 },
-];
-
 export default function EvasionPanel({
   agility,
-  protection,
+  protectionBonus,
   defensiveCharges,
   maxDefensiveCharges,
   evasionPenalty = 0,
   isEvasionAffected = false,
   areChargesDisabled = false,
-  onProtectionChange,
   onDefensiveChargesChange,
   onMaxDefensiveChargesChange,
 }: EvasionPanelProps) {
   const [configOpen, setConfigOpen] = useState(false);
 
   const baseEvasion = 7 + agility;
-  const protectionBonus = PROTECTION_OPTIONS.find((option) => option.value === protection)?.bonus ?? 0;
   const totalEvasion = baseEvasion + protectionBonus - evasionPenalty;
 
   const handleChargeClick = (index: number) => {
@@ -171,39 +158,6 @@ export default function EvasionPanel({
             </PopoverTrigger>
             <PopoverContent className="w-64 border-primary bg-black text-white p-3">
               <div className="space-y-3">
-                <div>
-                  <div className="font-display text-xs uppercase text-primary">Proteção</div>
-                  <div className="text-[10px] uppercase text-muted-foreground">
-                    Escolha um estado de proteção
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  {PROTECTION_OPTIONS.map((option) => {
-                    const isActive = option.value === protection;
-
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          onProtectionChange(option.value);
-                          setConfigOpen(false);
-                        }}
-                        className={`w-full border px-3 py-2 text-left text-xs uppercase transition-all ${
-                          isActive
-                            ? 'border-primary bg-primary text-black'
-                            : 'border-primary/40 bg-black text-primary hover:border-primary hover:bg-primary/10'
-                        }`}
-                      >
-                        <span>{option.label}</span>
-                        <span className="ml-2 text-[10px] opacity-80">+{option.bonus}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="border-t border-primary/20 pt-3">
                   <div className={`font-display text-xs uppercase mb-2 ${areChargesDisabled ? 'text-purple-300' : 'text-primary'}`}>Cargas defensivas</div>
                   <div className="grid grid-cols-4 gap-2">
                     {Array.from({ length: MAX_POSSIBLE_CHARGES }).map((_, index) => {
@@ -233,7 +187,6 @@ export default function EvasionPanel({
                   </div>
                   {areChargesDisabled && <div className="text-[10px] text-purple-200/80 uppercase mt-2">Sem reações ou cargas defensivas</div>}
                 </div>
-              </div>
             </PopoverContent>
           </Popover>
 

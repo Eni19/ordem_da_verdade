@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Trash2, Plus, Box, Briefcase, Skull, Zap, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Plus, Box, Briefcase, Skull, Zap, X, Shield } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import anime from 'animejs';
 import WeaponsList from '@/components/WeaponsList';
 import InventoryGrid, { InventoryItem, getRotatedShape } from './InventoryGrid';
 import ItemShapeEditor from './ItemShapeEditor';
 import WeaponEditor from './WeaponEditor';
+import ProtectionEditor from './ProtectionEditor';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +58,7 @@ interface InventoryPanelProps {
   onToggleWeaponActive: (weaponId: string) => void;
   onRollWeaponTest: (weapon: Weapon) => void;
   onCloseMenu?: () => void;
+  isOverloaded?: boolean;
 }
 
 function DraggableContainer({ item, onPositionChange, children }: { item: InventoryItem, onPositionChange: (id: string, x: number, y: number) => void, children: React.ReactNode }) {
@@ -137,9 +139,11 @@ export default function InventoryPanel({
   onToggleWeaponActive,
   onRollWeaponTest,
   onCloseMenu,
+  isOverloaded
 }: InventoryPanelProps) {
   const [pendingDeleteItem, setPendingDeleteItem] = useState<InventoryItem | null>(null);
   const [pendingWeaponData, setPendingWeaponData] = useState<Partial<Weapon>>({});
+  const [pendingProtectionData, setPendingProtectionData] = useState<Partial<InventoryItem>>({});
 
   // Modals
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -172,10 +176,11 @@ export default function InventoryPanel({
     cols: getContainerCols(forca),
     rows: getContainerRows(mainContainer)
   };
-  const cellSize = 30; // Diminuimos para 30px pra caber melhor no painel
+  const cellSize = 40; // Aumentado para 40px para melhorar visualização
 
   const handleOpenNewItem = () => {
     setPendingWeaponData({});
+    setPendingProtectionData({});
     setEditingItem({
       id: '',
       name: 'Novo Item',
@@ -201,6 +206,14 @@ export default function InventoryPanel({
   };
 
   const handleSaveItem = (itemData: Partial<InventoryItem>) => {
+    if (itemData.type === 'protection') {
+      const existingProtection = inventory.find(i => i.type === 'protection' && i.id !== editingItem?.id);
+      if (existingProtection) {
+        alert("Você já possui uma proteção no inventário! Remova a proteção atual antes de criar uma nova.");
+        return false;
+      }
+    }
+
     if (itemData.type === 'weapon' && (!editingItem || !editingItem.id)) {
       if (!pendingWeaponData.category || !pendingWeaponData.skill || !pendingWeaponData.attribute) {
         alert("Por favor, preencha os campos de Categoria, Perícia e Atributo antes de salvar a arma.");
@@ -213,12 +226,19 @@ export default function InventoryPanel({
       Object.entries(itemData).forEach(([key, val]) => {
         onUpdateItem(editingItem.id, key as keyof InventoryItem, val);
       });
+      // Se for protection, aplica o pendingProtectionData junto
+      if (itemData.type === 'protection') {
+        Object.entries(pendingProtectionData).forEach(([key, val]) => {
+          onUpdateItem(editingItem.id, key as keyof InventoryItem, val);
+        });
+      }
     } else {
       // Add novo
-      onAddItem(itemData, pendingWeaponData);
+      onAddItem({ ...itemData, ...pendingProtectionData }, pendingWeaponData);
     }
     setIsEditorOpen(false);
     setPendingWeaponData({});
+    setPendingProtectionData({});
     return true;
   };
 
@@ -288,7 +308,7 @@ export default function InventoryPanel({
         <button
           onClick={onToggle}
           className={`group fixed top-16 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
-            isOpen ? 'right-[24rem]' : 'right-0'
+            isOpen ? 'right-[34rem]' : 'right-0'
           }`}
         >
           <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
@@ -301,9 +321,9 @@ export default function InventoryPanel({
       )}
 
       {/* Panel Content */}
-      <div className={`fixed right-0 top-0 h-screen z-50 bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[24rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
+      <div className={`fixed right-0 top-0 h-screen z-50 bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[34rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
         {isOpen && (
-          <ScrollArea className="flex-1 overflow-hidden">
+          <ScrollArea className="flex-1 overflow-hidden" hideScrollbar={true}>
             <div className="p-4 space-y-6 pr-4">
               
               {/* Armas */}
@@ -378,10 +398,17 @@ export default function InventoryPanel({
                   <div className="relative flex flex-col items-center mt-4 min-h-[600px]">
                         <InventoryGrid
                           containerId="main"
-                          title="Área Segura"
+                          title={
+                            mainContainer === 'mochila_simples' ? 'Mochila Simples' :
+                            mainContainer === 'mochila_tatica' ? 'Mochila Tática' :
+                            mainContainer === 'mala' ? 'Mochila Cargueira' :
+                            mainContainer === 'mochila_militar' ? 'Mochila Militar' :
+                            'Mochila'
+                          }
                           cols={baseGrid.cols}
                           rows={baseGrid.rows}
                           hasOverload={true}
+                          isCharacterOverloaded={isOverloaded}
                           cellSize={cellSize}
                           items={inventory.filter(i => i.containerId === 'main')}
                           onItemMove={handleItemMove}
@@ -407,6 +434,7 @@ export default function InventoryPanel({
                               cols={container.gridSize?.cols || 2}
                               rows={container.gridSize?.rows || 2}
                               hasOverload={false}
+                              isCharacterOverloaded={isOverloaded}
                               cellSize={cellSize}
                               items={inventory.filter(i => i.containerId === container.id)}
                               onItemMove={handleItemMove}
@@ -461,48 +489,86 @@ export default function InventoryPanel({
           onDelete={editingItem ? () => { onDeleteItem(editingItem.id); setIsEditorOpen(false); setEditingItem(null); } : undefined}
           onClose={() => { setIsEditorOpen(false); setEditingItem(null); }}
           renderExtra={(type, itemId) => {
-            if (type !== 'weapon') return null;
+            if (type === 'weapon') {
+              const existingWeapon = weapons.find(w => w.id === itemId);
+              const weaponToEdit = existingWeapon || {
+                id: itemId || Date.now().toString(),
+                name: editingItem?.name || '',
+                category: '',
+                damageDiceCount: 1,
+                damageDiceSides: 6,
+                criticalThreshold: 18,
+                criticalMultiplier: 2,
+                skill: '',
+                attribute: '',
+                hasExtraEffect: false,
+                tags: [],
+                ...pendingWeaponData
+              } as Weapon;
 
-            const existingWeapon = weapons.find(w => w.id === itemId);
-            const weaponToEdit = existingWeapon || {
-              id: itemId || Date.now().toString(),
-              name: editingItem?.name || '',
-              category: '',
-              damageDiceCount: 1,
-              damageDiceSides: 6,
-              criticalThreshold: 18,
-              criticalMultiplier: 2,
-              skill: '',
-              attribute: '',
-              hasExtraEffect: false,
-              tags: [],
-              ...pendingWeaponData
-            } as Weapon;
-
-            return (
-              <div className="border-t border-primary/30 pt-4 mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-primary uppercase tracking-widest text-xs font-bold flex items-center gap-2">
-                    <Zap size={12} />
-                    Estatísticas da Arma
-                  </h4>
+              return (
+                <div className="border-t border-primary/30 pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-primary uppercase tracking-widest text-xs font-bold flex items-center gap-2">
+                      <Zap size={12} />
+                      Estatísticas da Arma
+                    </h4>
+                  </div>
+                  <WeaponEditor
+                    weapon={weaponToEdit}
+                    hideName={true}
+                    isInspectMode={true}
+                    onUpdate={(field, val) => {
+                      if (existingWeapon) {
+                        onUpdateWeapon(weaponToEdit.id, field, val);
+                      } else {
+                        setPendingWeaponData(prev => ({ ...prev, [field]: val }));
+                      }
+                    }}
+                    onDelete={existingWeapon ? () => { /* noop */ } : undefined}
+                    onRollTest={existingWeapon ? () => onRollWeaponTest(weaponToEdit) : undefined}
+                  />
                 </div>
-                <WeaponEditor
-                  weapon={weaponToEdit}
-                  hideName={true}
-                  isInspectMode={true}
-                  onUpdate={(field, val) => {
-                    if (existingWeapon) {
-                      onUpdateWeapon(weaponToEdit.id, field, val);
-                    } else {
-                      setPendingWeaponData(prev => ({ ...prev, [field]: val }));
-                    }
-                  }}
-                  onDelete={existingWeapon ? () => { /* we might want to link this to a real delete later, or leave as undefined so we use the Inventory Panel delete */ } : undefined}
-                  onRollTest={existingWeapon ? () => onRollWeaponTest(weaponToEdit) : undefined}
-                />
-              </div>
-            );
+              );
+            }
+
+            if (type === 'protection') {
+              const existingProtection = inventory.find(i => i.id === itemId && i.type === 'protection');
+              const protectionToEdit = (existingProtection || {
+                id: itemId || Date.now().toString(),
+                name: editingItem?.name || '',
+                defenseBonus: 0,
+                protectionType: 'light',
+                hasExtraEffect: false,
+                extraEffect: '',
+                tags: [],
+                ...pendingProtectionData
+              }) as any;
+
+              return (
+                <div className="border-t border-primary/30 pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-primary uppercase tracking-widest text-xs font-bold flex items-center gap-2">
+                      <Shield size={12} />
+                      Estatísticas de Proteção
+                    </h4>
+                  </div>
+                  <ProtectionEditor
+                    protection={protectionToEdit}
+                    hideName={true}
+                    onUpdate={(field, val) => {
+                      if (existingProtection) {
+                        onUpdateItem(protectionToEdit.id, field as keyof InventoryItem, val);
+                      } else {
+                        setPendingProtectionData(prev => ({ ...prev, [field]: val }));
+                      }
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            return null;
           }}
         />
 

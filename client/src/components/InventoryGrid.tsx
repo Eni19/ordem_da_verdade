@@ -5,13 +5,19 @@ export interface InventoryItem {
   id: string;
   name: string;
   description: string;
-  type: 'common' | 'dead_weight' | 'backpack' | 'quick_draw' | 'weapon';
+  type: 'common' | 'dead_weight' | 'backpack' | 'quick_draw' | 'weapon' | 'protection';
   shape: boolean[][];
   rotation: 0 | 90 | 180 | 270;
   containerId: string | 'main' | 'pocket' | 'unassigned';
   position: { x: number, y: number } | null;
   panelPosition?: { x: number, y: number };
   gridSize?: { cols: number, rows: number };
+  defenseBonus?: number;
+  protectionType?: 'light' | 'heavy';
+  tags?: { id: string; name: string; description: string }[];
+  hasExtraEffect?: boolean;
+  extraEffect?: string;
+  icon?: string;
 }
 
 interface InventoryGridProps {
@@ -28,6 +34,7 @@ interface InventoryGridProps {
   onHeaderContextMenu?: (e: React.MouseEvent) => void;
   activeWeaponIds?: string[];
   onEquipDrop?: (itemId: string) => void;
+  isCharacterOverloaded?: boolean;
 }
 
 // Helper to get actual shape matrix after rotation
@@ -64,10 +71,33 @@ export default function InventoryGrid({
   onHeaderContextMenu,
   activeWeaponIds = [],
   onEquipDrop,
+  isCharacterOverloaded = false,
 }: InventoryGridProps) {
+  const gridRef = useRef<HTMLDivElement>(null);
   const totalRows = rows;
   const totalCols = hasOverload ? cols + Math.ceil(cols / 2) : cols;
-  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isCharacterOverloaded && gridRef.current) {
+      anime({
+        targets: gridRef.current,
+        translateX: [
+          { value: -1, duration: 50 },
+          { value: 1, duration: 50 },
+          { value: -1, duration: 50 },
+          { value: 1, duration: 50 },
+          { value: 0, duration: 50 },
+        ],
+        delay: anime.random(0, 1000),
+        loop: true,
+        endDelay: 2500,
+        easing: 'linear'
+      });
+    } else if (gridRef.current) {
+      anime.remove(gridRef.current);
+      gridRef.current.style.transform = 'none';
+    }
+  }, [isCharacterOverloaded]);
 
   // State para dragging
   const [draggedItem, setDraggedItem] = useState<InventoryItem | null>(null);
@@ -76,9 +106,9 @@ export default function InventoryGrid({
   const [currentDragPos, setCurrentDragPos] = useState({ x: 0, y: 0 }); // Em pixels
   const [dragRotation, setDragRotation] = useState<number>(0);
   const dragRef = useRef<HTMLDivElement>(null);
-  
+
   const [clickStartPos, setClickStartPos] = useState({ x: 0, y: 0 });
-  
+
   const shakeRef = useRef({
     lastX: 0,
     direction: 0,
@@ -86,84 +116,84 @@ export default function InventoryGrid({
     lastTime: 0,
     lastRotateTime: 0
   });
-  
+
   // Track pointer up/move globally
   useEffect(() => {
     if (!draggedItem) return;
 
     const handlePointerMove = (e: PointerEvent) => {
       setCurrentDragPos({
-      x: e.clientX - dragOffset.x,
-      y: e.clientY - dragOffset.y,
-    });
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y,
+      });
 
-    // --- VISUAL FEEDBACK PARA EQUIP SLOTS ---
-    if (draggedItem && draggedItem.type === 'weapon') {
-       const equipSlots = Array.from(document.querySelectorAll('.equip-slot'));
-       const dragRect = dragRef.current?.getBoundingClientRect();
-       
-       equipSlots.forEach(slot => {
+      // --- VISUAL FEEDBACK PARA EQUIP SLOTS ---
+      if (draggedItem && draggedItem.type === 'weapon') {
+        const equipSlots = Array.from(document.querySelectorAll('.equip-slot'));
+        const dragRect = dragRef.current?.getBoundingClientRect();
+
+        equipSlots.forEach(slot => {
           const innerDiv = slot.querySelector('.equip-slot-inner');
           if (!innerDiv) return;
 
           let isHovered = false;
           if (dragRect) {
-             const slotRect = slot.getBoundingClientRect();
-             const intersectLeft = Math.max(dragRect.left, slotRect.left);
-             const intersectRight = Math.min(dragRect.right, slotRect.right);
-             const intersectTop = Math.max(dragRect.top, slotRect.top);
-             const intersectBottom = Math.min(dragRect.bottom, slotRect.bottom);
-             
-             if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
-                isHovered = true;
-             }
+            const slotRect = slot.getBoundingClientRect();
+            const intersectLeft = Math.max(dragRect.left, slotRect.left);
+            const intersectRight = Math.min(dragRect.right, slotRect.right);
+            const intersectTop = Math.max(dragRect.top, slotRect.top);
+            const intersectBottom = Math.min(dragRect.bottom, slotRect.bottom);
+
+            if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
+              isHovered = true;
+            }
           }
 
           if (isHovered) {
-             innerDiv.classList.add('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
-             innerDiv.classList.remove('border-dashed', 'border-primary/30', 'text-primary/40');
+            innerDiv.classList.add('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
+            innerDiv.classList.remove('border-dashed', 'border-primary/30', 'text-primary/40');
           } else {
-             innerDiv.classList.remove('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
-             innerDiv.classList.add('border-dashed', 'border-primary/30', 'text-primary/40');
+            innerDiv.classList.remove('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
+            innerDiv.classList.add('border-dashed', 'border-primary/30', 'text-primary/40');
           }
-       });
-    }
-     
-     if (dragRef.current) {
-       anime.set(dragRef.current, {
-         left: e.clientX - dragOffset.x,
-         top: e.clientY - dragOffset.y,
-       });
-     }
-     if (Math.abs(e.clientX - clickStartPos.x) > 3 || Math.abs(e.clientY - clickStartPos.y) > 3) {
-       setIsDragging(true);
-     }
+        });
+      }
+
+      if (dragRef.current) {
+        anime.set(dragRef.current, {
+          left: e.clientX - dragOffset.x,
+          top: e.clientY - dragOffset.y,
+        });
+      }
+      if (Math.abs(e.clientX - clickStartPos.x) > 3 || Math.abs(e.clientY - clickStartPos.y) > 3) {
+        setIsDragging(true);
+      }
 
       // Shake detection logic
       const now = Date.now();
       if (shakeRef.current.lastX === 0) shakeRef.current.lastX = e.clientX;
       const deltaX = e.clientX - shakeRef.current.lastX;
-      
+
       // Reset if too much time passed between shakes
       if (now - shakeRef.current.lastTime > 350) {
-         shakeRef.current.count = 0;
+        shakeRef.current.count = 0;
       }
-      
+
       // Ignore micro tremors
       if (Math.abs(deltaX) > 30) {
-         const newDirection = deltaX > 0 ? 1 : -1;
-         if (shakeRef.current.direction !== 0 && shakeRef.current.direction !== newDirection) {
-            shakeRef.current.count++;
-            
-            if (shakeRef.current.count >= 4 && now - shakeRef.current.lastRotateTime > 500) {
-               setDragRotation(prev => (prev + 90) % 360);
-               shakeRef.current.count = 0;
-               shakeRef.current.lastRotateTime = now;
-            }
-         }
-         shakeRef.current.direction = newDirection;
-         shakeRef.current.lastTime = now;
-         shakeRef.current.lastX = e.clientX;
+        const newDirection = deltaX > 0 ? 1 : -1;
+        if (shakeRef.current.direction !== 0 && shakeRef.current.direction !== newDirection) {
+          shakeRef.current.count++;
+
+          if (shakeRef.current.count >= 4 && now - shakeRef.current.lastRotateTime > 500) {
+            setDragRotation(prev => (prev + 90) % 360);
+            shakeRef.current.count = 0;
+            shakeRef.current.lastRotateTime = now;
+          }
+        }
+        shakeRef.current.direction = newDirection;
+        shakeRef.current.lastTime = now;
+        shakeRef.current.lastX = e.clientX;
       }
     };
 
@@ -205,7 +235,7 @@ export default function InventoryGrid({
     setDragRotation(item.rotation);
     setIsDragging(false);
     setDraggedItem(item);
-    
+
     shakeRef.current = {
       lastX: e.clientX,
       direction: 0,
@@ -222,85 +252,85 @@ export default function InventoryGrid({
     // This allows dropping large items where the mouse might not be over the slot
     const equipSlots = Array.from(document.querySelectorAll('.equip-slot'));
     let targetEquipSlot: HTMLElement | null = null;
-    
+
     const dragRect = dragRef.current?.getBoundingClientRect();
     if (dragRect) {
-       let maxArea = 0;
-       for (const slot of equipSlots) {
-          const slotRect = slot.getBoundingClientRect();
-          
-          const intersectLeft = Math.max(dragRect.left, slotRect.left);
-          const intersectRight = Math.min(dragRect.right, slotRect.right);
-          const intersectTop = Math.max(dragRect.top, slotRect.top);
-          const intersectBottom = Math.min(dragRect.bottom, slotRect.bottom);
-          
-          if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
-             const area = (intersectRight - intersectLeft) * (intersectBottom - intersectTop);
-             if (area > maxArea) {
-                maxArea = area;
-                targetEquipSlot = slot as HTMLElement;
-             }
+      let maxArea = 0;
+      for (const slot of equipSlots) {
+        const slotRect = slot.getBoundingClientRect();
+
+        const intersectLeft = Math.max(dragRect.left, slotRect.left);
+        const intersectRight = Math.min(dragRect.right, slotRect.right);
+        const intersectTop = Math.max(dragRect.top, slotRect.top);
+        const intersectBottom = Math.min(dragRect.bottom, slotRect.bottom);
+
+        if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
+          const area = (intersectRight - intersectLeft) * (intersectBottom - intersectTop);
+          if (area > maxArea) {
+            maxArea = area;
+            targetEquipSlot = slot as HTMLElement;
           }
-       }
+        }
+      }
     }
-    
+
     // Always fallback to pointer coordinates if AABB failed
     if (!targetEquipSlot) {
-       for (const slot of equipSlots) {
-          const rect = slot.getBoundingClientRect();
-          if (e.clientX >= rect.left && e.clientX <= rect.right &&
-              e.clientY >= rect.top && e.clientY <= rect.bottom) {
-             targetEquipSlot = slot as HTMLElement;
-             break;
-          }
-       }
+      for (const slot of equipSlots) {
+        const rect = slot.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right &&
+          e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          targetEquipSlot = slot as HTMLElement;
+          break;
+        }
+      }
     }
 
     if (targetEquipSlot && draggedItem.type === 'weapon') {
       try {
-         if (onEquipDrop) onEquipDrop(draggedItem.id);
-         
-         // Animate the drop
-         if (dragRef.current) {
-            const clone = dragRef.current.cloneNode(true) as HTMLElement;
-            document.body.appendChild(clone);
-            const rect = targetEquipSlot.getBoundingClientRect();
-            anime({
-               targets: clone,
-               left: rect.left + rect.width / 2 - clone.offsetWidth / 2,
-               top: rect.top + rect.height / 2 - clone.offsetHeight / 2,
-               scale: 0.1,
-               opacity: 0,
-               duration: 400,
-               easing: 'easeInBack',
-               complete: () => clone.remove()
-            });
-         }
-      } catch (e) {
-         console.error("Error during equip drop:", e);
-      } finally {
-         // Clean up hover states just in case
-         equipSlots.forEach(slot => {
-            const innerDiv = slot.querySelector('.equip-slot-inner');
-            if (innerDiv) {
-               innerDiv.classList.remove('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
-               innerDiv.classList.add('border-dashed', 'border-primary/30', 'text-primary/40');
-            }
-         });
+        if (onEquipDrop) onEquipDrop(draggedItem.id);
 
-         setDraggedItem(null);
-         setIsDragging(false);
+        // Animate the drop
+        if (dragRef.current) {
+          const clone = dragRef.current.cloneNode(true) as HTMLElement;
+          document.body.appendChild(clone);
+          const rect = targetEquipSlot.getBoundingClientRect();
+          anime({
+            targets: clone,
+            left: rect.left + rect.width / 2 - clone.offsetWidth / 2,
+            top: rect.top + rect.height / 2 - clone.offsetHeight / 2,
+            scale: 0.1,
+            opacity: 0,
+            duration: 400,
+            easing: 'easeInBack',
+            complete: () => clone.remove()
+          });
+        }
+      } catch (e) {
+        console.error("Error during equip drop:", e);
+      } finally {
+        // Clean up hover states just in case
+        equipSlots.forEach(slot => {
+          const innerDiv = slot.querySelector('.equip-slot-inner');
+          if (innerDiv) {
+            innerDiv.classList.remove('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
+            innerDiv.classList.add('border-dashed', 'border-primary/30', 'text-primary/40');
+          }
+        });
+
+        setDraggedItem(null);
+        setIsDragging(false);
       }
       return;
     }
 
     // Clean up hover states when dropped outside or not a weapon
     equipSlots.forEach(slot => {
-       const innerDiv = slot.querySelector('.equip-slot-inner');
-       if (innerDiv) {
-          innerDiv.classList.remove('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
-          innerDiv.classList.add('border-dashed', 'border-primary/30', 'text-primary/40');
-       }
+      const innerDiv = slot.querySelector('.equip-slot-inner');
+      if (innerDiv) {
+        innerDiv.classList.remove('bg-primary/20', 'border-primary', 'border-solid', 'scale-105', 'text-primary');
+        innerDiv.classList.add('border-dashed', 'border-primary/30', 'text-primary/40');
+      }
     });
 
     // Hide the drag wrapper temporarily to ensure elementsFromPoint gets the underlying elements
@@ -308,7 +338,7 @@ export default function InventoryGrid({
     if (dragWrapper) dragWrapper.style.display = 'none';
 
     const elements = Array.from(document.elementsFromPoint(e.clientX, e.clientY));
-    
+
     if (dragWrapper) dragWrapper.style.display = '';
 
     const gridEl = elements.find(el => el instanceof HTMLElement && el.classList.contains('inventory-grid')) as HTMLElement;
@@ -316,10 +346,10 @@ export default function InventoryGrid({
     if (gridEl) {
       const targetContainerId = gridEl.dataset.containerId!;
       const gridRect = gridEl.getBoundingClientRect();
-      
+
       const relX = e.clientX - dragOffset.x - gridRect.left;
       const relY = e.clientY - dragOffset.y - gridRect.top;
-      
+
       let col = Math.round(relX / cellSize);
       let row = Math.round(relY / cellSize);
 
@@ -327,7 +357,7 @@ export default function InventoryGrid({
       const movedShape = getRotatedShape(draggedItem.shape, dragRotation);
       const mRows = movedShape.length;
       const mCols = movedShape[0].length;
-      
+
       const targetCols = parseInt(gridEl.dataset.cols || '10');
       const targetRows = parseInt(gridEl.dataset.rows || '10');
 
@@ -342,7 +372,7 @@ export default function InventoryGrid({
     } else {
       // Se soltou fora de qualquer grid, "snap back"
       if (draggedItem.position) {
-         onItemMove(draggedItem.id, draggedItem.containerId, draggedItem.position, draggedItem.rotation);
+        onItemMove(draggedItem.id, draggedItem.containerId, draggedItem.position, draggedItem.rotation);
       }
     }
 
@@ -371,16 +401,16 @@ export default function InventoryGrid({
     const rotationToUse = isDragging ? dragRotation : item.rotation;
     const rotatedShape = getRotatedShape(item.shape, rotationToUse);
     const blocks = [];
-    
+
     const bgColor = getItemColor(item);
-      
+
     for (let r = 0; r < rotatedShape.length; r++) {
       for (let c = 0; c < rotatedShape[r].length; c++) {
         if (rotatedShape[r][c]) {
-          const hasTop = r > 0 && rotatedShape[r-1][c];
-          const hasBottom = r < rotatedShape.length - 1 && rotatedShape[r+1][c];
-          const hasLeft = c > 0 && rotatedShape[r][c-1];
-          const hasRight = c < rotatedShape[r].length - 1 && rotatedShape[r][c+1];
+          const hasTop = r > 0 && rotatedShape[r - 1][c];
+          const hasBottom = r < rotatedShape.length - 1 && rotatedShape[r + 1][c];
+          const hasLeft = c > 0 && rotatedShape[r][c - 1];
+          const hasRight = c < rotatedShape[r].length - 1 && rotatedShape[r][c + 1];
 
           blocks.push(
             <div
@@ -391,11 +421,11 @@ export default function InventoryGrid({
                 height: cellSize,
                 left: c * cellSize,
                 top: r * cellSize,
-                backgroundColor: activeWeaponIds.includes(item.id) ? 'rgba(234, 179, 8, 0.2)' : bgColor,
-                borderWidth: '2px',
+                backgroundColor: activeWeaponIds.includes(item.id) 
+                  ? 'rgba(234, 179, 8, 0.2)' 
+                  : (item.icon ? `color-mix(in srgb, ${bgColor} 30%, transparent)` : bgColor),
+                borderWidth: item.icon ? '0px' : '2px',
                 boxSizing: 'border-box',
-                borderColor: activeWeaponIds.includes(item.id) ? '#eab308' : 'rgba(0,0,0,0.8)',
-                boxShadow: activeWeaponIds.includes(item.id) ? '0 0 10px rgba(234, 179, 8, 0.5), inset 0 0 10px rgba(234, 179, 8, 0.2)' : 'none',
                 borderTop: hasTop ? 'none' : '2px solid rgba(0,0,0,0.8)',
                 borderBottom: hasBottom ? 'none' : '2px solid rgba(0,0,0,0.8)',
                 borderLeft: hasLeft ? 'none' : '2px solid rgba(0,0,0,0.8)',
@@ -415,21 +445,21 @@ export default function InventoryGrid({
 
   return (
     <div className="mb-8 flex flex-col items-center">
-      <div 
+      <div
         className="flex items-center justify-between mb-2 w-full"
         style={{ maxWidth: totalCols * cellSize + 4 }}
       >
-        <h3 
+        <h3
           className="text-green-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2 drag-handle select-none cursor-move"
           onContextMenu={onHeaderContextMenu}
         >
           {title}
         </h3>
       </div>
-      
-      <div 
+
+      <div
         ref={gridRef}
-        className="inventory-grid relative bg-green-950/20 border-2 border-green-800 drag-handle"
+        className={`inventory-grid relative border-2 drag-handle transition-colors duration-500 ${isCharacterOverloaded ? 'bg-red-950/20 border-red-800 shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'bg-green-950/20 border-green-800'}`}
         data-container-id={containerId}
         data-cols={totalCols}
         data-rows={totalRows}
@@ -437,25 +467,25 @@ export default function InventoryGrid({
           width: totalCols * cellSize + 4, // +4 for borders
           height: totalRows * cellSize + 4,
           backgroundImage: `
-            linear-gradient(to right, rgba(34, 197, 94, 0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(34, 197, 94, 0.1) 1px, transparent 1px)
+            linear-gradient(to right, ${isCharacterOverloaded ? 'rgba(220, 38, 38, 0.15)' : 'rgba(34, 197, 94, 0.1)'} 1px, transparent 1px),
+            linear-gradient(to bottom, ${isCharacterOverloaded ? 'rgba(220, 38, 38, 0.15)' : 'rgba(34, 197, 94, 0.1)'} 1px, transparent 1px)
           `,
           backgroundSize: `${cellSize}px ${cellSize}px`,
         }}
       >
         {/* Overload Zone Background */}
         {hasOverload && (
-          <div 
+          <div
             className="absolute right-0 top-0 bottom-0 bg-red-900/30 pointer-events-none flex items-center justify-center overflow-hidden"
             style={{ width: Math.ceil(cols / 2) * cellSize }}
           >
-             <span className="text-red-500/20 font-display font-black text-xl md:text-2xl uppercase tracking-[0.2em] select-none pointer-events-none whitespace-normal text-center leading-tight">
-              SOBRE<br/>CARGA
-             </span>
+            <span className="text-red-500/20 font-display font-black text-xl md:text-2xl uppercase tracking-[0.2em] select-none pointer-events-none whitespace-normal text-center leading-tight">
+              SOBRE<br />CARGA
+            </span>
           </div>
         )}
         {hasOverload && (
-          <div 
+          <div
             className="absolute top-0 bottom-0 border-l-2 border-red-500 pointer-events-none shadow-[0_0_10px_rgba(239,68,68,0.5)]"
             style={{ left: cols * cellSize }}
           />
@@ -465,7 +495,7 @@ export default function InventoryGrid({
         {items.map(item => {
           if (!item.position) return null;
           const isDraggingThis = item.id === draggedItem?.id && isDragging;
-          
+
           const rotatedShape = getRotatedShape(item.shape, item.rotation);
           const mRows = rotatedShape.length;
           const mCols = rotatedShape[0].length;
@@ -494,7 +524,7 @@ export default function InventoryGrid({
             let maxRun = 0;
             let bestIsVertical = false;
             let bestIdx = 0;
-            
+
             for (let c = 0; c < mCols; c++) {
               let run = 0;
               for (let r = 0; r < mRows; r++) { if (rotatedShape[r][c]) run++; }
@@ -508,13 +538,13 @@ export default function InventoryGrid({
 
             let startPos = -1, endPos = -1;
             if (bestIsVertical) {
-               for (let r = 0; r < mRows; r++) {
-                  if (rotatedShape[r][bestIdx]) { if (startPos === -1) startPos = r; endPos = r; }
-               }
+              for (let r = 0; r < mRows; r++) {
+                if (rotatedShape[r][bestIdx]) { if (startPos === -1) startPos = r; endPos = r; }
+              }
             } else {
-               for (let c = 0; c < mCols; c++) {
-                  if (rotatedShape[bestIdx][c]) { if (startPos === -1) startPos = c; endPos = c; }
-               }
+              for (let c = 0; c < mCols; c++) {
+                if (rotatedShape[bestIdx][c]) { if (startPos === -1) startPos = c; endPos = c; }
+              }
             }
 
             const centerCoord = (startPos + endPos) / 2;
@@ -540,34 +570,80 @@ export default function InventoryGrid({
               onDragStart={(e) => e.preventDefault()}
               onPointerDown={(e) => handlePointerDown(e, item)}
               onClick={(e) => {
-                 if (Math.abs(e.clientX - clickStartPos.x) < 5 && Math.abs(e.clientY - clickStartPos.y) < 5) {
-                    onItemClick(item);
-                 }
+                if (Math.abs(e.clientX - clickStartPos.x) < 5 && Math.abs(e.clientY - clickStartPos.y) < 5) {
+                  onItemClick(item);
+                }
               }}
               onContextMenu={(e) => onItemRightClick(e, item)}
             >
+              {item.icon && (
+                <svg width="0" height="0" className="absolute pointer-events-none">
+                  <defs>
+                    <clipPath id={`clip-${item.id}`}>
+                      {rotatedShape.map((row, r) =>
+                        row.map((isActive, c) =>
+                          isActive ? <rect key={`${r}-${c}`} x={c * cellSize} y={r * cellSize} width={cellSize} height={cellSize} /> : null
+                        )
+                      )}
+                    </clipPath>
+                  </defs>
+                </svg>
+              )}
+
               {renderItemBlocks(item)}
-              
-              {/* Item Name Overlay along longest axis */}
-              <div 
-                className="absolute pointer-events-none flex items-center justify-center"
-                style={{
-                  left: cx * cellSize + cellSize / 2,
-                  top: cy * cellSize + cellSize / 2,
-                  transform: `translate(-50%, -50%) ${isVerticalText ? 'rotate(-90deg)' : ''}`,
-                }}
-              >
-                <span 
-                  className="text-[10px] font-bold text-white drop-shadow-md text-center block overflow-hidden text-ellipsis whitespace-nowrap" 
-                  style={{ 
-                    textShadow: '0 0 2px black, 0 0 2px black',
-                    maxWidth: maxPixels,
+              {/* Icon Overlay */}
+              {item.icon && (
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: 0,
+                    top: 0,
+                    width: mCols * cellSize,
+                    height: mRows * cellSize,
+                    clipPath: `url(#clip-${item.id})`
                   }}
-                  title={item.name}
                 >
-                  {item.name}
-                </span>
-              </div>
+                  <div
+                    className="absolute pointer-events-none flex items-center justify-center"
+                    style={{
+                      left: '50%',
+                      top: '50%',
+                      width: (item.rotation === 90 || item.rotation === 270) ? mRows * cellSize : mCols * cellSize,
+                      height: (item.rotation === 90 || item.rotation === 270) ? mCols * cellSize : mRows * cellSize,
+                      transform: `translate(-50%, -50%) rotate(${item.rotation}deg)`,
+                    }}
+                  >
+                    <img
+                      src={item.icon}
+                      alt={item.name}
+                      className="w-full h-full object-contain opacity-100 drop-shadow-[0_0_8px_rgba(0,0,0,1)]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Item Name Overlay along longest axis */}
+              {!item.icon && (
+                <div
+                  className="absolute pointer-events-none flex items-center justify-center"
+                  style={{
+                    left: cx * cellSize + cellSize / 2,
+                    top: cy * cellSize + cellSize / 2,
+                    transform: `translate(-50%, -50%) ${isVerticalText ? 'rotate(-90deg)' : ''}`,
+                  }}
+                >
+                  <span
+                    className="text-[10px] font-bold text-white drop-shadow-md text-center block overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{
+                      textShadow: '0 0 4px black, 0 0 4px black, 0 0 4px black',
+                      maxWidth: maxPixels,
+                    }}
+                    title={item.name}
+                  >
+                    {item.name}
+                  </span>
+                </div>
+              )}
 
               {/* Status de Equipada para Armas */}
               {activeWeaponIds.includes(item.id) && (
@@ -592,9 +668,55 @@ export default function InventoryGrid({
             height: getRotatedShape(draggedItem.shape, dragRotation).length * cellSize,
           }}
         >
+          {draggedItem.icon && (
+            <svg width="0" height="0" className="absolute pointer-events-none">
+              <defs>
+                <clipPath id={`clip-drag-${draggedItem.id}`}>
+                  {getRotatedShape(draggedItem.shape, dragRotation).map((row, r) =>
+                    row.map((isActive, c) =>
+                      isActive ? <rect key={`${r}-${c}`} x={c * cellSize} y={r * cellSize} width={cellSize} height={cellSize} /> : null
+                    )
+                  )}
+                </clipPath>
+              </defs>
+            </svg>
+          )}
           {renderItemBlocks(draggedItem, true)}
+          {draggedItem.icon && (() => {
+            const mRows = getRotatedShape(draggedItem.shape, dragRotation).length;
+            const mCols = getRotatedShape(draggedItem.shape, dragRotation)[0].length;
+            return (
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  left: 0,
+                  top: 0,
+                  width: mCols * cellSize,
+                  height: mRows * cellSize,
+                  clipPath: `url(#clip-drag-${draggedItem.id})`
+                }}
+              >
+                <div
+                  className="absolute pointer-events-none flex items-center justify-center"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                    width: (dragRotation === 90 || dragRotation === 270) ? mRows * cellSize : mCols * cellSize,
+                    height: (dragRotation === 90 || dragRotation === 270) ? mCols * cellSize : mRows * cellSize,
+                    transform: `translate(-50%, -50%) rotate(${dragRotation}deg)`,
+                  }}
+                >
+                  <img
+                    src={draggedItem.icon}
+                    alt={draggedItem.name}
+                    className="w-full h-full object-contain opacity-100 drop-shadow-[0_0_8px_rgba(0,0,0,1)]"
+                  />
+                </div>
+              </div>
+            );
+          })()}
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black/90 px-3 py-1.5 rounded-md text-[10px] text-green-400 whitespace-nowrap font-bold tracking-widest border border-green-500/50 shadow-[0_0_15px_rgba(0,0,0,0.8)]">
-             APERTE <span className="text-white">R</span> PARA GIRAR
+            APERTE <span className="text-white">R</span> PARA GIRAR
           </div>
         </div>
       )}

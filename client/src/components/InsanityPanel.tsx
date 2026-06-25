@@ -259,7 +259,7 @@ export default function InsanityPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-28 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 pointer-events-auto ${isOpen ? 'right-80' : 'right-0'
+          className={`group fixed top-28 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 pointer-events-auto ${isOpen ? 'right-[34rem]' : 'right-0'
             }`}
         >
           <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
@@ -273,7 +273,7 @@ export default function InsanityPanel({
 
       {/* Panel */}
       <div
-        className={`h-full bg-black overflow-y-auto transition-all duration-300 pointer-events-auto ${isOpen ? 'w-80 border-l-2 border-orange-500' : 'w-0 border-l-0'
+        className={`h-full bg-black overflow-y-auto scrollbar-hide transition-all duration-300 pointer-events-auto ${isOpen ? 'w-[34rem] border-l-2 border-orange-500' : 'w-0 border-l-0'
           }`}
       >
         <div className="p-4 space-y-6">
