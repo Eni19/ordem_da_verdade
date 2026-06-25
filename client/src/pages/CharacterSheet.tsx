@@ -49,6 +49,12 @@ interface InventoryItem {
   id: string;
   name: string;
   description: string;
+  type: 'common' | 'dead_weight' | 'backpack' | 'quick_draw';
+  shape: boolean[][];
+  rotation: 0 | 90 | 180 | 270;
+  containerId: string | 'main' | 'pocket' | 'unassigned';
+  position: { x: number, y: number } | null;
+  gridSize?: { cols: number, rows: number };
 }
 
 interface WeaponTag {
@@ -188,6 +194,7 @@ interface CharacterData {
     maxDefensiveCharges: number;
   };
   inventory: InventoryItem[];
+  mainContainer?: 'bolsos' | 'mochila_simples' | 'mochila_tatica' | 'mala' | 'mochila_militar';
   weapons: Weapon[];
   insanities: Insanity[];
   paranormalPowers: ParanormalPower[];
@@ -302,19 +309,19 @@ export default function CharacterSheet() {
   const [openSidebar, setOpenSidebar] = useState<'inventory' | 'insanity' | 'rituals' | null>(null);
   const [pokerConjureState, setPokerConjureState] = useState<PokerConjureState | null>(null);
   const [suspendedConjurations, setSuspendedConjurations] = useState<Record<string, PokerConjureState>>({});
-  const [lastConjuredEffect, setLastConjuredEffect] = useState<{ritualId: string, effect: string, type: string} | null>(null);
+  const [lastConjuredEffect, setLastConjuredEffect] = useState<{ ritualId: string, effect: string, type: string } | null>(null);
   const [isConjurationOverlayOpen, setIsConjurationOverlayOpen] = useState(false);
   const [ritualResolveState, setRitualResolveState] = useState<
     | {
-        ritualId: string;
-        selectedAttribute?: keyof CharacterData['attributes'];
-        selectedPericiaId?: string | null;
-        isRolling?: boolean;
-        rolls?: number[];
-        total?: number;
-        passed?: boolean;
-        difficulty?: number;
-      }
+      ritualId: string;
+      selectedAttribute?: keyof CharacterData['attributes'];
+      selectedPericiaId?: string | null;
+      isRolling?: boolean;
+      rolls?: number[];
+      total?: number;
+      passed?: boolean;
+      difficulty?: number;
+    }
     | null
   >(null);
   const [fearRouletteState, setFearRouletteState] = useState<FearRouletteState>(
@@ -339,7 +346,7 @@ export default function CharacterSheet() {
       const next = !prev;
       try {
         localStorage.setItem('odv_auto_save_enabled', String(next));
-      } catch {}
+      } catch { }
       return next;
     });
   };
@@ -383,23 +390,7 @@ export default function CharacterSheet() {
       maxDefensiveCharges: 2,
     },
     inventory: [],
-    weapons: [
-      {
-        id: '1',
-        name: 'Arma 1',
-        category: '',
-        damageDiceCount: 1,
-        damageDiceSides: 6,
-        criticalThreshold: 18,
-        criticalMultiplier: 2,
-        skill: '',
-        attribute: '',
-        hasExtraEffect: false,
-        extraEffect: '',
-        isActive: true,
-        tags: [],
-      },
-    ],
+    weapons: [],
     insanities: [],
     paranormalPowers: [],
     rituals: [],
@@ -543,13 +534,7 @@ export default function CharacterSheet() {
       hope: 3,
       evasion: { protection: 'none', defensiveCharges: 3, maxDefensiveCharges: 2 },
       inventory: [],
-      weapons: [
-        {
-          id: '1', name: 'Arma 1', category: '', damageDiceCount: 1, damageDiceSides: 6,
-          criticalThreshold: 18, criticalMultiplier: 2, skill: '', attribute: '',
-          hasExtraEffect: false, extraEffect: '', isActive: true, tags: [],
-        },
-      ],
+      weapons: [],
       insanities: [],
       paranormalPowers: [],
       rituals: [],
@@ -602,10 +587,10 @@ export default function CharacterSheet() {
   const getFearAdjustedTrainingDie = (trainingDie: number, skillName: string) => {
     const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
     const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
-    
+
     const normalizedName = skillName.toLowerCase();
     const isAffectedByTremor = normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao');
-    
+
     let stepsToReduce = 0;
     if (isPanicoSomatico) stepsToReduce += 1;
     if (isTremor && isAffectedByTremor) stepsToReduce += 1;
@@ -620,10 +605,10 @@ export default function CharacterSheet() {
   const getFearAdjustedTrainingLevel = (trainingLevel: string, skillName: string): string => {
     const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
     const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
-    
+
     const normalizedName = skillName.toLowerCase();
     const isAffectedByTremor = normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao');
-    
+
     let stepsToReduce = 0;
     if (isPanicoSomatico) stepsToReduce += 1;
     if (isTremor && isAffectedByTremor) stepsToReduce += 1;
@@ -631,7 +616,7 @@ export default function CharacterSheet() {
     const levels = ['destreinado', 'treinado', 'veterano', 'expert'];
     let currentIndex = levels.indexOf(trainingLevel);
     if (currentIndex === -1) currentIndex = 0;
-    
+
     currentIndex = Math.max(0, currentIndex - stepsToReduce);
     return levels[currentIndex];
   };
@@ -639,27 +624,27 @@ export default function CharacterSheet() {
   const getFearModifierForSkillRoll = (skillName: string) => {
     const isHisteria = activeFearTags.some((tag) => tag.effectResult === '8');
     const normalizedName = skillName.toLowerCase();
-    const isAffectedByHisteria = normalizedName.includes('furtividade') || 
-                                  normalizedName.includes('enganação') || 
-                                  normalizedName.includes('enganacao') || 
-                                  normalizedName.includes('diplomacia') || 
-                                  normalizedName.includes('intimidação') ||
-                                  normalizedName.includes('intimidacao');
-                                  
+    const isAffectedByHisteria = normalizedName.includes('furtividade') ||
+      normalizedName.includes('enganação') ||
+      normalizedName.includes('enganacao') ||
+      normalizedName.includes('diplomacia') ||
+      normalizedName.includes('intimidação') ||
+      normalizedName.includes('intimidacao');
+
     return isHisteria && isAffectedByHisteria ? -3 : 0;
   };
 
   const isFearAffectedSkill = (skillName: string): boolean => {
     const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
     if (isPanicoSomatico) return true;
-    
+
     const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
     const isHisteria = activeFearTags.some((tag) => tag.effectResult === '8');
-    
+
     const normalizedName = skillName.toLowerCase();
     if (isTremor && (normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao'))) return true;
     if (isHisteria && (normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao') || normalizedName.includes('diplomacia') || normalizedName.includes('intimidação') || normalizedName.includes('intimidacao'))) return true;
-    
+
     return false;
   };
 
@@ -928,7 +913,7 @@ export default function CharacterSheet() {
     const baseTrainingDie = pericia.isGeneric ? 4 : TRAINING_DIE_MAP[pericia.training];
     const trainingDie = getFearAdjustedTrainingDie(baseTrainingDie, pericia.name);
     const trainingLabel = getTrainingLabelForDie(trainingDie);
-    
+
     const modifier = getFearModifierForSkillRoll(pericia.name);
     const isAnsiedadeActive = activeFearTags.some((tag) => tag.effectResult === '13');
 
@@ -949,7 +934,7 @@ export default function CharacterSheet() {
 
     const attributeKey = weapon.attribute as AttributeKey;
     const normalizedAttribute = getEffectiveAttributeValue(attributeKey);
-    
+
     // Find the training die for the weapon skill
     const skillTrainingDie = SKILL_DICE[weapon.skill as keyof typeof SKILL_DICE] || 6;
 
@@ -1017,43 +1002,117 @@ export default function CharacterSheet() {
     }));
   };
 
-  const handleAddInventoryItem = () => {
+  const handleAddInventoryItem = (data?: Partial<InventoryItem>, weaponData?: Partial<Weapon>) => {
+    const newId = Date.now().toString();
     const newItem: InventoryItem = {
-      id: Date.now().toString(),
+      id: newId,
       name: 'Novo Item',
       description: '',
+      type: 'common',
+      shape: [[true]],
+      rotation: 0,
+      containerId: data?.type === 'dead_weight' ? 'dead_weight' : 'main',
+      position: { x: 0, y: 0 },
+      ...data,
     };
-    setCharacter({ ...character, inventory: [...character.inventory, newItem] });
+
+    setCharacter((prev) => {
+      const nextState = { ...prev, inventory: [...prev.inventory, newItem] };
+
+      if (newItem.type === 'weapon' && !prev.weapons.some(w => w.id === newItem.id)) {
+        nextState.weapons = [...prev.weapons, {
+          id: newItem.id,
+          name: newItem.name,
+          category: '',
+          damageDiceCount: 1,
+          damageDiceSides: 6,
+          criticalThreshold: 18,
+          criticalMultiplier: 2,
+          skill: '',
+          attribute: '',
+          hasExtraEffect: false,
+          extraEffect: '',
+          isActive: false,
+          tags: [],
+          ...weaponData
+        }];
+      }
+      return nextState;
+    });
   };
 
-  const handleUpdateInventoryItem = (id: string, field: keyof InventoryItem, value: string) => {
-    setCharacter({
-      ...character,
-      inventory: character.inventory.map((item) =>
+  const handleUpdateInventoryItem = (id: string, field: keyof InventoryItem, value: any) => {
+    setCharacter((prev) => {
+      const nextState = { ...prev };
+      nextState.inventory = prev.inventory.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
-      ),
+      );
+
+      // Sincronizar nome da arma se mudar no inventário
+      if (field === 'name' && prev.weapons.some(w => w.id === id)) {
+        nextState.weapons = prev.weapons.map(w => w.id === id ? { ...w, name: value } : w);
+      }
+
+      // Se o tipo mudou para 'weapon' e a arma não existia, criá-la
+      if (field === 'type' && value === 'weapon' && !prev.weapons.some(w => w.id === id)) {
+        const item = nextState.inventory.find(i => i.id === id);
+        if (item) {
+          nextState.weapons = [...prev.weapons, {
+            id: item.id,
+            name: item.name,
+            category: '',
+            damageDiceCount: 1,
+            damageDiceSides: 6,
+            criticalThreshold: 18,
+            criticalMultiplier: 2,
+            skill: '',
+            attribute: '',
+            hasExtraEffect: false,
+            extraEffect: '',
+            isActive: false,
+            tags: [],
+          }];
+        }
+      }
+
+      return nextState;
     });
   };
 
   const handleDeleteInventoryItem = (id: string) => {
-    setCharacter({
-      ...character,
-      inventory: character.inventory.filter((item) => item.id !== id),
+    setCharacter((prev) => {
+      const nextState = {
+        ...prev,
+        inventory: prev.inventory.filter((item) => item.id !== id),
+      };
+      // If it was a weapon, delete the weapon entry too
+      if (prev.weapons.some(w => w.id === id)) {
+        nextState.weapons = prev.weapons.filter(w => w.id !== id);
+      }
+      return nextState;
     });
   };
 
   const handleUpdateWeapon = (weaponId: string, field: keyof Weapon, value: any) => {
-    setCharacter({
-      ...character,
-      weapons: character.weapons.map((w) =>
+    setCharacter((prev) => {
+      const nextState = { ...prev };
+      nextState.weapons = prev.weapons.map((w) =>
         w.id === weaponId ? { ...w, [field]: value } : w
-      ),
+      );
+
+      // Se mudou o nome da arma, muda o nome no inventário tbm
+      if (field === 'name' && prev.inventory.some(i => i.id === weaponId)) {
+        nextState.inventory = prev.inventory.map(i => i.id === weaponId ? { ...i, name: value } : i);
+      }
+
+      return nextState;
     });
   };
 
-  const handleAddWeapon = () => {
+  const handleAddWeapon = (initialData?: Partial<Weapon>) => {
+    const newId = initialData?.id || Date.now().toString();
     const newWeapon: Weapon = {
-      id: Date.now().toString(),
+      id: newId,
       name: 'Nova Arma',
       category: '',
       damageDiceCount: 1,
@@ -1066,62 +1125,82 @@ export default function CharacterSheet() {
       extraEffect: '',
       isActive: false,
       tags: [],
+      ...initialData,
     };
-    setCharacter({
-      ...character,
-      weapons: [...character.weapons, newWeapon],
+
+    setCharacter((prev) => {
+      const nextState = { ...prev, weapons: [...prev.weapons, newWeapon] };
+
+      // Create an inventory item for the weapon if it doesn't exist
+      if (!prev.inventory.some(i => i.id === newId)) {
+        nextState.inventory = [...prev.inventory, {
+          id: newId,
+          name: newWeapon.name,
+          description: 'Arma Adicionada pelo Menu',
+          type: 'weapon',
+          shape: [[true, true]], // 1x2 generic shape
+          rotation: 0,
+          containerId: 'unassigned', // Put in "unassigned" so the user can find it and drag to grid
+          position: { x: 0, y: 0 },
+        }];
+      }
+      return nextState;
     });
   };
 
   const handleDeleteWeapon = (weaponId: string) => {
-    setCharacter({
-      ...character,
-      weapons: character.weapons.filter((w) => w.id !== weaponId),
+    setCharacter((prev) => {
+      const nextState = {
+        ...prev,
+        weapons: prev.weapons.filter((w) => w.id !== weaponId),
+      };
+      // Delete corresponding inventory item
+      if (prev.inventory.some(i => i.id === weaponId)) {
+        nextState.inventory = prev.inventory.filter(i => i.id !== weaponId);
+      }
+      return nextState;
     });
   };
 
   const handleToggleWeaponActive = (weaponId: string) => {
-    const weapon = character.weapons.find((w) => w.id === weaponId);
-    if (!weapon) return;
+    setCharacter((prev) => {
+      const isCurrentlyActive = prev.weapons.find((w) => w.id === weaponId)?.isActive;
 
-    if (weapon.isActive) {
-      // Se está ativo, apenas desativa
-      setCharacter({
-        ...character,
-        weapons: character.weapons.map((w) =>
-          w.id === weaponId ? { ...w, isActive: false } : w
-        ),
-      });
-    } else {
-      // Se está inativo, ativa
-      const activeCount = character.weapons.filter((w) => w.isActive).length;
-
-      if (activeCount < 2) {
-        // Se tem menos de 2 ativas, ativa sem problemas
-        setCharacter({
-          ...character,
-          weapons: character.weapons.map((w) =>
-            w.id === weaponId ? { ...w, isActive: true } : w
+      if (isCurrentlyActive) {
+        return {
+          ...prev,
+          weapons: prev.weapons.map((w) =>
+            w.id === weaponId ? { ...w, isActive: false } : w
           ),
-        });
+        };
       } else {
-        // Se já tem 2 ativas, desativa a primeira e ativa a nova
-        let firstActiveFound = false;
-        setCharacter({
-          ...character,
-          weapons: character.weapons.map((w) => {
-            if (w.id === weaponId) {
-              return { ...w, isActive: true };
-            }
-            if (w.isActive && !firstActiveFound) {
-              firstActiveFound = true;
-              return { ...w, isActive: false };
-            }
-            return w;
-          }),
-        });
+        const activeCount = prev.weapons.filter((w) => w.isActive).length;
+
+        if (activeCount < 2) {
+          return {
+            ...prev,
+            weapons: prev.weapons.map((w) =>
+              w.id === weaponId ? { ...w, isActive: true } : w
+            ),
+          };
+        } else {
+          let firstActiveFound = false;
+          return {
+            ...prev,
+            weapons: prev.weapons.map((w) => {
+              if (w.id === weaponId) {
+                return { ...w, isActive: true };
+              }
+              if (w.isActive && !firstActiveFound) {
+                firstActiveFound = true;
+                return { ...w, isActive: false };
+              }
+              return w;
+            }),
+          };
+        }
       }
-    }
+    });
   };
 
   const toggleInventoryPanel = () => {
@@ -1143,9 +1222,9 @@ export default function CharacterSheet() {
 
       const newSanity = activeVersion?.retained
         ? {
-            current: Math.max(0, prev.sanity.current - costValue),
-            max: Math.max(0, prev.sanity.max - costValue),
-          }
+          current: Math.max(0, prev.sanity.current - costValue),
+          max: Math.max(0, prev.sanity.max - costValue),
+        }
         : prev.sanity;
 
       return {
@@ -1164,9 +1243,9 @@ export default function CharacterSheet() {
       rituals: prev.rituals.map((ritual) =>
         ritual.id === id
           ? {
-              ...ritual,
-              activeVersion: Math.max(0, Math.min(activeVersion, ritual.versions.length - 1)),
-            }
+            ...ritual,
+            activeVersion: Math.max(0, Math.min(activeVersion, ritual.versions.length - 1)),
+          }
           : ritual
       ),
     }));
@@ -1239,8 +1318,8 @@ export default function CharacterSheet() {
     // Destreinado falls under this catch if we had 'destreinado', but in this system it's either in the array with a training or not.
     // Generic is id=0.
     if (!ocultismoPericia || ocultismoPericia.isGeneric) {
-        alert("Apenas personagens com treinamento em Ocultismo podem iniciar um Transe Ritualístico.");
-        return;
+      alert("Apenas personagens com treinamento em Ocultismo podem iniciar um Transe Ritualístico.");
+      return;
     }
 
     setPokerConjureState({
@@ -1252,7 +1331,7 @@ export default function CharacterSheet() {
       discardLimit: 0,
       selectedCards: [],
     });
-    
+
     setLastConjuredEffect(null); // Limpa o efeito anterior ao iniciar novo transe
 
     setIsConjurationOverlayOpen(true);
@@ -1292,7 +1371,7 @@ export default function CharacterSheet() {
         if (ritualToUpdate) {
           const currentVersion = ritualToUpdate.versions[ritualToUpdate.activeVersion] ?? ritualToUpdate.versions[0];
           const costValue = parseInt(currentVersion?.cost || '0') || 0;
-          
+
           setCharacter(prev => ({
             ...prev,
             sanity: {
@@ -1656,29 +1735,29 @@ export default function CharacterSheet() {
   ) => {
     const loadedSkills: Skill[] = Array.isArray(data.skills)
       ? data.skills.map((skill) => {
-          const s = skill as any;
-          return {
-            id: s.id,
-            name: s.name ?? 'Habilidade',
-            origin: s.origin ?? s.source ?? '',
-            cost: s.cost != null ? String(s.cost) : '',
-            effect: s.effect ?? s.description ?? s.damage ?? '',
-          };
-        })
+        const s = skill as any;
+        return {
+          id: s.id,
+          name: s.name ?? 'Habilidade',
+          origin: s.origin ?? s.source ?? '',
+          cost: s.cost != null ? String(s.cost) : '',
+          effect: s.effect ?? s.description ?? s.damage ?? '',
+        };
+      })
       : [];
 
     const loadedPericias: Pericia[] = Array.isArray(data.pericias)
       ? data.pericias.map((pericia) => ({
-          id: pericia.id,
-          name: pericia.name,
-          training: pericia.training ?? 'treinado',
-          isGeneric: pericia.isGeneric ?? false,
-        }))
+        id: pericia.id,
+        name: pericia.name,
+        training: pericia.training ?? 'treinado',
+        isGeneric: pericia.isGeneric ?? false,
+      }))
       : (data.expertises || []).map((expertise) => ({
-          id: expertise.id,
-          name: expertise.name,
-          training: 'treinado' as const,
-        }));
+        id: expertise.id,
+        name: expertise.name,
+        training: 'treinado' as const,
+      }));
 
     const normalizeRitualVersion = (version: Partial<RitualVersion> | undefined): RitualVersion => ({
       name: version?.name ?? '',
@@ -1693,30 +1772,30 @@ export default function CharacterSheet() {
 
     const loadedRituals: Ritual[] = Array.isArray(data.rituals)
       ? data.rituals.map((ritual) => {
-          const versions = Array.isArray(ritual.versions) && ritual.versions.length > 0
-            ? ritual.versions.slice(0, 3).map((version) => normalizeRitualVersion(version))
-            : [
-                normalizeRitualVersion({
-                  name: ritual.name,
-                  circle: ritual.circle,
-                  cost: ritual.cost,
-                  duration: ritual.duration,
-                  resistance: ritual.resistance,
-                  type: ritual.type,
-                  description: ritual.description,
-                  retained: ritual.retained,
-                }),
-              ];
+        const versions = Array.isArray(ritual.versions) && ritual.versions.length > 0
+          ? ritual.versions.slice(0, 3).map((version) => normalizeRitualVersion(version))
+          : [
+            normalizeRitualVersion({
+              name: ritual.name,
+              circle: ritual.circle,
+              cost: ritual.cost,
+              duration: ritual.duration,
+              resistance: ritual.resistance,
+              type: ritual.type,
+              description: ritual.description,
+              retained: ritual.retained,
+            }),
+          ];
 
-          return {
-            id: ritual.id ?? Date.now().toString(),
-            versions,
-            activeVersion: Math.max(
-              0,
-              Math.min(Number(ritual.activeVersion ?? 0), versions.length - 1)
-            ),
-          };
-        })
+        return {
+          id: ritual.id ?? Date.now().toString(),
+          versions,
+          activeVersion: Math.max(
+            0,
+            Math.min(Number(ritual.activeVersion ?? 0), versions.length - 1)
+          ),
+        };
+      })
       : [];
 
 
@@ -1776,6 +1855,44 @@ export default function CharacterSheet() {
   };
   const isTensaoActive = activeFearTags.some(tag => ['12', '17', '14', '15', '18', '19', '20', '21', '22', '23', '24'].includes(tag.effectResult || ''));
 
+  const getContainerRows = (type?: string) => {
+    switch (type) {
+      case 'bolsos': return 2;
+      case 'mochila_simples': return 4;
+      case 'mochila_tatica': return 6;
+      case 'mala': return 8;
+      case 'mochila_militar': return 10;
+      default: return 4;
+    }
+  };
+
+  const getContainerCols = (f: number) => {
+    switch (f) {
+      case 0: return 4;
+      case 1: return 5;
+      case 2: return 6;
+      case 3: return 7;
+      case 4: return 8;
+      default: return 8;
+    }
+  };
+
+  const getRotatedShapeCols = (shape: boolean[][], rotation: number) => {
+    const turns = (rotation / 90) % 4;
+    return turns % 2 === 0 ? shape[0].length : shape.length;
+  };
+
+  const isOverloaded = character.inventory.some(item => {
+    if (item.containerId !== 'main' || !item.position || !item.shape) return false;
+    const safeCols = getContainerCols(character.attributes.força);
+    const itemCols = getRotatedShapeCols(item.shape, item.rotation || 0);
+    return item.position.x + itemCols > safeCols;
+  });
+
+  const overloadEvasionPenalty = isOverloaded ? 3 : 0;
+  const fearEvasionPenalty = activeFearTags.some(t => t.effectResult === '9') ? 3 : 0;
+  const totalEvasionPenalty = fearEvasionPenalty + overloadEvasionPenalty;
+
   return (
     <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col relative">
       {isTensaoActive && <TensaoOverlay />}
@@ -1783,14 +1900,14 @@ export default function CharacterSheet() {
       <div className="border-b-2 border-primary bg-black p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
         <div className="flex justify-between items-center relative">
           <h1 className="font-display text-2xl md:text-4xl text-primary">ORDEM DA VERDADE</h1>
-          <button 
-            onClick={() => setShowSettings(!showSettings)} 
+          <button
+            onClick={() => setShowSettings(!showSettings)}
             className={`p-2 transition-colors ${showSettings ? 'text-primary' : 'text-primary/50 hover:text-primary'}`}
             title="Configurações"
           >
             <Settings size={24} />
           </button>
-          
+
           {showSettings && (
             <div className="absolute top-12 right-0 z-50 bg-black border-2 border-primary p-4 shadow-[0_0_15px_rgba(255,23,68,0.3)] w-[340px] max-h-[80vh] overflow-y-auto flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -1803,7 +1920,7 @@ export default function CharacterSheet() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between border border-primary/20 p-2">
                   <span className="text-primary font-bold uppercase text-xs">Auto-Save na Nuvem</span>
-                  <button 
+                  <button
                     onClick={toggleAutoSave}
                     className={`flex items-center justify-center w-12 h-6 border ${autoSaveEnabled ? 'border-primary bg-primary/20 text-primary' : 'border-primary/50 text-primary/50 hover:border-primary'} transition-all text-xs font-bold`}
                   >
@@ -1812,7 +1929,7 @@ export default function CharacterSheet() {
                 </div>
                 <div className="flex items-center justify-between border border-purple-500/20 p-2">
                   <span className="text-purple-300 font-bold uppercase text-xs">Debug de Medo</span>
-                  <button 
+                  <button
                     onClick={() => setShowFearDebug(prev => !prev)}
                     className={`flex items-center justify-center w-12 h-6 border ${showFearDebug ? 'border-purple-500 bg-purple-500/20 text-purple-300' : 'border-purple-500/50 text-purple-500/50 hover:border-purple-500'} transition-all text-xs font-bold`}
                   >
@@ -1847,7 +1964,7 @@ export default function CharacterSheet() {
                   </div>
                 )}
               </div>
-              
+
               <div className="border-t border-primary/20 pt-4 space-y-2">
                 <div className="text-primary font-bold uppercase text-xs mb-2">Ações de Ficha</div>
                 <SaveLoad
@@ -1884,8 +2001,19 @@ export default function CharacterSheet() {
           hideJson={true}
         />
 
+        {/* Deslocamento Visual - Alerta de Penalidades */}
+        {isOverloaded && (
+          <div className="flex flex-col md:flex-row gap-2 md:gap-4 mt-4">
+            <div className="flex-1 w-full bg-red-950/40 border border-red-500 p-2 text-center rounded-sm">
+              <span className="text-red-400 uppercase font-bold text-sm tracking-widest">
+                Sobrecarga de Inventário! -3 Defesa e -3m Deslocamento.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Vitals + Hope + Evasion Row - Stack on mobile */}
-        <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-4 mt-4">
           <div className="flex-1 min-w-0">
             <VitalStats
               hp={character.hp}
@@ -1911,8 +2039,8 @@ export default function CharacterSheet() {
                 protection={character.evasion.protection}
                 defensiveCharges={character.evasion.defensiveCharges}
                 maxDefensiveCharges={character.evasion.maxDefensiveCharges}
-                evasionPenalty={activeFearTags.some(t => t.effectResult === '9') ? 3 : 0}
-                isEvasionAffected={activeFearTags.some(t => t.effectResult === '9')}
+                evasionPenalty={totalEvasionPenalty}
+                isEvasionAffected={activeFearTags.some(t => t.effectResult === '9') || isOverloaded}
                 areChargesDisabled={activeFearTags.some(t => t.effectResult === '11')}
                 onProtectionChange={handleEvasionProtectionChange}
                 onDefensiveChargesChange={handleDefensiveChargesChange}
@@ -2070,10 +2198,13 @@ export default function CharacterSheet() {
       <InventoryPanel
         isOpen={openSidebar === 'inventory'}
         showToggle={openSidebar !== 'insanity' && openSidebar !== 'rituals'}
-        onToggle={toggleInventoryPanel}
+        onToggle={() => setOpenSidebar(prev => prev === 'inventory' ? null : 'inventory')}
         inventory={character.inventory}
+        mainContainer={character.mainContainer || 'mochila_simples'}
+        forca={character.attributes.força}
         onAddItem={handleAddInventoryItem}
         onUpdateItem={handleUpdateInventoryItem}
+        onUpdateMainContainer={(container) => setCharacter(prev => ({ ...prev, mainContainer: container }))}
         onDeleteItem={handleDeleteInventoryItem}
         weapons={character.weapons}
         onUpdateWeapon={handleUpdateWeapon}

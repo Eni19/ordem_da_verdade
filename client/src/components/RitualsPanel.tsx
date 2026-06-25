@@ -194,26 +194,21 @@ export default function RitualsPanel({
     setSelectedSlotIndex(null);
   };
 
-  const goToPreviousVersion = (ritual: Ritual) => {
-    if (ritual.activeVersion > 0) {
-      onSetRitualVersion(ritual.id, ritual.activeVersion - 1);
-    }
-  };
+  const handleSelectVersion = (ritual: Ritual, targetIndex: number) => {
+    if (ritual.activeVersion === targetIndex) return;
 
-  const goToNextVersion = (ritual: Ritual) => {
-    if (ritual.activeVersion < ritual.versions.length - 1) {
-      onSetRitualVersion(ritual.id, ritual.activeVersion + 1);
-      return;
-    }
-
-    if (ritual.versions.length < 3) {
-      const currentVersion = getActiveVersion(ritual);
-      const nextVersions = [...ritual.versions, { ...currentVersion }];
-
+    if (targetIndex < ritual.versions.length) {
+      onSetRitualVersion(ritual.id, targetIndex);
+    } else {
+      // Create missing versions up to targetIndex
+      const newVersions = [...ritual.versions];
+      while (newVersions.length <= targetIndex) {
+        newVersions.push({ ...newVersions[newVersions.length - 1] });
+      }
       onUpdateRitual(ritual.id, {
         ...ritual,
-        versions: nextVersions,
-        activeVersion: nextVersions.length - 1,
+        versions: newVersions,
+        activeVersion: targetIndex,
       });
     }
   };
@@ -523,28 +518,25 @@ export default function RitualsPanel({
                     />
                   </div>
 
-                  {/* Controle de Versões */}
-                  <div className="flex items-center justify-between border-t border-b border-purple-500/30 py-1.5 my-2">
-                    <div className="flex items-center gap-1">
+                  {/* Controle de Versões (Tabs) */}
+                  <div className="flex items-center gap-1 my-3">
+                    {['Padrão', 'Discente', 'Verdadeiro'].map((label, idx) => (
                       <button
-                        onClick={() => goToPreviousVersion(selectedRitual)}
-                        disabled={selectedRitual.activeVersion === 0}
-                        className="h-5 w-5 flex items-center justify-center border border-purple-500 text-purple-300 disabled:opacity-30 hover:bg-purple-500 hover:text-black transition-colors"
+                        key={label}
+                        onClick={() => handleSelectVersion(selectedRitual, idx)}
+                        className={`flex-1 py-1.5 text-[9px] font-bold uppercase transition-colors border ${
+                          selectedRitual.activeVersion === idx
+                            ? 'bg-purple-500 text-black border-purple-500'
+                            : 'bg-black text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
+                        }`}
                       >
-                        <ChevronLeft size={10} />
+                        {label}
                       </button>
-                      <span className="text-[9px] text-purple-300 uppercase font-bold w-8 text-center">
-                        {selectedRitual.activeVersion + 1}/3
-                      </span>
-                      <button
-                        onClick={() => goToNextVersion(selectedRitual)}
-                        disabled={selectedRitual.activeVersion === 2 && selectedRitual.versions.length >= 3}
-                        className="h-5 w-5 flex items-center justify-center border border-purple-500 text-purple-300 disabled:opacity-30 hover:bg-purple-500 hover:text-black transition-colors"
-                      >
-                        <ChevronRight size={10} />
-                      </button>
-                    </div>
-                    
+                    ))}
+                  </div>
+
+                  {/* Ações do Ritual */}
+                  <div className="flex justify-end mb-4">
                     <button
                       onClick={() =>
                         onUpdateRitual(
@@ -554,7 +546,7 @@ export default function RitualsPanel({
                       }
                       className={`h-6 px-3 border border-purple-500 font-bold uppercase text-[9px] transition-colors ${
                         getActiveVersion(selectedRitual).retained
-                          ? 'bg-purple-500 text-black'
+                          ? 'bg-purple-500 text-black shadow-[0_0_8px_rgba(168,85,247,0.6)]'
                           : 'bg-black text-purple-200 hover:bg-purple-500/20'
                       }`}
                     >
@@ -563,80 +555,85 @@ export default function RitualsPanel({
                     
                     <button
                       onClick={() => setPendingRemoveRitual(selectedRitual)}
-                      className="text-purple-400 hover:text-purple-200 transition-colors"
+                      className="text-purple-400 hover:text-red-400 transition-colors ml-2 flex items-center justify-center h-6 w-6 border border-transparent hover:border-red-500/50 rounded"
+                      title="Excluir Ritual"
                     >
                       <Trash2 size={14} />
                     </button>
                   </div>
 
-                  {/* Grid de Atributos */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Círculo</label>
-                      <input
-                        type="text"
-                        value={getActiveVersion(selectedRitual).circle}
-                        onChange={(e) =>
-                          onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { circle: e.target.value }))
-                        }
-                        className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Custo</label>
-                      <input
-                        type="text"
-                        value={getActiveVersion(selectedRitual).cost}
-                        onChange={(e) =>
-                          onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { cost: e.target.value }))
-                        }
-                        className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Resistência</label>
-                      <input
-                        type="number"
-                        value={getActiveVersion(selectedRitual).resistance}
-                        onChange={(e) =>
-                          onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { resistance: parseInt(e.target.value) || 0 }))
-                        }
-                        className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Duração</label>
-                      <input
-                        type="text"
-                        value={getActiveVersion(selectedRitual).duration}
-                        onChange={(e) =>
-                          onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { duration: e.target.value }))
-                        }
-                        className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Tipo</label>
-                    <div className="flex gap-1">
-                      {RITUAL_TYPES.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() =>
-                            onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { type: option.value }))
+                  {/* Grid de Informações */}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Círculo</label>
+                        <input
+                          type="text"
+                          value={getActiveVersion(selectedRitual).circle}
+                          onChange={(e) =>
+                            onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { circle: e.target.value }))
                           }
-                          className={`flex-1 h-5 text-[8px] font-bold uppercase border transition-colors ${
-                            getActiveVersion(selectedRitual).type === option.value
-                              ? 'bg-purple-500 text-black border-purple-500'
-                              : 'bg-black text-purple-300 border-purple-500/50 hover:bg-purple-500/20'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Custo</label>
+                        <input
+                          type="text"
+                          value={getActiveVersion(selectedRitual).cost}
+                          onChange={(e) =>
+                            onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { cost: e.target.value }))
+                          }
+                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                        />
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Duração</label>
+                        <input
+                          type="text"
+                          value={getActiveVersion(selectedRitual).duration}
+                          onChange={(e) =>
+                            onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { duration: e.target.value }))
+                          }
+                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Resistência</label>
+                        <input
+                          type="number"
+                          value={getActiveVersion(selectedRitual).resistance}
+                          onChange={(e) =>
+                            onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { resistance: parseInt(e.target.value) || 0 }))
+                          }
+                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Tipo</label>
+                      <div className="flex gap-1">
+                        {RITUAL_TYPES.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() =>
+                              onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { type: option.value }))
+                            }
+                            className={`flex-1 h-6 text-[8px] font-bold uppercase border transition-colors ${
+                              getActiveVersion(selectedRitual).type === option.value
+                                ? 'bg-purple-500 text-black border-purple-500'
+                                : 'bg-black text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
                   <div>
                     <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Efeito</label>
@@ -651,6 +648,7 @@ export default function RitualsPanel({
                       rows={2}
                     />
                   </div>
+                </div>
 
                   {getActiveVersion(selectedRitual).retained && suspendedConjurations[selectedRitual.id] ? (
                     <button

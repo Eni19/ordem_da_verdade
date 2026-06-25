@@ -49,6 +49,8 @@ interface WeaponEditorProps {
   onDelete?: () => void;
   onRollTest?: () => void;
   onCloseMenu?: () => void;
+  hideName?: boolean;
+  isInspectMode?: boolean;
 }
 
 export default function WeaponEditor({
@@ -57,6 +59,8 @@ export default function WeaponEditor({
   onDelete,
   onRollTest,
   onCloseMenu,
+  hideName,
+  isInspectMode = false,
 }: WeaponEditorProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -64,6 +68,9 @@ export default function WeaponEditor({
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [pendingDeleteWeapon, setPendingDeleteWeapon] = useState(false);
+  
+  // Collapse by default if equipped in the sidebar list
+  const [isCollapsed, setIsCollapsed] = useState(weapon.isActive && !isInspectMode);
 
   const handleAddTag = () => {
     if (!newTagName.trim()) return;
@@ -87,10 +94,6 @@ export default function WeaponEditor({
     );
   };
 
-  const autoResizeTextarea = (target: HTMLTextAreaElement) => {
-    target.style.height = 'auto';
-    target.style.height = `${target.scrollHeight}px`;
-  };
 
   return (
     <div
@@ -100,23 +103,96 @@ export default function WeaponEditor({
           : 'opacity-100 scale-100 max-h-[5000px]'
       } ${weapon.isActive ? 'bg-black/40 ring-1 ring-primary/20' : 'bg-black'}`}
     >
-      <div className="flex items-center gap-2 justify-between">
-        <input
-          type="text"
-          value={weapon.name}
-          onChange={(e) => onUpdate('name', e.target.value)}
-          className="flex-1 font-display text-sm text-primary uppercase bg-transparent border-b border-primary focus:outline-none focus:ring-0 py-0.5"
-          placeholder="Nome da Arma"
-        />
-        {weapon.isActive && (
-          <button
-            onClick={() => onUpdate('isActive', false)}
-            className="px-2 py-1 text-xs font-bold uppercase border-2 transition-all bg-primary border-primary text-black hover:bg-opacity-80"
-          >
-            ✓ Equipado
-          </button>
-        )}
-      </div>
+      {isCollapsed ? (
+        // --- SUMMARY / COLLAPSED VIEW ---
+        <div className="flex flex-col gap-2 w-full overflow-hidden">
+          <div className="flex items-center justify-between w-full">
+            <span className="font-display text-sm text-primary uppercase font-bold truncate">
+              {weapon.name || 'Arma sem nome'}
+            </span>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setIsCollapsed(false)}
+                className="px-2 py-1 text-[10px] font-bold uppercase border border-primary text-primary hover:bg-primary/10 transition-colors"
+                title="Editar Arma"
+              >
+                EDITAR
+              </button>
+              <button
+                onClick={() => onUpdate('isActive', false)}
+                className="px-2 py-1 text-[10px] font-bold uppercase border border-primary bg-primary text-black hover:bg-primary/80 transition-colors"
+                title="Desequipar"
+              >
+                DESEQUIPAR
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-primary/70 uppercase font-bold w-full flex-wrap">
+            <span>Dano: {weapon.damageDiceCount}d{weapon.damageDiceSides}</span>
+            <span>|</span>
+            <span>Crítico: {weapon.criticalThreshold}/x{weapon.criticalMultiplier}</span>
+            {weapon.category && (
+              <>
+                <span>|</span>
+                <span>{weapon.category}</span>
+              </>
+            )}
+          </div>
+
+          {weapon.hasExtraEffect && weapon.extraEffect && (
+            <div className="w-full text-[10px] text-primary/80 italic mt-1 leading-tight whitespace-pre-wrap break-words break-all max-h-32 overflow-y-auto pr-1">
+              {weapon.extraEffect}
+            </div>
+          )}
+
+          {weapon.tags && weapon.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {weapon.tags.map(tag => (
+                <span key={tag.id} className="px-1 bg-primary/20 text-primary text-[9px] border border-primary/30 uppercase font-bold">
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
+          {onRollTest && (
+            <button
+              onClick={onRollTest}
+              className="w-full mt-1 btn-occult py-2 text-xs flex items-center justify-center"
+            >
+              ATACAR
+            </button>
+          )}
+        </div>
+      ) : (
+        // --- EXPANDED / EDIT VIEW ---
+        <>
+          <div className="flex items-center gap-2 justify-between">
+            {!hideName && (
+              <input
+                type="text"
+                value={weapon.name}
+                onChange={(e) => onUpdate('name', e.target.value)}
+                className="flex-1 font-display text-sm text-primary uppercase bg-transparent border-b border-primary focus:outline-none focus:ring-0 py-0.5"
+                placeholder="Nome da Arma"
+              />
+            )}
+            {weapon.isActive && !isInspectMode && (
+              <span
+                className={`px-2 py-1 text-xs font-bold uppercase border-2 bg-primary border-primary text-black ${hideName ? 'w-full text-center' : ''}`}
+              >
+                ✓ Equipado
+              </span>
+            )}
+            {weapon.isActive && !isInspectMode && (
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="px-2 py-1 text-[10px] font-bold uppercase border border-primary text-primary hover:bg-primary/10 transition-colors ml-1"
+                title="Minimizar"
+              >
+                MINIMIZAR
+              </button>
+            )}
+          </div>
 
       <div className="grid grid-cols-3 gap-2">
         <input
@@ -214,10 +290,9 @@ export default function WeaponEditor({
           <textarea
             value={weapon.extraEffect || ''}
             onChange={(e) => onUpdate('extraEffect', e.target.value)}
-            onInput={(e) => autoResizeTextarea(e.currentTarget)}
-            className="w-full bg-transparent border border-primary text-primary text-xs p-1 focus:outline-none focus:ring-1 focus:ring-primary resize-none overflow-hidden"
+            className="w-full bg-transparent border border-primary text-primary text-xs p-1 focus:outline-none focus:ring-1 focus:ring-primary resize-y min-h-[40px] max-h-64 overflow-y-auto break-words"
             placeholder="Descreva o efeito..."
-            rows={2}
+            rows={3}
           />
         </div>
       )}
@@ -324,19 +399,21 @@ export default function WeaponEditor({
         )}
       </div>
 
-      <div className="w-full pt-2 border-t border-primary">
-        <button
-          onClick={() => {
-            onRollTest?.();
-            onCloseMenu?.();
-          }}
-          className="w-full py-2 bg-primary hover:bg-opacity-80 text-black font-bold uppercase border border-primary transition-all text-xs"
-        >
-          Atacar
-        </button>
-      </div>
+      {!isInspectMode && onRollTest && (
+        <div className="w-full pt-2 border-t border-primary">
+          <button
+            onClick={() => {
+              onRollTest();
+              onCloseMenu?.();
+            }}
+            className="w-full py-2 bg-primary hover:bg-opacity-80 text-black font-bold uppercase border border-primary transition-all text-xs"
+          >
+            Atacar
+          </button>
+        </div>
+      )}
 
-      {onDelete && (
+      {!isInspectMode && onDelete && (
         <>
           <button
             onClick={() => setPendingDeleteWeapon(true)}
@@ -375,6 +452,9 @@ export default function WeaponEditor({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        </>
+      )}
+
         </>
       )}
     </div>
