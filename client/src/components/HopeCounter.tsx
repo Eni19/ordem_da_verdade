@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
-import { HopeUseDialog } from '@/components/HopeUseDialog';
+import { HopeUseOverlay } from '@/components/HopeUseOverlay';
 import { HopeUse } from '@/data/hope_use';
 
 interface HopeCounterProps {
@@ -82,7 +82,7 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
         </div>
       </div>
 
-      <HopeUseDialog
+      <HopeUseOverlay
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSelectUse={handleUseHope}
