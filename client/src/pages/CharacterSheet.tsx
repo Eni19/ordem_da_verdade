@@ -8,7 +8,15 @@ import Pericias from '@/components/Pericias';
 import HopeCounter from '@/components/HopeCounter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { TensaoOverlay } from '@/components/TensaoOverlay';
-import EvasionPanel from '@/components/EvasionPanel';
+import EvasionPanel, { type EvasionProtection } from '@/components/EvasionPanel';
+import { ActiveDefenseOverlay, type ActiveDefenseWeaponOption } from '@/components/ActiveDefenseOverlay';
+import {
+  type DefenseType,
+  isDefenseEligible,
+  spendDefensiveCharge,
+  findPericiaTrainingDie,
+  getProtectionCategory,
+} from '@/utils/activeDefenseLogic';
 import InventoryPanel from '@/components/InventoryPanel';
 import InsanityPanel from '@/components/InsanityPanel';
 import RitualsPanel from '@/components/RitualsPanel';
@@ -82,6 +90,7 @@ interface Weapon {
   hasExtraEffect: boolean;
   extraEffect?: string;
   isActive?: boolean;
+  range?: 'melee' | 'ranged';
   tags: WeaponTag[];
 }
 
@@ -317,6 +326,7 @@ export default function CharacterSheet() {
   const [suspendedConjurations, setSuspendedConjurations] = useState<Record<string, PokerConjureState>>({});
   const [lastConjuredEffect, setLastConjuredEffect] = useState<{ ritualId: string, effect: string, type: string } | null>(null);
   const [isConjurationOverlayOpen, setIsConjurationOverlayOpen] = useState(false);
+  const [activeDefenseType, setActiveDefenseType] = useState<DefenseType | null>(null);
   const [ritualResolveState, setRitualResolveState] = useState<
     | {
       ritualId: string;
@@ -999,6 +1009,13 @@ export default function CharacterSheet() {
       },
     }));
   };
+
+  const handleOpenActiveDefense = (type: DefenseType) => setActiveDefenseType(type);
+  const handleCloseActiveDefense = () => setActiveDefenseType(null);
+  const handleSpendDefensiveChargeForDefense = () =>
+    handleDefensiveChargesChange(spendDefensiveCharge(character.evasion.defensiveCharges));
+  const handleApplyActiveDefenseDamage = (amount: number) =>
+    handleVitalChange('hp', 'current', Math.max(0, character.hp.current - amount));
 
   const handleAddInventoryItem = (data?: Partial<InventoryItem>, weaponData?: Partial<Weapon>) => {
     const newId = Date.now().toString();
@@ -1890,6 +1907,33 @@ export default function CharacterSheet() {
   const overloadEvasionPenalty = isOverloaded ? 3 : 0;
   const fearEvasionPenalty = activeFearTags.some(t => t.effectResult === '9') ? 3 : 0;
   const totalEvasionPenalty = fearEvasionPenalty + overloadEvasionPenalty;
+  const totalEvasion =
+    7 +
+    getEffectiveAttributeValue('agilidade') +
+    (character.inventory.find((i) => i.type === 'protection')?.defenseBonus || 0) -
+    totalEvasionPenalty;
+
+  const protectionCategory = getProtectionCategory(character.inventory);
+  const equippedMeleeWeapons = character.weapons.filter((w) => w.isActive && w.range !== 'ranged');
+  const areDefensiveChargesDisabled = activeFearTags.some((t) => t.effectResult === '11');
+  const defenseEligibilityContext = {
+    pericias: character.pericias,
+    protectionCategory,
+    weapons: character.weapons,
+    defensiveCharges: character.evasion.defensiveCharges,
+    areChargesDisabled: areDefensiveChargesDisabled,
+  };
+  const defenseEligibility: Record<DefenseType, ReturnType<typeof isDefenseEligible>> = {
+    bloqueio: isDefenseEligible('bloqueio', defenseEligibilityContext),
+    esquiva: isDefenseEligible('esquiva', defenseEligibilityContext),
+    aparar: isDefenseEligible('aparar', defenseEligibilityContext),
+  };
+  const meleeWeaponOptions: ActiveDefenseWeaponOption[] = equippedMeleeWeapons.map((w) => ({
+    id: w.id,
+    name: w.name,
+    damageDiceCount: w.damageDiceCount,
+    damageDiceSides: w.damageDiceSides,
+  }));
 
   return (
     <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col relative">
@@ -2042,6 +2086,8 @@ export default function CharacterSheet() {
                 areChargesDisabled={activeFearTags.some(t => t.effectResult === '11')}
                 onDefensiveChargesChange={handleDefensiveChargesChange}
                 onMaxDefensiveChargesChange={handleMaxDefensiveChargesChange}
+                onOpenActiveDefense={handleOpenActiveDefense}
+                defenseEligibility={defenseEligibility}
               />
             </div>
           </div>
@@ -2180,6 +2226,28 @@ export default function CharacterSheet() {
         fearSecondaryAttributeChoice={fearSecondaryAttributeChoice}
         setFearSecondaryAttributeChoice={(attr) => setFearSecondaryAttributeChoice(attr as AttributeKey | null)}
         handleConfirmFearAttribute={handleConfirmFearAttribute}
+      />
+
+      <ActiveDefenseOverlay
+        open={activeDefenseType !== null}
+        defenseType={activeDefenseType}
+        onClose={handleCloseActiveDefense}
+        onSpendCharge={handleSpendDefensiveChargeForDefense}
+        onApplyDamage={handleApplyActiveDefenseDamage}
+        fortitudeDie={findPericiaTrainingDie(character.pericias, 'Fortitude')}
+        reflexosDie={findPericiaTrainingDie(character.pericias, 'Reflexos')}
+        lutaDie={findPericiaTrainingDie(character.pericias, 'Luta')}
+        protectionCategory={protectionCategory}
+        attributeValues={{
+          força: getEffectiveAttributeValue('força'),
+          agilidade: getEffectiveAttributeValue('agilidade'),
+          inteligência: getEffectiveAttributeValue('inteligência'),
+          presença: getEffectiveAttributeValue('presença'),
+          vigor: getEffectiveAttributeValue('vigor'),
+          vontade: getEffectiveAttributeValue('vontade'),
+        }}
+        passiveEvasion={totalEvasion}
+        meleeWeapons={meleeWeaponOptions}
       />
 
       {/* Character Manager Modal */}

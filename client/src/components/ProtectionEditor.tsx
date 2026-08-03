@@ -85,6 +85,23 @@ export default function ProtectionEditor({
         />
       </div>
 
+      <div className="flex items-center border border-primary bg-input h-8 overflow-hidden">
+        {(['light', 'heavy'] as const).map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onUpdate('protectionType', opt)}
+            className={`flex-1 h-full text-xs font-bold uppercase transition-all ${
+              (protection.protectionType ?? 'light') === opt
+                ? 'bg-primary text-black'
+                : 'text-primary hover:bg-primary/10'
+            }`}
+          >
+            {opt === 'light' ? 'Leve' : 'Pesada'}
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-2 text-xs text-primary">
           <Checkbox

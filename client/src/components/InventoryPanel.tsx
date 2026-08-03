@@ -37,6 +37,7 @@ interface Weapon {
   hasExtraEffect: boolean;
   extraEffect?: string;
   isActive?: boolean;
+  range?: 'melee' | 'ranged';
   tags: WeaponTag[];
 }
 

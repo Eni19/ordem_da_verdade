@@ -38,6 +38,7 @@ interface Weapon {
   hasExtraEffect: boolean;
   extraEffect?: string;
   isActive?: boolean;
+  range?: 'melee' | 'ranged';
   tags: WeaponTag[];
 }
 
@@ -137,6 +138,8 @@ export default function WeaponEditor({
                 <span>{weapon.category}</span>
               </>
             )}
+            <span>|</span>
+            <span>{(weapon.range ?? 'melee') === 'melee' ? 'Corpo a Corpo' : 'Distância'}</span>
           </div>
 
           {weapon.hasExtraEffect && weapon.extraEffect && (
@@ -224,6 +227,23 @@ export default function WeaponEditor({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex items-center border border-primary bg-input h-8 overflow-hidden">
+        {(['melee', 'ranged'] as const).map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onUpdate('range', opt)}
+            className={`flex-1 h-full text-[10px] font-bold uppercase transition-all ${
+              (weapon.range ?? 'melee') === opt
+                ? 'bg-primary text-black'
+                : 'text-primary hover:bg-primary/10'
+            }`}
+          >
+            {opt === 'melee' ? 'Corpo a Corpo' : 'Distância'}
+          </button>
+        ))}
       </div>
 
       <div className="border border-primary bg-black p-2 flex items-center gap-1">

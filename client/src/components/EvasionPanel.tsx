@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings2, Shield } from 'lucide-react';
+import { Settings2, Shield, ShieldHalf, Wind, Swords } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import anime from 'animejs';
+import type { DefenseType, DefenseEligibility } from '@/utils/activeDefenseLogic';
+import { DefensiveReactionOverlay } from '@/components/DefensiveReactionOverlay';
 
 export type EvasionProtection = 'none' | 'light' | 'heavy';
+
+const DEFENSE_META: Record<DefenseType, { label: string; icon: typeof Shield }> = {
+  bloqueio: { label: 'Bloqueio', icon: ShieldHalf },
+  esquiva: { label: 'Esquiva', icon: Wind },
+  aparar: { label: 'Aparar', icon: Swords },
+};
 
 interface EvasionPanelProps {
   agility: number;
@@ -15,6 +23,8 @@ interface EvasionPanelProps {
   areChargesDisabled?: boolean;
   onDefensiveChargesChange: (value: number) => void;
   onMaxDefensiveChargesChange: (value: number) => void;
+  onOpenActiveDefense?: (type: DefenseType) => void;
+  defenseEligibility?: Record<DefenseType, DefenseEligibility>;
 }
 
 const MAX_POSSIBLE_CHARGES = 4;
@@ -29,17 +39,36 @@ export default function EvasionPanel({
   areChargesDisabled = false,
   onDefensiveChargesChange,
   onMaxDefensiveChargesChange,
+  onOpenActiveDefense,
+  defenseEligibility,
 }: EvasionPanelProps) {
   const [configOpen, setConfigOpen] = useState(false);
+
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [pendingChargeIndex, setPendingChargeIndex] = useState<number | null>(null);
 
   const baseEvasion = 7 + agility;
   const totalEvasion = baseEvasion + protectionBonus - evasionPenalty;
 
   const handleChargeClick = (index: number) => {
-    const chargeMask = 1 << index;
-    const newCharges = defensiveCharges ^ chargeMask;
+    const isFilled = (defensiveCharges & (1 << index)) !== 0;
+    if (isFilled) {
+      setPendingChargeIndex(index);
+      setOverlayOpen(true);
+    } else {
+      const chargeMask = 1 << index;
+      onDefensiveChargesChange(defensiveCharges | chargeMask);
+    }
+  };
 
-    onDefensiveChargesChange(newCharges);
+  const handleSelectReaction = (type: DefenseType) => {
+    if (pendingChargeIndex !== null) {
+      const chargeMask = ~(1 << pendingChargeIndex);
+      onDefensiveChargesChange(defensiveCharges & chargeMask);
+    }
+    if (onOpenActiveDefense) {
+      onOpenActiveDefense(type);
+    }
   };
   
   // inside EvasionPanel:
@@ -218,6 +247,15 @@ export default function EvasionPanel({
           </div>
         </div>
       </div>
+
+      {defenseEligibility && (
+        <DefensiveReactionOverlay
+          open={overlayOpen}
+          onOpenChange={setOverlayOpen}
+          onSelectReaction={handleSelectReaction}
+          defenseEligibility={defenseEligibility}
+        />
+      )}
     </div>
   );
 }
