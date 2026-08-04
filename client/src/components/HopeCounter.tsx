@@ -68,8 +68,8 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
       const targetAmplitude = current === 0 ? 2 : 10 + (current * 10);
       const targetFrequency = current === 0 ? 0.01 : 0.015 + (current * 0.005);
       
-      // Velocidade um pouco reduzida em relação à versão anterior para ficar mais orgânico
-      const targetSpeed = current === 0 ? 0.01 : 0.03 + (current * 0.02);
+      // Velocidade ainda mais reduzida conforme solicitado para um movimento bem sutil
+      const targetSpeed = current === 0 ? 0.008 : 0.015 + (current * 0.01);
 
       // Interpolação suave para não haver cortes quando a esperança muda
       ampRef.current += (targetAmplitude - ampRef.current) * 0.08;
@@ -136,7 +136,7 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
   return (
     <>
       <div className="card-occult space-y-2 relative group pb-3 px-3 pt-3">
-        <div className="flex justify-start items-center gap-3 pl-1">
+        <div className="flex justify-between items-center pl-1 pr-0.5">
           <h3 className="font-display text-sm text-primary uppercase tracking-widest">
             Esperança
           </h3>
@@ -152,7 +152,7 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
 
         {/* Container do Osciloscópio Reduzido */}
         <div 
-          className="relative w-full h-14 rounded border border-primary/20 overflow-hidden bg-[#050508] cursor-crosshair shadow-[inset_0_0_15px_rgba(0,0,0,0.9)]"
+          className="relative w-full h-14 rounded border border-primary/20 overflow-hidden bg-[#050508] cursor-pointer shadow-[inset_0_0_15px_rgba(0,0,0,0.9)] group/waves"
           onClick={(e) => {
             if (current > 0) {
               handleDecrement(e);
@@ -182,8 +182,21 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
           />
 
           {/* Indicador Numérico */}
-          <div className="absolute bottom-0.5 right-1.5 pointer-events-none opacity-80">
+          <div className="absolute bottom-0.5 right-1.5 pointer-events-none opacity-80 z-0">
             <span className="font-mono text-[10px] text-yellow-500/70">{current}/{MAX_HOPE}</span>
+          </div>
+
+          {/* Overlay de Hover - Escurece a tela e destaca USAR ou SEM ESPERANÇA */}
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center opacity-0 group-hover/waves:opacity-100 transition-all duration-200 pointer-events-none z-10">
+            {current > 0 ? (
+              <span className="font-display text-xs font-bold uppercase tracking-[0.25em] text-yellow-400 border border-yellow-500/60 bg-yellow-950/40 px-3 py-1 shadow-[0_0_12px_rgba(255,215,0,0.4)]">
+                USAR
+              </span>
+            ) : (
+              <span className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-red-500/90 border border-red-500/40 bg-red-950/40 px-2.5 py-1 shadow-[0_0_8px_rgba(239,68,68,0.3)]">
+                SEM ESPERANÇA
+              </span>
+            )}
           </div>
         </div>
       </div>

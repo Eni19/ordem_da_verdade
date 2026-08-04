@@ -2023,25 +2023,27 @@ export default function CharacterSheet() {
             </div>
           )}
         </div>
-        <input
-          type="text"
-          value={character.name}
-          onChange={handleNameChange}
-          className="input-occult text-lg md:text-2xl font-display bg-black border-b-2 border-primary focus:border-primary w-full mb-2"
-          placeholder="Nome do Personagem"
-        />
+        <div className="w-full md:pr-4">
+          <input
+            type="text"
+            value={character.name}
+            onChange={handleNameChange}
+            className="input-occult text-lg md:text-2xl font-display bg-black border-b-2 border-primary focus:border-primary w-full mb-2"
+            placeholder="Nome do Personagem"
+          />
 
-        {/* Save/Load Buttons (Cloud Only) */}
-        <SaveLoad
-          characterData={character}
-          onLoadCharacter={handleLoadCharacter}
-          characterId={characterId}
-          onSaveToCloud={handleSaveToCloud}
-          onOpenManager={() => setIsManagerOpen(true)}
-          isCloudSaving={isCloudSaving}
-          lastCloudSave={lastCloudSave}
-          hideJson={true}
-        />
+          {/* Save/Load Buttons (Cloud Only) */}
+          <SaveLoad
+            characterData={character}
+            onLoadCharacter={handleLoadCharacter}
+            characterId={characterId}
+            onSaveToCloud={handleSaveToCloud}
+            onOpenManager={() => setIsManagerOpen(true)}
+            isCloudSaving={isCloudSaving}
+            lastCloudSave={lastCloudSave}
+            hideJson={true}
+          />
+        </div>
 
         {/* Deslocamento Visual - Alerta de Penalidades */}
         {isOverloaded && (
@@ -2070,7 +2072,7 @@ export default function CharacterSheet() {
             />
 
           </div>
-          <div className="w-full md:w-56 flex-shrink-0">
+          <div className="w-full md:w-56 md:pr-4 flex-shrink-0">
             <HopeCounter
               current={character.hope}
               onChange={handleHopeChange}

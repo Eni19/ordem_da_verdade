@@ -308,12 +308,12 @@ export default function InventoryPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-16 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
+          className={`group fixed top-16 z-[60] h-16 w-6 hover:w-36 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
             isOpen ? 'right-[34rem]' : 'right-0'
           }`}
         >
-          <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
-            {isOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          <span className="flex h-full w-5 flex-shrink-0 items-center justify-center">
+            {isOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </span>
           <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
             Equipamentos

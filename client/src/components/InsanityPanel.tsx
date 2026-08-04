@@ -259,11 +259,11 @@ export default function InsanityPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-28 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 pointer-events-auto ${isOpen ? 'right-[34rem]' : 'right-0'
+          className={`group fixed top-32 z-[60] h-16 w-6 hover:w-36 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 pointer-events-auto ${isOpen ? 'right-[34rem]' : 'right-0'
             }`}
         >
-          <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
-            <ChevronLeft size={20} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <span className="flex h-full w-5 flex-shrink-0 items-center justify-center">
+            <ChevronLeft size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </span>
           <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
             Insanidades

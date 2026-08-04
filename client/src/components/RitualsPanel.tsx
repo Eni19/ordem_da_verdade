@@ -250,12 +250,12 @@ export default function RitualsPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-40 z-[60] h-12 w-12 hover:w-40 overflow-hidden bg-black border-2 border-purple-500 hover:bg-purple-500 hover:bg-opacity-10 flex items-center justify-start text-purple-300 transition-all duration-300 pointer-events-auto ${
+          className={`group fixed top-48 z-[60] h-16 w-6 hover:w-36 overflow-hidden bg-black border-2 border-purple-500 hover:bg-purple-500 hover:bg-opacity-10 flex items-center justify-start text-purple-300 transition-all duration-300 pointer-events-auto ${
             isOpen ? 'right-[100vw] sm:right-[650px] md:right-[750px]' : 'right-0'
           }`}
         >
-          <span className="flex h-full w-12 flex-shrink-0 items-center justify-center">
-            <ChevronLeft size={20} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <span className="flex h-full w-5 flex-shrink-0 items-center justify-center">
+            <ChevronLeft size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </span>
           <span className="pr-4 text-sm font-display uppercase tracking-wide whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
             Rituais
