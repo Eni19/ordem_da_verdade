@@ -94,7 +94,7 @@ export function DefensiveReactionOverlay({
     anime({
       targets: target,
       scale: [1, 1.1],
-      backgroundColor: ['rgba(0,0,0,0)', 'rgba(56, 189, 248, 0.2)'],
+      backgroundColor: ['rgba(0,0,0,0)', 'rgba(172, 191, 164, 0.2)'],
       duration: 200,
       easing: 'easeOutExpo',
     });
@@ -118,23 +118,23 @@ export function DefensiveReactionOverlay({
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center gap-12 lg:gap-24 p-4 overflow-hidden">
       
       <div className="hidden lg:flex flex-col justify-center items-end reaction-title opacity-0 pointer-events-none select-none max-w-xl shrink-0">
-        <h1 className="text-7xl xl:text-[7.5rem] font-display text-sky-400 uppercase tracking-tighter font-black leading-none drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]">
+        <h1 className="text-7xl xl:text-[7.5rem] font-display text-[#ACBFA4] uppercase tracking-tighter font-black leading-none drop-shadow-[0_0_15px_rgba(172,191,164,0.5)]">
           REAÇÃO
         </h1>
-        <div className="h-1 w-32 bg-sky-400/80 mt-4 mb-4 rounded-full transition-all duration-300 mr-2" />
+        <div className="h-1 w-32 bg-[#ACBFA4]/80 mt-4 mb-4 rounded-full transition-all duration-300 mr-2" />
         <div 
           key={lastHoveredType ?? 'default'}
           className="min-h-[8rem] animate-in fade-in duration-300 flex flex-col items-end gap-2 mr-2 text-right"
         >
           {lastHoveredType ? (
             <>
-              <h3 className="text-sky-300 font-display text-2xl uppercase tracking-widest">{DEFENSE_META[lastHoveredType].label}</h3>
-              <p className="text-sky-200/90 font-mono text-sm max-w-sm uppercase tracking-widest leading-relaxed">
+              <h3 className="text-[#ACBFA4] font-display text-2xl uppercase tracking-widest">{DEFENSE_META[lastHoveredType].label}</h3>
+              <p className="text-[#ACBFA4]/90 font-mono text-sm max-w-sm uppercase tracking-widest leading-relaxed">
                 {DEFENSE_META[lastHoveredType].description}
               </p>
             </>
           ) : (
-            <h2 className="text-3xl font-mono text-sky-300 uppercase tracking-widest opacity-80">
+            <h2 className="text-3xl font-mono text-[#ACBFA4] uppercase tracking-widest opacity-80">
               DEFENSIVA
             </h2>
           )}
@@ -146,12 +146,12 @@ export function DefensiveReactionOverlay({
         className="relative w-full max-w-md flex flex-col items-center opacity-0 shrink-0"
       >
         <div className="flex items-center justify-between w-full mb-6">
-          <h3 className="font-display text-lg text-sky-400 uppercase tracking-widest lg:hidden">
+          <h3 className="font-display text-lg text-[#ACBFA4] uppercase tracking-widest lg:hidden">
             Reação Defensiva
           </h3>
           <button
             onClick={handleClose}
-            className="text-xs px-2 py-1 border border-sky-400/50 text-sky-400 hover:bg-sky-400 hover:text-black transition-colors uppercase font-bold z-10 ml-auto"
+            className="text-xs px-2 py-1 border border-[#ACBFA4]/50 text-[#ACBFA4] hover:bg-[#ACBFA4] hover:text-black transition-colors uppercase font-bold z-10 ml-auto"
           >
             Cancelar
           </button>
@@ -181,24 +181,24 @@ export function DefensiveReactionOverlay({
                 onBlur={() => setHoveredType(null)}
                 className={`def-reaction-btn relative flex items-center p-4 sm:p-6 border-2 transition-all w-full overflow-hidden text-left ${
                   eligible
-                    ? 'border-sky-500/50 hover:border-sky-400 bg-black/60 hover:bg-sky-950/40 cursor-pointer'
+                    ? 'border-[#ACBFA4]/50 hover:border-[#ACBFA4] bg-black/60 hover:bg-[#ACBFA4]/10 cursor-pointer'
                     : 'border-slate-800/50 bg-black/30 cursor-not-allowed opacity-50'
                 }`}
               >
                 {/* Efeito de brilho de fundo quando elegível */}
                 {eligible && isHovered && (
-                  <div className="absolute inset-0 bg-sky-400/10 animate-pulse pointer-events-none" />
+                  <div className="absolute inset-0 bg-[#ACBFA4]/10 animate-pulse pointer-events-none" />
                 )}
 
                 <div className="flex-shrink-0 mr-6">
                   <Icon 
                     size={42} 
-                    className={`transition-transform duration-300 ${eligible && isHovered ? 'scale-110 text-sky-300' : 'text-slate-500'}`} 
+                    className={`transition-transform duration-300 ${eligible && isHovered ? 'scale-110 text-[#ACBFA4]' : 'text-slate-500'}`} 
                   />
                 </div>
                 
                 <div className="flex flex-col flex-1 justify-center">
-                  <h3 className={`font-display text-2xl uppercase tracking-wider ${eligible ? 'text-sky-400' : 'text-slate-500'}`}>
+                  <h3 className={`font-display text-2xl uppercase tracking-wider ${eligible ? 'text-[#ACBFA4]' : 'text-slate-500'}`}>
                     {label}
                   </h3>
                 </div>

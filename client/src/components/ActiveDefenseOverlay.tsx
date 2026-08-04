@@ -122,15 +122,15 @@ function DieBox({ value, dim, strike, pulseRed, small, dieClass }: DieBoxProps) 
         small ? 'w-10 h-10 text-sm border-[1px]' : 'w-16 h-16 text-2xl border-[1.5px]'
       } ${
         pulseRed
-          ? 'border-sky-300 text-sky-300 bg-sky-400/20 shadow-[0_0_20px_rgba(56,189,248,0.5)] scale-110'
+          ? 'border-[#ACBFA4] text-[#ACBFA4] bg-[#ACBFA4]/20 shadow-[0_0_20px_rgba(172,191,164,0.5)] scale-110'
           : dim
-          ? 'border-sky-900/40 text-sky-900/50 bg-black/40'
-          : 'border-sky-500/50 text-sky-400 bg-black/60 shadow-[inset_0_0_10px_rgba(56,189,248,0.2)]'
+          ? 'border-[#ACBFA4]/30 text-[#ACBFA4]/40 bg-black/40'
+          : 'border-[#ACBFA4]/50 text-[#ACBFA4] bg-black/60 shadow-[inset_0_0_10px_rgba(172,191,164,0.2)]'
       } ${dieClass ?? ''}`}
     >
       <span className="-rotate-45 drop-shadow-[0_0_5px_currentColor]">{value ?? '-'}</span>
       {strike && (
-        <span className="adf-strike pointer-events-none absolute left-1/2 top-1/2 h-[2px] w-[140%] bg-sky-500/50 origin-center -translate-x-1/2 -translate-y-1/2 rotate-0 scale-x-0" />
+        <span className="adf-strike pointer-events-none absolute left-1/2 top-1/2 h-[2px] w-[140%] bg-[#ACBFA4]/50 origin-center -translate-x-1/2 -translate-y-1/2 rotate-0 scale-x-0" />
       )}
     </div>
   );
@@ -225,9 +225,9 @@ export function ActiveDefenseOverlay({
     anime({
       targets: '.adf-die',
       boxShadow: [
-        '0 0 0px rgba(56,189,248,0)',
-        '0 0 16px rgba(56,189,248,0.85)',
-        '0 0 4px rgba(56,189,248,0.4)',
+        '0 0 0px rgba(172,191,164,0)',
+        '0 0 16px rgba(172,191,164,0.85)',
+        '0 0 4px rgba(172,191,164,0.4)',
       ],
       duration: 300,
       delay: anime.stagger(40),
@@ -415,12 +415,12 @@ export function ActiveDefenseOverlay({
     <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center gap-12 lg:gap-24 p-4 overflow-hidden">
       
       <div className="hidden lg:flex flex-col justify-center items-end opacity-0 pointer-events-none select-none max-w-xl shrink-0 adf-title-panel text-right">
-        <Icon size={80} className="text-sky-400 mb-4 opacity-50" />
-        <h1 className="text-6xl xl:text-[6rem] font-display text-sky-400 uppercase tracking-tighter font-black leading-none drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]">
+        <Icon size={80} className="text-[#ACBFA4] mb-4 opacity-50" />
+        <h1 className="text-6xl xl:text-[6rem] font-display text-[#ACBFA4] uppercase tracking-tighter font-black leading-none drop-shadow-[0_0_15px_rgba(172,191,164,0.5)]">
           {info.title}
         </h1>
-        <div className="h-1 w-32 bg-sky-400/80 mt-4 mb-6 rounded-full transition-all duration-300 mr-2" />
-        <p className="text-sky-200/90 font-mono text-sm max-w-sm uppercase tracking-widest leading-relaxed mr-2">
+        <div className="h-1 w-32 bg-[#ACBFA4]/80 mt-4 mb-6 rounded-full transition-all duration-300 mr-2" />
+        <p className="text-[#ACBFA4]/90 font-mono text-sm max-w-sm uppercase tracking-widest leading-relaxed mr-2">
           {info.flavor}
         </p>
       </div>
@@ -430,12 +430,12 @@ export function ActiveDefenseOverlay({
         className="relative w-full max-w-md flex flex-col items-center opacity-0 shrink-0"
       >
         <div className="flex items-center justify-between w-full mb-6">
-          <h3 className="font-display text-lg text-sky-400 uppercase tracking-widest lg:hidden">
+          <h3 className="font-display text-lg text-[#ACBFA4] uppercase tracking-widest lg:hidden">
             {info.title}
           </h3>
           <button
             onClick={onClose}
-            className="text-xs px-2 py-1 border border-sky-400/50 text-sky-400 hover:bg-sky-400 hover:text-black transition-colors uppercase font-bold z-10 ml-auto"
+            className="text-xs px-2 py-1 border border-[#ACBFA4]/50 text-[#ACBFA4] hover:bg-[#ACBFA4] hover:text-black transition-colors uppercase font-bold z-10 ml-auto"
             aria-label="Fechar"
           >
             Cancelar
@@ -447,7 +447,7 @@ export function ActiveDefenseOverlay({
           <div className="space-y-4">
             {defenseType === 'esquiva' && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-sky-300">Atributo utilizado</label>
+                <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">Atributo utilizado</label>
                 <div className="flex justify-center gap-4 mt-2">
                   {ESQUIVA_ATTRIBUTES.map((a) => (
                     <button
@@ -455,8 +455,8 @@ export function ActiveDefenseOverlay({
                       onClick={() => setChosenAttribute(a.key)}
                       className={`relative overflow-hidden group py-3 px-6 text-xs font-bold uppercase tracking-widest transition-all skew-x-[-15deg] ${
                         chosenAttribute === a.key
-                          ? 'text-black bg-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.6)]'
-                          : 'text-sky-300 border border-sky-400/30 bg-black/50 hover:border-sky-400/80 hover:bg-sky-400/10 hover:shadow-[0_0_10px_rgba(56,189,248,0.3)]'
+                          ? 'text-black bg-[#ACBFA4] shadow-[0_0_15px_rgba(172,191,164,0.6)]'
+                          : 'text-[#ACBFA4] border border-[#ACBFA4]/30 bg-black/50 hover:border-[#ACBFA4]/80 hover:bg-[#ACBFA4]/10 hover:shadow-[0_0_10px_rgba(172,191,164,0.3)]'
                       }`}
                     >
                       <span className="block skew-x-[15deg]">{a.label}</span>
@@ -469,7 +469,7 @@ export function ActiveDefenseOverlay({
             {defenseType === 'aparar' && (
               <>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-sky-300">Atributo utilizado</label>
+                  <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">Atributo utilizado</label>
                   <div className="flex justify-center gap-4 mt-2">
                     {APARAR_ATTRIBUTES.map((a) => (
                       <button
@@ -477,8 +477,8 @@ export function ActiveDefenseOverlay({
                         onClick={() => setChosenAttribute(a.key)}
                         className={`relative overflow-hidden group py-3 px-6 text-xs font-bold uppercase tracking-widest transition-all skew-x-[-15deg] ${
                           chosenAttribute === a.key
-                            ? 'text-black bg-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.6)]'
-                            : 'text-sky-300 border border-sky-400/30 bg-black/50 hover:border-sky-400/80 hover:bg-sky-400/10 hover:shadow-[0_0_10px_rgba(56,189,248,0.3)]'
+                            ? 'text-black bg-[#ACBFA4] shadow-[0_0_15px_rgba(172,191,164,0.6)]'
+                            : 'text-[#ACBFA4] border border-[#ACBFA4]/30 bg-black/50 hover:border-[#ACBFA4]/80 hover:bg-[#ACBFA4]/10 hover:shadow-[0_0_10px_rgba(172,191,164,0.3)]'
                         }`}
                       >
                         <span className="block skew-x-[15deg]">{a.label}</span>
@@ -488,7 +488,7 @@ export function ActiveDefenseOverlay({
                 </div>
                 {meleeWeapons.length > 1 && (
                   <div className="space-y-1 mt-6">
-                    <label className="text-[10px] uppercase font-bold text-sky-300">Arma (Para possível Contra-Ataque)</label>
+                    <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">Arma (Para possível Contra-Ataque)</label>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {meleeWeapons.map((w) => (
                         <button
@@ -496,8 +496,8 @@ export function ActiveDefenseOverlay({
                           onClick={() => setChosenWeaponId(w.id)}
                           className={`py-3 text-[10px] font-bold uppercase border transition-colors skew-x-[-15deg] ${
                             chosenWeaponId === w.id
-                              ? 'bg-sky-400 text-black border-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.4)]'
-                              : 'border-sky-400/50 text-sky-300 hover:bg-sky-400/10 hover:border-sky-400'
+                              ? 'bg-[#ACBFA4] text-black border-[#ACBFA4] shadow-[0_0_10px_rgba(172,191,164,0.4)]'
+                              : 'border-[#ACBFA4]/50 text-[#ACBFA4] hover:bg-[#ACBFA4]/10 hover:border-[#ACBFA4]'
                           }`}
                         >
                           <span className="block skew-x-[15deg]">{w.name || 'Arma sem nome'}</span>
@@ -512,14 +512,14 @@ export function ActiveDefenseOverlay({
             {defenseType === 'bloqueio' && (
               <>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-sky-300">Proteção Utilizada</label>
+                  <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">Proteção Utilizada</label>
                   <div className="flex justify-center gap-4 mt-2">
                     <button
                       onClick={() => setChosenArmorType('light')}
                       className={`relative overflow-hidden group py-3 px-6 text-xs font-bold uppercase tracking-widest transition-all skew-x-[-15deg] ${
                         chosenArmorType === 'light'
-                          ? 'text-black bg-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.6)]'
-                          : 'text-sky-300 border border-sky-400/30 bg-black/50 hover:border-sky-400/80 hover:bg-sky-400/10 hover:shadow-[0_0_10px_rgba(56,189,248,0.3)]'
+                          ? 'text-black bg-[#ACBFA4] shadow-[0_0_15px_rgba(172,191,164,0.6)]'
+                          : 'text-[#ACBFA4] border border-[#ACBFA4]/30 bg-black/50 hover:border-[#ACBFA4]/80 hover:bg-[#ACBFA4]/10 hover:shadow-[0_0_10px_rgba(172,191,164,0.3)]'
                       }`}
                     >
                       <span className="block skew-x-[15deg]">Leve</span>
@@ -528,8 +528,8 @@ export function ActiveDefenseOverlay({
                       onClick={() => setChosenArmorType('heavy')}
                       className={`relative overflow-hidden group py-3 px-6 text-xs font-bold uppercase tracking-widest transition-all skew-x-[-15deg] ${
                         chosenArmorType === 'heavy'
-                          ? 'text-black bg-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.6)]'
-                          : 'text-sky-300 border border-sky-400/30 bg-black/50 hover:border-sky-400/80 hover:bg-sky-400/10 hover:shadow-[0_0_10px_rgba(56,189,248,0.3)]'
+                          ? 'text-black bg-[#ACBFA4] shadow-[0_0_15px_rgba(172,191,164,0.6)]'
+                          : 'text-[#ACBFA4] border border-[#ACBFA4]/30 bg-black/50 hover:border-[#ACBFA4]/80 hover:bg-[#ACBFA4]/10 hover:shadow-[0_0_10px_rgba(172,191,164,0.3)]'
                       }`}
                     >
                       <span className="block skew-x-[15deg]">Pesada</span>
@@ -539,22 +539,22 @@ export function ActiveDefenseOverlay({
 
                 <div className="space-y-1 mt-6">
                   <div className="flex flex-col items-center gap-2">
-                    <label className="text-[10px] uppercase font-bold text-sky-300">
+                    <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">
                       Qtd. de Dados de Dano do Inimigo
                     </label>
-                    <div className="flex items-center gap-4 bg-black/50 border border-sky-400/30 p-2">
+                    <div className="flex items-center gap-4 bg-black/50 border border-[#ACBFA4]/30 p-2">
                       <button
                         onClick={() => setEnemyDamageDiceCount(Math.max(1, enemyDamageDiceCount - 1))}
-                        className="w-10 h-10 flex items-center justify-center text-xl font-bold border border-sky-400/60 text-sky-300 hover:bg-sky-400/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center text-xl font-bold border border-[#ACBFA4]/60 text-[#ACBFA4] hover:bg-[#ACBFA4]/10 transition-colors"
                       >
                         -
                       </button>
-                      <span className="font-display text-4xl text-sky-400 w-12 text-center drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+                      <span className="font-display text-4xl text-[#ACBFA4] w-12 text-center drop-shadow-[0_0_8px_rgba(172,191,164,0.5)]">
                         {enemyDamageDiceCount}
                       </span>
                       <button
                         onClick={() => setEnemyDamageDiceCount(Math.min(20, enemyDamageDiceCount + 1))}
-                        className="w-10 h-10 flex items-center justify-center text-xl font-bold border border-sky-400/60 text-sky-300 hover:bg-sky-400/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center text-xl font-bold border border-[#ACBFA4]/60 text-[#ACBFA4] hover:bg-[#ACBFA4]/10 transition-colors"
                       >
                         +
                       </button>
@@ -567,10 +567,10 @@ export function ActiveDefenseOverlay({
             <button
               onClick={handleRolar}
               disabled={!canRoll}
-              className="group relative w-full py-4 mt-6 overflow-hidden bg-black border border-sky-400/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="group relative w-full py-4 mt-6 overflow-hidden bg-black border border-[#ACBFA4]/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
-              <div className="absolute inset-0 bg-sky-400/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative text-sky-300 group-hover:text-sky-100 font-display text-xl uppercase tracking-widest drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+              <div className="absolute inset-0 bg-[#ACBFA4]/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
+              <span className="relative text-[#ACBFA4] group-hover:text-white font-display text-xl uppercase tracking-widest drop-shadow-[0_0_8px_rgba(172,191,164,0.5)]">
                 Rolar {info.title}
               </span>
             </button>
@@ -584,7 +584,7 @@ export function ActiveDefenseOverlay({
                 <DieBox key={i} value={v} small={spinningDiceSides.length > 3} />
               ))}
             </div>
-            <span className="text-sky-300 text-xs uppercase tracking-widest animate-pulse mt-4">Calculando destino...</span>
+            <span className="text-[#ACBFA4] text-xs uppercase tracking-widest animate-pulse mt-4">Calculando destino...</span>
           </div>
         )}
 
@@ -592,7 +592,7 @@ export function ActiveDefenseOverlay({
           <div className="space-y-12">
             <div ref={diceContainerRef} className="flex justify-center items-end gap-12 mt-6">
               <div className={`flex flex-col items-center gap-4 transition-all duration-700 ${esquivaResult.usedDie === esquivaResult.attributeDie ? 'scale-110' : 'scale-75 opacity-40 blur-[2px] grayscale'}`}>
-                <span className="text-[10px] uppercase font-bold text-sky-300/70 tracking-widest">
+                <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest">
                   {ESQUIVA_ATTRIBUTES.find((a) => a.key === chosenAttribute)?.label}
                 </span>
                 <DieBox
@@ -601,7 +601,7 @@ export function ActiveDefenseOverlay({
                 />
               </div>
               <div className={`flex flex-col items-center gap-4 transition-all duration-700 ${esquivaResult.usedDie === esquivaResult.reflexosDie && esquivaResult.reflexosDie > esquivaResult.attributeDie ? 'scale-110' : 'scale-75 opacity-40 blur-[2px] grayscale'}`}>
-                <span className="text-[10px] uppercase font-bold text-sky-300/70 tracking-widest">Reflexos</span>
+                <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest">Reflexos</span>
                 <DieBox
                   value={esquivaResult.reflexosDie}
                   pulseRed={esquivaResult.usedDie === esquivaResult.reflexosDie && esquivaResult.reflexosDie > esquivaResult.attributeDie}
@@ -616,7 +616,7 @@ export function ActiveDefenseOverlay({
             <div ref={diceContainerRef} className="flex justify-center items-end gap-6 mt-6">
               {bloqueioResult.fortitudeRolls.map((v, i) => (
                 <div key={i} className="flex flex-col items-center gap-4 transition-all duration-700">
-                  <span className="text-[10px] uppercase font-bold text-sky-300/70 tracking-widest">Fortitude</span>
+                  <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest">Fortitude</span>
                   <DieBox value={v} pulseRed />
                 </div>
               ))}
@@ -627,26 +627,26 @@ export function ActiveDefenseOverlay({
         {phase === 'reveal' && defenseType === 'aparar' && apararResult && (
           <div className="space-y-12">
             <div className="flex flex-col items-center gap-6 mt-6">
-              <span className="text-[10px] uppercase font-bold text-sky-300/70 tracking-widest text-center">
+              <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest text-center">
                 Seu Resultado Total (Para o Choque de Armas)
               </span>
-              <span className="font-display text-sky-400 text-7xl md:text-8xl tracking-widest drop-shadow-[0_0_20px_rgba(56,189,248,0.8)]">
+              <span className="font-display text-[#ACBFA4] text-7xl md:text-8xl tracking-widest drop-shadow-[0_0_20px_rgba(172,191,164,0.8)]">
                 {apararResult.yourTotal}
               </span>
             </div>
             <div className="flex flex-col items-center gap-4">
-              <span className="text-[10px] uppercase font-bold text-sky-300/70 tracking-widest text-center">
+              <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest text-center">
                 Seus Dados (Para procurar Brecha)
               </span>
               <div className="flex justify-center items-end gap-6">
                 <div className="flex flex-col items-center gap-4">
-                  <span className="text-[10px] uppercase font-bold text-sky-300/50">
+                  <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/50">
                     {APARAR_ATTRIBUTES.find((a) => a.key === chosenAttribute)?.label}
                   </span>
                   <DieBox value={apararResult.yourDice[0]} />
                 </div>
                 <div className="flex flex-col items-center gap-4">
-                  <span className="text-[10px] uppercase font-bold text-sky-300/50">Luta</span>
+                  <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/50">Luta</span>
                   <DieBox value={apararResult.yourDice[1]} />
                 </div>
               </div>
@@ -675,12 +675,12 @@ export function ActiveDefenseOverlay({
                   Contra-Ataque!
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-sky-300 text-xs uppercase tracking-widest">Dano Causado</span>
+                  <span className="text-[#ACBFA4] text-xs uppercase tracking-widest">Dano Causado</span>
                   <span className="font-display text-primary text-5xl drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]">
                     {apararResult.counter.total}
                   </span>
                 </div>
-                <div className="text-[10px] text-sky-300/60 uppercase font-mono tracking-wider">
+                <div className="text-[10px] text-[#ACBFA4]/60 uppercase font-mono tracking-wider">
                   ({apararResult.counter.rolls.join(' + ')} dados + atributo)
                 </div>
               </div>
@@ -693,8 +693,8 @@ export function ActiveDefenseOverlay({
             ref={missTextRef}
             className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center text-center px-6 opacity-0"
           >
-            <div className="absolute w-64 h-64 rounded-full bg-sky-400/20 blur-3xl" />
-            <span className="relative font-display text-sky-400 text-5xl md:text-6xl uppercase tracking-widest drop-shadow-[0_0_20px_rgba(56,189,248,0.8)]">
+            <div className="absolute w-64 h-64 rounded-full bg-[#ACBFA4]/20 blur-3xl" />
+            <span className="relative font-display text-[#ACBFA4] text-5xl md:text-6xl uppercase tracking-widest drop-shadow-[0_0_20px_rgba(172,191,164,0.8)]">
               ESQUIVA +{esquivaResult.usedDie}
             </span>
           </div>
@@ -705,18 +705,18 @@ export function ActiveDefenseOverlay({
             ref={missTextRef}
             className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center text-center px-6 opacity-0"
           >
-            <div className="absolute w-[400px] h-[400px] rounded-full bg-sky-400/20 blur-3xl" />
-            <span className="relative text-sky-200 uppercase font-bold tracking-[0.2em] mb-2 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]">
+            <div className="absolute w-[400px] h-[400px] rounded-full bg-[#ACBFA4]/20 blur-3xl" />
+            <span className="relative text-[#ACBFA4] uppercase font-bold tracking-[0.2em] mb-2 drop-shadow-[0_0_8px_rgba(172,191,164,0.8)]">
               Anula dados até
             </span>
             <div className="relative flex flex-wrap justify-center gap-4 md:gap-6 mt-2 items-center">
               {bloqueioResult.fortitudeRolls.map((v, i) => (
                 <div key={i} className="flex items-center gap-4 md:gap-6">
-                  <span className="font-display text-sky-400 text-6xl md:text-7xl drop-shadow-[0_0_20px_rgba(56,189,248,0.8)]">
+                  <span className="font-display text-[#ACBFA4] text-6xl md:text-7xl drop-shadow-[0_0_20px_rgba(172,191,164,0.8)]">
                     {v + (bloqueioResult.protectionCategory === 'heavy' ? 1 : 0)}
                   </span>
                   {i < bloqueioResult.fortitudeRolls.length - 1 && (
-                    <span className="text-sky-400/30 text-4xl md:text-5xl drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">
+                    <span className="text-[#ACBFA4]/30 text-4xl md:text-5xl drop-shadow-[0_0_10px_rgba(172,191,164,0.5)]">
                       •
                     </span>
                   )}
@@ -724,7 +724,7 @@ export function ActiveDefenseOverlay({
               ))}
             </div>
             {bloqueioResult.protectionCategory === 'heavy' && (
-              <span className="relative mt-8 text-[10px] uppercase text-sky-400/80 font-mono bg-sky-400/10 px-3 py-1 border border-sky-400/30">
+              <span className="relative mt-8 text-[10px] uppercase text-[#ACBFA4]/80 font-mono bg-[#ACBFA4]/10 px-3 py-1 border border-[#ACBFA4]/30">
                 +1 Bônus Pesado Incluído
               </span>
             )}
@@ -735,10 +735,10 @@ export function ActiveDefenseOverlay({
           <div className="w-full mt-10">
             <button
               onClick={onClose}
-              className="group relative w-full py-4 overflow-hidden bg-black border border-sky-400/50 transition-all"
+              className="group relative w-full py-4 overflow-hidden bg-black border border-[#ACBFA4]/50 transition-all"
             >
-              <div className="absolute inset-0 bg-sky-400/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative text-sky-300 group-hover:text-sky-100 font-display text-sm uppercase tracking-widest drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+              <div className="absolute inset-0 bg-[#ACBFA4]/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
+              <span className="relative text-[#ACBFA4] group-hover:text-white font-display text-sm uppercase tracking-widest drop-shadow-[0_0_8px_rgba(172,191,164,0.5)]">
                 Concluir Reação
               </span>
             </button>

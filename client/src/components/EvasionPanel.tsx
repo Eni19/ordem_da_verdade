@@ -170,8 +170,8 @@ export default function EvasionPanel({
       )}
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2 text-center relative z-10">
-          <h3 className={`font-display text-sm uppercase ${isEvasionAffected ? 'text-purple-300' : 'text-sky-300'}`}>Evasão</h3>
-          <div className={`font-display text-3xl leading-none ${isEvasionAffected ? 'text-purple-300' : 'text-sky-300'}`}>{totalEvasion}</div>
+          <h3 className={`font-display text-sm uppercase ${isEvasionAffected ? 'text-purple-300' : 'text-[#ACBFA4]'}`}>Evasão</h3>
+          <div className={`font-display text-3xl leading-none ${isEvasionAffected ? 'text-purple-300' : 'text-[#ACBFA4]'}`}>{totalEvasion}</div>
         </div>
 
         <div className="flex flex-col items-end gap-2 relative z-10">
@@ -235,8 +235,8 @@ export default function EvasionPanel({
                         ? 'border-purple-500 bg-purple-500 text-black cursor-not-allowed'
                         : 'border-purple-500/30 bg-black text-purple-300/50 cursor-not-allowed'
                       : isFilled
-                        ? 'border-sky-400 bg-sky-400 text-black'
-                        : 'border-sky-400/40 bg-black text-sky-300 hover:border-sky-400 hover:bg-sky-400/10'
+                        ? 'border-[#ACBFA4] bg-[#ACBFA4] text-black'
+                        : 'border-[#ACBFA4]/40 bg-black text-[#ACBFA4] hover:border-[#ACBFA4] hover:bg-[#ACBFA4]/10'
                   }`}
                   aria-label={`Definir cargas defensivas em ${index + 1}`}
                 >
