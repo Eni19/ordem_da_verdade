@@ -13,7 +13,7 @@ interface DefensiveReactionOverlayProps {
 const DEFENSE_META: Record<DefenseType, { label: string; description: string; icon: typeof Shield }> = {
   bloqueio: { 
     label: 'Bloqueio', 
-    description: 'Apara danos reduzindo os dados do atacante usando Fortitude.',
+    description: 'Interponha sua arma ou armadura para atenuar a violência do golpe.',
     icon: ShieldHalf 
   },
   esquiva: { 

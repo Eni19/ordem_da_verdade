@@ -69,6 +69,11 @@ const APARAR_ATTRIBUTES: { key: string; label: string }[] = [
   { key: 'agilidade', label: 'Agilidade' },
 ];
 
+const BLOQUEIO_ATTRIBUTES: { key: string; label: string }[] = [
+  { key: 'força', label: 'Força' },
+  { key: 'vigor', label: 'Vigor' },
+];
+
 function spawnResultBurst(x: number, y: number) {
   const particles: HTMLDivElement[] = [];
   const count = 20;
@@ -267,16 +272,7 @@ export function ActiveDefenseOverlay({
       }
     }
 
-    if (apararResult?.brecha) {
-      const timer = setTimeout(() => {
-        setShowBrecha(true);
-        if (panelRef.current) {
-          const rect = panelRef.current.getBoundingClientRect();
-          spawnResultBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
-        }
-      }, 700);
-      return () => clearTimeout(timer);
-    }
+    // brecha logic removed
   }, [phase, bloqueioResult, esquivaResult, apararResult]);
 
   useEffect(() => {
@@ -299,7 +295,7 @@ export function ActiveDefenseOverlay({
   const spinDice = (sidesList: number[], onDone: () => void) => {
     setSpinningDiceSides(sidesList);
     setSpinningDice(sidesList.map((s) => rollDie(s)));
-    const duration = 750;
+    const duration = 1500;
     const start = Date.now();
     let r = requestAnimationFrame(function loop() {
       const now = Date.now();
@@ -318,7 +314,7 @@ export function ActiveDefenseOverlay({
   const canRoll = (() => {
     if (phase !== 'input') return false;
     if (defenseType === 'esquiva') return chosenAttribute !== null;
-    if (defenseType === 'bloqueio') return chosenArmorType !== null;
+    if (defenseType === 'bloqueio') return chosenArmorType !== null && chosenAttribute !== null;
     if (defenseType === 'aparar') {
       return chosenAttribute !== null && chosenWeaponId !== null;
     }
@@ -349,18 +345,17 @@ export function ActiveDefenseOverlay({
     }
 
     if (defenseType === 'bloqueio') {
-      const blockDiceCount = Math.max(
-        1,
-        chosenArmorType === 'light' ? Math.floor(enemyDamageDiceCount / 2) : Math.ceil(enemyDamageDiceCount / 2)
-      );
-      const die = fortitudeDie ?? 6;
+      const attrValue = attributeValues[chosenAttribute!] ?? 0;
+      const fDie = fortitudeDie ?? 6;
       spinDice(
-        Array.from({ length: blockDiceCount }, () => die),
+        [6, fDie],
         () => {
+          const attributeDieResult = rollAttributeDie(attrValue);
+          const fortitudeDieResult = rollDie(fDie);
           const result = resolveBloqueio({
             protectionCategory: chosenArmorType ?? 'light',
-            fortitudeDie: die,
-            attackerDiceCount: enemyDamageDiceCount,
+            attributeDieResult,
+            fortitudeDieResult,
           });
           setBloqueioResult(result);
           setPhase('reveal');
@@ -511,7 +506,7 @@ export function ActiveDefenseOverlay({
 
             {defenseType === 'bloqueio' && (
               <>
-                <div className="space-y-1">
+                <div className="space-y-1 mb-6">
                   <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">Proteção Utilizada</label>
                   <div className="flex justify-center gap-4 mt-2">
                     <button
@@ -537,28 +532,22 @@ export function ActiveDefenseOverlay({
                   </div>
                 </div>
 
-                <div className="space-y-1 mt-6">
-                  <div className="flex flex-col items-center gap-2">
-                    <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">
-                      Qtd. de Dados de Dano do Inimigo
-                    </label>
-                    <div className="flex items-center gap-4 bg-black/50 border border-[#ACBFA4]/30 p-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-[#ACBFA4]">Atributo utilizado</label>
+                  <div className="flex justify-center gap-4 mt-2">
+                    {BLOQUEIO_ATTRIBUTES.map((a) => (
                       <button
-                        onClick={() => setEnemyDamageDiceCount(Math.max(1, enemyDamageDiceCount - 1))}
-                        className="w-10 h-10 flex items-center justify-center text-xl font-bold border border-[#ACBFA4]/60 text-[#ACBFA4] hover:bg-[#ACBFA4]/10 transition-colors"
+                        key={a.key}
+                        onClick={() => setChosenAttribute(a.key)}
+                        className={`relative overflow-hidden group py-3 px-6 text-xs font-bold uppercase tracking-widest transition-all skew-x-[-15deg] ${
+                          chosenAttribute === a.key
+                            ? 'text-black bg-[#ACBFA4] shadow-[0_0_15px_rgba(172,191,164,0.6)]'
+                            : 'text-[#ACBFA4] border border-[#ACBFA4]/30 bg-black/50 hover:border-[#ACBFA4]/80 hover:bg-[#ACBFA4]/10 hover:shadow-[0_0_10px_rgba(172,191,164,0.3)]'
+                      }`}
                       >
-                        -
+                        <span className="block skew-x-[15deg]">{a.label}</span>
                       </button>
-                      <span className="font-display text-4xl text-[#ACBFA4] w-12 text-center drop-shadow-[0_0_8px_rgba(172,191,164,0.5)]">
-                        {enemyDamageDiceCount}
-                      </span>
-                      <button
-                        onClick={() => setEnemyDamageDiceCount(Math.min(20, enemyDamageDiceCount + 1))}
-                        className="w-10 h-10 flex items-center justify-center text-xl font-bold border border-[#ACBFA4]/60 text-[#ACBFA4] hover:bg-[#ACBFA4]/10 transition-colors"
-                      >
-                        +
-                      </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </>
@@ -613,13 +602,20 @@ export function ActiveDefenseOverlay({
 
         {phase === 'reveal' && defenseType === 'bloqueio' && bloqueioResult && (
           <div className="space-y-12">
-            <div ref={diceContainerRef} className="flex justify-center items-end gap-6 mt-6">
-              {bloqueioResult.fortitudeRolls.map((v, i) => (
-                <div key={i} className="flex flex-col items-center gap-4 transition-all duration-700">
-                  <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest">Fortitude</span>
-                  <DieBox value={v} pulseRed />
+            <div ref={diceContainerRef} className="flex justify-center items-end gap-12 mt-6">
+              {bloqueioResult.valorDeBloqueio === bloqueioResult.attributeDieRoll ? (
+                <div className="flex flex-col items-center gap-4 transition-all duration-700 scale-110">
+                  <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest">
+                    {BLOQUEIO_ATTRIBUTES.find((a) => a.key === chosenAttribute)?.label}
+                  </span>
+                  <DieBox value={bloqueioResult.attributeDieRoll} pulseRed />
                 </div>
-              ))}
+              ) : (
+                <div className="flex flex-col items-center gap-4 transition-all duration-700 scale-110">
+                  <span className="text-[10px] uppercase font-bold text-[#ACBFA4]/70 tracking-widest">Fortitude</span>
+                  <DieBox value={bloqueioResult.fortitudeDieRoll} pulseRed />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -703,31 +699,22 @@ export function ActiveDefenseOverlay({
         {phase === 'reveal' && defenseType === 'bloqueio' && bloqueioResult && (
           <div
             ref={missTextRef}
-            className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center text-center px-6 opacity-0"
+            className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center text-center px-6 opacity-0 pb-20"
           >
             <div className="absolute w-[400px] h-[400px] rounded-full bg-[#ACBFA4]/20 blur-3xl" />
-            <span className="relative text-[#ACBFA4] uppercase font-bold tracking-[0.2em] mb-2 drop-shadow-[0_0_8px_rgba(172,191,164,0.8)]">
-              Anula dados até
-            </span>
-            <div className="relative flex flex-wrap justify-center gap-4 md:gap-6 mt-2 items-center">
-              {bloqueioResult.fortitudeRolls.map((v, i) => (
-                <div key={i} className="flex items-center gap-4 md:gap-6">
-                  <span className="font-display text-[#ACBFA4] text-6xl md:text-7xl drop-shadow-[0_0_20px_rgba(172,191,164,0.8)]">
-                    {v + (bloqueioResult.protectionCategory === 'heavy' ? 1 : 0)}
-                  </span>
-                  {i < bloqueioResult.fortitudeRolls.length - 1 && (
-                    <span className="text-[#ACBFA4]/30 text-4xl md:text-5xl drop-shadow-[0_0_10px_rgba(172,191,164,0.5)]">
-                      •
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-            {bloqueioResult.protectionCategory === 'heavy' && (
-              <span className="relative mt-8 text-[10px] uppercase text-[#ACBFA4]/80 font-mono bg-[#ACBFA4]/10 px-3 py-1 border border-[#ACBFA4]/30">
-                +1 Bônus Pesado Incluído
+            
+            <div className="relative flex flex-col items-center mb-4">
+              <span className="text-[#ACBFA4]/80 uppercase font-bold text-[10px] tracking-widest mb-1">
+                Valor de Bloqueio
               </span>
-            )}
+              <span className="font-display text-[#ACBFA4] text-8xl md:text-9xl drop-shadow-[0_0_20px_rgba(172,191,164,0.8)]">
+                {bloqueioResult.valorDeBloqueio}
+              </span>
+            </div>
+            
+            <span className="relative text-[#ACBFA4] text-[10px] font-mono uppercase tracking-widest opacity-80 mt-2 max-w-sm leading-relaxed border border-[#ACBFA4]/20 bg-black/40 p-2">
+              Dados do inimigo cujo tamanho (faces) seja menor ou igual a {bloqueioResult.valorDeBloqueio} caem mais 1 Passo!
+            </span>
           </div>
         )}
 

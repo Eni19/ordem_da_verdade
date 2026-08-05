@@ -132,29 +132,27 @@ export function isDefenseEligible(
 }
 
 export interface BloqueioResult {
-  blockDiceCount: number;
-  fortitudeRolls: number[];
+  attributeDieRoll: number;
+  fortitudeDieRoll: number;
+  valorDeBloqueio: number;
   protectionCategory: 'light' | 'heavy';
 }
 
 export function resolveBloqueio(params: {
   protectionCategory: 'light' | 'heavy';
-  fortitudeDie: number;
-  attackerDiceCount: number;
+  attributeDieResult: number;
+  fortitudeDieResult: number;
 }): BloqueioResult {
-  const { protectionCategory, fortitudeDie, attackerDiceCount } = params;
-  const half = attackerDiceCount / 2;
-  const blockDiceCount = Math.max(
-    1,
-    protectionCategory === 'light' ? Math.floor(half) : Math.ceil(half)
-  );
-
-  const fortitudeRolls = Array.from({ length: blockDiceCount }, () => rollDie(fortitudeDie))
-    .sort((a, b) => b - a);
+  const { protectionCategory, attributeDieResult, fortitudeDieResult } = params;
+  
+  const valorDeBloqueio = protectionCategory === 'heavy'
+    ? Math.max(attributeDieResult, fortitudeDieResult)
+    : Math.min(attributeDieResult, fortitudeDieResult);
 
   return {
-    blockDiceCount,
-    fortitudeRolls,
+    attributeDieRoll: attributeDieResult,
+    fortitudeDieRoll: fortitudeDieResult,
+    valorDeBloqueio,
     protectionCategory,
   };
 }
