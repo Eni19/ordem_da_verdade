@@ -16,6 +16,7 @@ const CATEGORIZED_ICONS = [
       { id: 'espada', url: '/armas_png/armas_brancas/espada.png', name: 'Espada' },
       { id: 'espada_2', url: '/armas_png/armas_brancas/espada_2.png', name: 'Espada 2' },
       { id: 'faca', url: '/armas_png/armas_brancas/faca.png', name: 'Faca' },
+      { id: 'pe_de_cabra', url: '/armas_png/armas_brancas/Pe de Cabra.png', name: 'Pé de Cabra' },
     ]
   },
   {
@@ -27,6 +28,7 @@ const CATEGORIZED_ICONS = [
       { id: 'sniper', url: '/armas_png/armas_de_fogo/sniper.png', name: 'Sniper' },
       { id: 'municao', url: '/armas_png/armas_de_fogo/Municao.png', name: 'Munição' },
       { id: 'explosivo', url: '/armas_png/armas_de_fogo/explosivo.png', name: 'Explosivo' },
+      { id: 'taser', url: '/armas_png/armas_de_fogo/taser.png', name: 'Taser' },
     ]
   },
   {
@@ -34,9 +36,11 @@ const CATEGORIZED_ICONS = [
     icons: [
       { id: 'celular', url: '/armas_png/comuns/celular.png', name: 'Celular' },
       { id: 'chaves', url: '/armas_png/comuns/chaves.png', name: 'Chaves' },
+      { id: 'corda', url: '/armas_png/comuns/corda.png', name: 'Corda' },
       { id: 'distintivo', url: '/armas_png/comuns/distintivo.png', name: 'Distintivo' },
       { id: 'ferramentas', url: '/armas_png/comuns/ferramentas.png', name: 'Ferramentas' },
       { id: 'lanterna', url: '/armas_png/comuns/lanterna.png', name: 'Lanterna' },
+      { id: 'walkie_talkie', url: '/armas_png/comuns/walkie talkie.png', name: 'Walkie Talkie' },
     ]
   },
   {
@@ -44,19 +48,28 @@ const CATEGORIZED_ICONS = [
     icons: [
       { id: 'bandagem', url: '/armas_png/medicina/bandagem.png', name: 'Bandagem' },
       { id: 'medkit', url: '/armas_png/medicina/medkit.png', name: 'Kit Médico' },
+      { id: 'seringa', url: '/armas_png/medicina/seringa.png', name: 'Seringa' },
     ]
   },
   {
     category: 'Ocultismo',
     icons: [
+      { id: 'amuleto', url: '/armas_png/ocultismo/Amuleto.png', name: 'Amuleto' },
       { id: 'componentes', url: '/armas_png/ocultismo/componentes.png', name: 'Componentes' },
-      { id: 'rosario', url: '/armas_png/ocultismo/rosario.png', name: 'Rosário' },
+      { id: 'kit_de_ocultismo', url: '/armas_png/ocultismo/kit de ocultismo.png', name: 'Kit de Ocultismo' },
     ]
   },
   {
     category: 'Proteção',
     icons: [
       { id: 'protecao', url: '/armas_png/protecao/protecao.png', name: 'Proteção' },
+    ]
+  },
+  {
+    category: 'Suprimentos',
+    icons: [
+      { id: 'cantil', url: '/armas_png/suprimentos/cantil.png', name: 'Cantil' },
+      { id: 'comida', url: '/armas_png/suprimentos/comida.png', name: 'Comida' },
     ]
   }
 ];
@@ -216,7 +229,7 @@ export default function ItemShapeEditor({ isOpen, onClose, onSave, onDelete, ini
     if (type === 'protection') {
       return cat.category === 'Proteção';
     }
-    return cat.category === 'Comuns' || cat.category === 'Medicina' || cat.category === 'Ocultismo';
+    return cat.category === 'Comuns' || cat.category === 'Medicina' || cat.category === 'Ocultismo' || cat.category === 'Suprimentos';
   });
   
   return (
