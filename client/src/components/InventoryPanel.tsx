@@ -508,7 +508,7 @@ export default function InventoryPanel({
               } as Weapon;
 
               return (
-                <div className="border-t border-primary/30 pt-4 mt-4">
+                <div className="w-full">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-primary uppercase tracking-widest text-xs font-bold flex items-center gap-2">
                       <Zap size={12} />
@@ -547,7 +547,7 @@ export default function InventoryPanel({
               }) as any;
 
               return (
-                <div className="border-t border-primary/30 pt-4 mt-4">
+                <div className="w-full">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-primary uppercase tracking-widest text-xs font-bold flex items-center gap-2">
                       <Shield size={12} />

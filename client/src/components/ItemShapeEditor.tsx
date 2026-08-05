@@ -225,7 +225,7 @@ export default function ItemShapeEditor({ isOpen, onClose, onSave, onDelete, ini
         onOpenAutoFocus={(e) => e.preventDefault()}
         className={`bg-black border ${isWeapon ? 'border-primary/50' : 'border-green-500/50'} text-green-100 max-w-5xl font-mono`}
       >
-        <DialogHeader className="border-b border-green-500/30 pb-4 mb-2 mr-6">
+        <DialogHeader className={`${!initialItem?.id ? 'border-b border-green-500/30 pb-4 mb-2' : ''} mr-6`}>
           <DialogTitle className="sr-only">
             {initialItem 
               ? (isWeapon ? 'Inspecionar Equipamento' : 'Editar Item') 
@@ -320,22 +320,23 @@ export default function ItemShapeEditor({ isOpen, onClose, onSave, onDelete, ini
                   {renderExtra(type, initialItem?.id || '')}
                 </div>
               )}
+
+              {!isWeapon && (
+                <div className="space-y-2">
+                  <label className="text-xs text-green-500 uppercase tracking-widest">Descrição</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    className="w-full bg-green-950/20 border border-green-500/30 p-2 text-green-100 outline-none focus:border-green-400 transition-colors resize-none"
+                  />
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               
               {/* Left Column: Basic Info & Geometry */}
               <div className="space-y-6">
-                {!isWeapon && (
-                  <div className="space-y-2">
-                    <label className="text-xs text-green-500 uppercase tracking-widest">Descrição</label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={2}
-                      className="w-full bg-green-950/20 border border-green-500/30 p-2 text-green-100 outline-none focus:border-green-400 transition-colors resize-none"
-                    />
-                  </div>
-                )}
 
                 {(type === 'common' || type === 'weapon' || type === 'protection') && (
                   <div className="space-y-2">
@@ -402,10 +403,10 @@ export default function ItemShapeEditor({ isOpen, onClose, onSave, onDelete, ini
 
                 {(type === 'common' || type === 'weapon' || type === 'protection') && (
                   <div className="space-y-4">
-                    <label className="text-xs text-green-500 uppercase tracking-widest w-full text-left border-b border-green-500/30 pb-1">Arte do Item</label>
+                    <label className="text-xs text-green-500 uppercase tracking-widest w-full text-center border-b border-green-500/30 pb-1 block">Arte do Item</label>
                     
                     {!showIconSelector ? (
-                      <div className="flex flex-col items-start min-h-[160px] pt-4">
+                      <div className="flex flex-col items-center justify-center min-h-[160px] pt-4">
                         <div className="flex flex-col items-center">
                           {icon ? (
                             <div className="w-32 h-32 flex items-center justify-center p-2 bg-black border border-green-500/30 rounded shadow-[0_0_15px_rgba(34,197,94,0.1)]">
