@@ -93,18 +93,17 @@ export function DefensiveReactionOverlay({
 
     anime({
       targets: target,
-      scale: [1, 1.1],
-      backgroundColor: ['rgba(0,0,0,0)', 'rgba(172, 191, 164, 0.2)'],
-      duration: 200,
+      scale: [1, 1.05],
+      duration: 150,
       easing: 'easeOutExpo',
     });
 
     anime({
       targets: panelRef.current,
       opacity: [1, 0],
-      scale: [1, 1.05],
-      duration: 400,
-      delay: 150,
+      scale: [1, 1.02],
+      duration: 200,
+      delay: 100,
       easing: 'easeInExpo',
       complete: () => {
         onSelectReaction(type);
@@ -179,7 +178,7 @@ export function DefensiveReactionOverlay({
                   setLastHoveredType(type);
                 }}
                 onBlur={() => setHoveredType(null)}
-                className={`def-reaction-btn relative flex items-center p-4 sm:p-6 border-2 transition-all w-full overflow-hidden text-left ${
+                className={`def-reaction-btn relative flex items-center p-4 sm:p-6 border-2 transition-colors duration-200 w-full overflow-hidden text-left ${
                   eligible
                     ? 'border-[#ACBFA4]/50 hover:border-[#ACBFA4] bg-black/60 hover:bg-[#ACBFA4]/10 cursor-pointer'
                     : 'border-slate-800/50 bg-black/30 cursor-not-allowed opacity-50'
