@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Dice6 } from 'lucide-react';
-import pressagioPhrases from '@/data/pressagio';
 import anime from 'animejs';
 
 interface DiceResult {
@@ -49,8 +48,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
   const [displayMessage, setDisplayMessage] = useState<string | null>(null);
   const [displayFlash, setDisplayFlash] = useState<'critical' | 'fail' | null>(null);
   const [showCriticalModal, setShowCriticalModal] = useState(false);
-  const [pressagioMessage, setPressagioMessage] = useState<string | null>(null);
-  const [criticalInterferencePhase, setCriticalInterferencePhase] = useState<'none' | 'normal' | 'glitch' | 'pressagio' | 'interference'>('none');
+  const [criticalInterferencePhase, setCriticalInterferencePhase] = useState<'none' | 'interference'>('none');
   const [numDice, setNumDice] = useState(2);
   const [diceType, setDiceType] = useState(12);
   const lastProcessedRollIdRef = useRef<number | null>(null);
@@ -60,8 +58,10 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
   const [displayModifier, setDisplayModifier] = useState(0);
   const [isReRolling, setIsReRolling] = useState<'attribute' | 'training' | null>(null);
   const [isCritical, setIsCritical] = useState(false);
+  const [disasterPhase, setDisasterPhase] = useState<'none' | 'building' | 'collapse'>('none');
   const [lastAttackWeapon, setLastAttackWeapon] = useState<SkillRollRequest | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const disasterLoopRef = useRef<anime.AnimeInstance | null>(null);
 
   const diceTypes = [4, 6, 8, 10, 12, 20];
   const maxDice = 10;
@@ -131,6 +131,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
     // Limpar timeouts antigos de interferência crítica
     clearCriticalTimeouts();
+    setDisasterPhase('none');
 
     const isAnsiedadeActive = rollRequest?.isAnsiedadeActive ?? false;
 
@@ -138,7 +139,6 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
       setDisplayMessage('Fracasso por Ansiedade!');
       setDisplayFlash('fail');
       setIsCritical(false);
-      setPressagioMessage(null);
       setCriticalInterferencePhase('none');
 
       if (containerRef.current) {
@@ -175,7 +175,6 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
       setDisplayMessage('Limite do Corpo!');
       setDisplayFlash('fail');
       setIsCritical(false);
-      setPressagioMessage(null);
       setCriticalInterferencePhase('none');
 
       if (containerRef.current) {
@@ -211,40 +210,31 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
         }
       }
     } else if (criticalDice >= criticalThreshold) {
-      // Fase 0: Mostrar resultado completamente normal
+      // Crítico: revelação direta e súbita — o efeito mistério fica só no burst final.
+      setDisplayMessage('Interferência Crítica!');
+      setDisplayFlash(null);
+      setIsCritical(true);
+      setCriticalInterferencePhase('interference');
+    } else if (criticalDice === 1) {
+      // Desastre: o dado de interferência caiu em 1 — um mau presságio silencioso
+      // que desaba de repente. Duas fases: um tremor contido, depois o colapso.
       setDisplayMessage(null);
       setDisplayFlash(null);
       setIsCritical(false);
-      setCriticalInterferencePhase('normal');
+      setCriticalInterferencePhase('none');
+      setDisasterPhase('building');
 
-      // Fase 1: depois 1s, começa o glitch
-      const timeout1 = setTimeout(() => {
-        setCriticalInterferencePhase('glitch');
-      }, 1000);
+      const timeoutD = setTimeout(() => {
+        setDisplayMessage('Desastre!');
+        setDisplayFlash('fail');
+        setDisasterPhase('collapse');
+      }, 900);
 
-      // Fase 2: depois 2.5s (total 3.5s), mostrar presságio
-      const timeout2 = setTimeout(() => {
-        const randomPressagio = pressagioPhrases[Math.floor(Math.random() * pressagioPhrases.length)];
-        setPressagioMessage(randomPressagio.frase);
-        setCriticalInterferencePhase('pressagio');
-      }, 3500);
-
-      // Fase 3: depois 5s mais (total 8.5s), mostrar interferência crítica
-      const timeout3 = setTimeout(() => {
-        setPressagioMessage(null);
-        setDisplayMessage('Interferência Crítica!');
-        setDisplayFlash(null);
-        setIsCritical(true);
-        setCriticalInterferencePhase('interference');
-      }, 8500);
-
-      // Armazenar os timeouts para limpeza posterior
-      criticalTimeoutsRef.current = [timeout1, timeout2, timeout3];
+      criticalTimeoutsRef.current = [timeoutD];
     } else {
       setDisplayMessage(null);
       setDisplayFlash(null);
       setIsCritical(false);
-      setPressagioMessage(null);
       setCriticalInterferencePhase('none');
     }
   };
@@ -343,7 +333,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
         }
 
         // Se já estamos em animação de interferência crítica, não reiniciá-la
-        if (criticalInterferencePhase !== 'none' && criticalInterferencePhase !== 'normal') {
+        if (criticalInterferencePhase !== 'none') {
           // Apenas atualiza o resultado, sem reiniciar a animação
           // A animação continua de onde estava
         } else {
@@ -578,27 +568,154 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
     );
   }, [damageRollRequest, isRolling]);
 
+  // Anima o Crítico (Interferência): a revelação súbita e misteriosa do resultado.
+  useEffect(() => {
+    const panel = containerRef.current?.querySelector('.display-panel') as HTMLElement | null;
+    if (!panel) return;
+
+    if (criticalInterferencePhase === 'interference') {
+      anime({
+        targets: panel,
+        boxShadow: [
+          { value: '0 0 0px rgba(168,85,247,0)', duration: 0 },
+          { value: '0 0 45px rgba(168,85,247,0.9)', duration: 220 },
+          { value: '0 0 0px rgba(168,85,247,0)', duration: 900 },
+        ],
+        scale: [
+          { value: 1.03, duration: 180, easing: 'easeOutQuad' },
+          { value: 1, duration: 500, easing: 'easeOutElastic(1, .6)' },
+        ],
+      });
+
+      const msg = panel.querySelector('.result-message') as HTMLElement | null;
+      if (msg) {
+        anime({
+          targets: msg,
+          opacity: [0, 1],
+          scale: [0.5, 1],
+          duration: 700,
+          easing: 'easeOutElastic(1, .5)',
+        });
+      }
+    }
+
+    if (criticalInterferencePhase === 'none') {
+      anime.remove(panel);
+      panel.style.transform = '';
+      panel.style.boxShadow = '';
+    }
+  }, [criticalInterferencePhase]);
+
+  // Anima o Desastre: um peso que se acumula em silêncio e então desaba de vez.
+  useEffect(() => {
+    const panel = containerRef.current?.querySelector('.display-panel') as HTMLElement | null;
+    if (!panel) return;
+    const layer = panel.querySelector('.disaster-layer') as HTMLElement | null;
+
+    if (disasterPhase === 'building') {
+      if (layer) {
+        anime({
+          targets: layer,
+          opacity: [0, 0.55],
+          duration: 700,
+          easing: 'easeInSine',
+        });
+      }
+      disasterLoopRef.current = anime({
+        targets: panel,
+        translateY: [0, 2, 0, -2, 0],
+        duration: 850,
+        easing: 'easeInOutSine',
+        loop: true,
+      });
+    }
+
+    if (disasterPhase === 'collapse') {
+      disasterLoopRef.current?.pause();
+      disasterLoopRef.current = null;
+
+      anime({
+        targets: panel,
+        translateX: [
+          { value: -18, duration: 45 },
+          { value: 16, duration: 45 },
+          { value: -12, duration: 45 },
+          { value: 9, duration: 45 },
+          { value: -6, duration: 45 },
+          { value: 3, duration: 45 },
+          { value: 0, duration: 60 },
+        ],
+        translateY: 0,
+        boxShadow: [
+          { value: '0 0 55px rgba(220,38,38,0.9)', duration: 120 },
+          { value: '0 0 0px rgba(220,38,38,0)', duration: 750 },
+        ],
+        easing: 'easeInOutQuad',
+      });
+
+      if (layer) {
+        anime({
+          targets: layer,
+          opacity: [0.55, 0.9, 0.3],
+          duration: 600,
+          easing: 'easeOutQuad',
+        });
+      }
+
+      const msg = panel.querySelector('.result-message') as HTMLElement | null;
+      if (msg) {
+        anime({
+          targets: msg,
+          opacity: [0, 1],
+          translateY: [-24, 4, 0],
+          scaleY: [1.4, 0.85, 1],
+          scaleX: [0.85, 1.05, 1],
+          duration: 550,
+          easing: 'easeOutBounce',
+        });
+      }
+    }
+
+    if (disasterPhase === 'none') {
+      disasterLoopRef.current?.pause();
+      disasterLoopRef.current = null;
+      anime.remove(panel);
+      panel.style.transform = '';
+      panel.style.boxShadow = '';
+      if (layer) {
+        anime.remove(layer);
+        layer.style.opacity = '';
+      }
+    }
+  }, [disasterPhase]);
+
   // Cleanup dos timeouts de interferência crítica ao desmontar
   useEffect(() => {
     return () => {
       clearCriticalTimeouts();
+      disasterLoopRef.current?.pause();
     };
   }, []);
 
   return (
     <div className="space-y-4" ref={containerRef}>
       <div
-        className={`border-2 p-4 transition-all duration-700 relative ${criticalInterferencePhase === 'glitch' || criticalInterferencePhase === 'pressagio' || criticalInterferencePhase === 'interference'
-            ? 'border-purple-500 bg-purple-950/40 animate-pulse'
-            : displayFlash === 'fail'
-              ? 'border-red-300 bg-red-950/25'
-              : 'border-red-500 bg-black'
+        className={`display-panel border-2 p-4 transition-colors duration-700 relative ${criticalInterferencePhase === 'interference'
+            ? 'border-purple-500 bg-purple-950/40'
+            : disasterPhase === 'building' || disasterPhase === 'collapse'
+              ? 'border-red-700 bg-black'
+              : displayFlash === 'fail'
+                ? 'border-red-300 bg-red-950/25'
+                : 'border-red-500 bg-black'
           }`}
       >
         <h3 className="text-xs font-bold text-red-500 uppercase mb-3">Display de Testes</h3>
 
-        <div className={`absolute inset-0 pointer-events-none overflow-hidden rounded-sm transition-opacity duration-700 ${(criticalInterferencePhase === 'glitch' || criticalInterferencePhase === 'pressagio') ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="absolute inset-0 opacity-30 animate-pulse bg-purple-500"></div>
+        <div className="disaster-layer absolute inset-0 pointer-events-none overflow-hidden rounded-sm opacity-0">
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(circle at 50% 35%, rgba(127,0,0,0.18) 0%, rgba(0,0,0,0.92) 75%)' }}
+          ></div>
         </div>
 
         <div className="text-xs text-red-300 border border-red-500 p-2 bg-black/80 mb-3 min-h-14">
@@ -674,19 +791,14 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
         {displayMessage && (
           <div
-            className={`mb-3 text-center text-xs font-bold uppercase transition-all duration-700 ${criticalInterferencePhase === 'interference' ? 'text-purple-300 opacity-100' : 'text-red-300 opacity-100'
+            className={`result-message mb-3 text-center text-xs font-bold uppercase ${criticalInterferencePhase === 'interference'
+                ? 'text-purple-300'
+                : disasterPhase === 'collapse'
+                  ? 'text-red-400'
+                  : 'text-red-300'
               }`}
           >
             {displayMessage}
-          </div>
-        )}
-
-        {pressagioMessage && (
-          <div className={`mb-3 p-2 text-center text-xs italic border-2 transition-all duration-700 ${criticalInterferencePhase === 'pressagio'
-              ? 'border-purple-500 text-purple-300 animate-pulse opacity-100'
-              : 'border-yellow-500 text-yellow-300 opacity-0'
-            }`}>
-            &quot;{pressagioMessage}&quot;
           </div>
         )}
 
