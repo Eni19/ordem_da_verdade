@@ -2264,7 +2264,7 @@ export default function CharacterSheet() {
 
         {/* Right Column - Dice */}
         <div className="flex-shrink-0 w-full md:w-56 pr-0 md:pr-4">
-          <DiceRoller rollRequest={pendingRoll} damageRollRequest={pendingDamageRoll} />
+          <DiceRoller rollRequest={pendingRoll} damageRollRequest={pendingDamageRoll} traumasCount={character.traumas?.length ?? 0} />
         </div>
       </div>
 

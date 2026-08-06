@@ -38,9 +38,10 @@ interface DamageRollRequest {
 interface DiceRollerProps {
   rollRequest: SkillRollRequest | null;
   damageRollRequest: DamageRollRequest | null;
+  traumasCount?: number;
 }
 
-export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRollerProps) {
+export default function DiceRoller({ rollRequest, damageRollRequest, traumasCount = 0 }: DiceRollerProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [history, setHistory] = useState<DiceResult[]>([]);
   const [criticalHistory, setCriticalHistory] = useState<Array<{ value: number; timestamp: string }>>([]);
@@ -162,11 +163,50 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
           anime({
             targets: diceElements,
             rotate: [
-              { value: -20, duration: 50 },
-              { value: 20, duration: 50 },
+              { value: -30, duration: 50 },
+              { value: 30, duration: 50 },
               { value: 0, duration: 100 }
             ],
             easing: 'easeInOutQuad'
+          });
+        }
+      }
+    } else if (traumasCount > 0 && criticalDice > 1 && criticalDice <= (traumasCount * 5)) {
+      setDisplayMessage('Limite do Corpo!');
+      setDisplayFlash('fail');
+      setIsCritical(false);
+      setPressagioMessage(null);
+      setCriticalInterferencePhase('none');
+
+      if (containerRef.current) {
+        anime({
+          targets: containerRef.current,
+          translateX: [
+            { value: -10, duration: 80 },
+            { value: 10, duration: 80 },
+            { value: -5, duration: 80 },
+            { value: 5, duration: 80 },
+            { value: 0, duration: 80 }
+          ],
+          scale: [
+            { value: 1.1, duration: 150 },
+            { value: 1, duration: 250 }
+          ],
+          boxShadow: [
+            { value: '0px 0px 20px rgba(220, 38, 38, 0.8)', duration: 150 },
+            { value: '0px 0px 0px rgba(220, 38, 38, 0)', duration: 300 }
+          ],
+          easing: 'easeInOutQuad'
+        });
+        
+        const diceElements = containerRef.current.querySelectorAll('.dice-button-container');
+        if (diceElements.length > 0) {
+          anime({
+            targets: diceElements,
+            translateY: [
+              { value: -10, duration: 100 },
+              { value: 0, duration: 300, easing: 'easeOutBounce' }
+            ]
           });
         }
       }
