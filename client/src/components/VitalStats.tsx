@@ -12,6 +12,8 @@ interface VitalStatsProps {
   sanity: { current: number; max: number };
   onHpChange: (field: 'current' | 'max', value: number) => void;
   onSanityChange: (field: 'current' | 'max', value: number) => void;
+  vitalityCuts?: number;
+  onVitalityCutsChange?: (cuts: number) => void;
   fearTags?: FearTagChip[];
   onFearTagClick?: (id: string) => void;
 }
@@ -21,6 +23,8 @@ export default function VitalStats({
   sanity,
   onHpChange,
   onSanityChange,
+  vitalityCuts = 0,
+  onVitalityCutsChange,
   fearTags = [],
   onFearTagClick,
 }: VitalStatsProps) {
@@ -53,7 +57,48 @@ export default function VitalStats({
     <div className="card-occult space-y-3">
       {/* HP */}
       <div className="space-y-1">
-        <label className="font-display text-sm text-primary uppercase block">HP</label>
+        <div className="flex items-center justify-between">
+          <label className="font-display text-sm text-primary uppercase">HP</label>
+          {onVitalityCutsChange && (
+            <div
+              className="flex items-center gap-1.5"
+              title={`Relógio de Vitalidade: ${vitalityCuts}/3 cortes`}
+            >
+              <span className="font-display text-[11px] text-primary/80 uppercase tracking-widest font-bold">
+                Ferimentos
+              </span>
+              <div className="flex gap-2 mx-1 items-center">
+                {[0, 1, 2].map((i) => {
+                  const isFilled = vitalityCuts > i;
+                  const isCritical = vitalityCuts === 2 && isFilled;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => onVitalityCutsChange(isFilled ? i : i + 1)}
+                      aria-label={`Marcar corte ${i + 1} do Relógio de Vitalidade`}
+                      className={`relative w-2.5 h-2.5 transform rotate-45 transition-all duration-300 hover:scale-125 ${
+                        isFilled 
+                          ? (isCritical 
+                              ? 'bg-red-600 border border-red-500 shadow-[0_0_8px_rgba(220,38,38,0.8)] animate-pulse' 
+                              : 'bg-primary border border-primary shadow-[0_0_5px_rgba(249,115,22,0.6)]')
+                          : 'bg-black/40 border border-primary/50 hover:border-primary hover:bg-primary/20'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={() => onVitalityCutsChange(vitalityCuts + 1)}
+                className="btn-occult flex items-center justify-center p-0 w-4 h-4"
+                aria-label="Adicionar ferimento"
+              >
+                <Plus size={12} strokeWidth={3} />
+              </button>
+            </div>
+          )}
+        </div>
         <div className="flex gap-1 items-center">
           <div className="flex flex-col gap-1">
             <button

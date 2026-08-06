@@ -110,6 +110,13 @@ interface Insanity {
   compulsoes?: number;
 }
 
+type TraumaType = 'motor' | 'estrutural' | 'sensorial' | 'visceral';
+
+interface Trauma {
+  id: string;
+  type: TraumaType | null;
+}
+
 type AttributeKey = 'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor' | 'vontade';
 
 interface ActiveFearTag {
@@ -215,6 +222,8 @@ interface CharacterData {
   paranormalPowers: ParanormalPower[];
   rituals: Ritual[];
   activeFearTags: ActiveFearTag[];
+  vitalityClock: { cuts: number };
+  traumas: Trauma[];
 }
 
 interface SkillRollRequest {
@@ -231,6 +240,7 @@ interface SkillRollRequest {
   damageDiceSides?: number;
   modifier?: number;
   isAnsiedadeActive?: boolean;
+  forceInterference?: 20 | 1;
 }
 
 const ATTRIBUTE_KEYS: Array<keyof CharacterData['attributes']> = [
@@ -411,6 +421,8 @@ export default function CharacterSheet() {
     paranormalPowers: [],
     rituals: [],
     activeFearTags: [],
+    vitalityClock: { cuts: 0 },
+    traumas: [],
   });
 
   const activeFearTags = character.activeFearTags || [];
@@ -486,6 +498,8 @@ export default function CharacterSheet() {
     paranormalPowers: character.paranormalPowers,
     rituals: character.rituals,
     activeFearTags: character.activeFearTags,
+    vitalityClock: character.vitalityClock,
+    traumas: character.traumas,
   }), [character]);
 
   const handleSaveToCloud = async () => {
@@ -555,6 +569,8 @@ export default function CharacterSheet() {
       paranormalPowers: [],
       rituals: [],
       activeFearTags: [],
+      vitalityClock: { cuts: 0 },
+      traumas: [],
     });
   };
 
@@ -982,6 +998,56 @@ export default function CharacterSheet() {
 
   const handleHopeChange = (value: number) => {
     setCharacter({ ...character, hope: value });
+  };
+
+  const handleVitalityCutsChange = (rawCuts: number) => {
+    const newCuts = Math.max(0, rawCuts);
+
+    if (newCuts < 3) {
+      setCharacter({ ...character, vitalityClock: { cuts: newCuts } });
+      return;
+    }
+
+    const currentTraumas = character.traumas || [];
+    if (currentTraumas.length >= 3) {
+      setCharacter({ ...character, vitalityClock: { cuts: 0 } });
+      alert('O Relógio de Vitalidade se esgotou e o personagem já possui 3 Traumas. A dor sobrepuja a consciência: ele entra em colapso, cai Inconsciente e "apaga" da cena.');
+      return;
+    }
+
+    const newTrauma: Trauma = { id: Date.now().toString(), type: null };
+    setCharacter({
+      ...character,
+      vitalityClock: { cuts: 0 },
+      traumas: [...currentTraumas, newTrauma],
+    });
+    setOpenSidebar('insanity');
+  };
+
+  const handleAddTrauma = (type?: TraumaType) => {
+    const currentTraumas = character.traumas || [];
+    if (currentTraumas.length >= 3) {
+      alert('O personagem já possui o máximo de 3 Traumas.');
+      return;
+    }
+    setCharacter({
+      ...character,
+      traumas: [...currentTraumas, { id: Date.now().toString(), type: type || null }],
+    });
+  };
+
+  const handleSetTraumaType = (id: string, type: TraumaType) => {
+    setCharacter({
+      ...character,
+      traumas: (character.traumas || []).map((t) => (t.id === id ? { ...t, type } : t)),
+    });
+  };
+
+  const handleRemoveTrauma = (id: string) => {
+    setCharacter({
+      ...character,
+      traumas: (character.traumas || []).filter((t) => t.id !== id),
+    });
   };
 
 
@@ -1857,6 +1923,10 @@ export default function CharacterSheet() {
         ),
       },
       activeFearTags: Array.isArray((data as any).activeFearTags) ? (data as any).activeFearTags : (prev.activeFearTags || []),
+      vitalityClock: (data as any).vitalityClock
+        ? { cuts: Math.max(0, Math.min(2, Number((data as any).vitalityClock.cuts ?? 0))) }
+        : (prev.vitalityClock || { cuts: 0 }),
+      traumas: Array.isArray((data as any).traumas) ? (data as any).traumas : (prev.traumas || []),
     }));
 
     // Update cloud tracking
@@ -2008,6 +2078,46 @@ export default function CharacterSheet() {
               </div>
 
               <div className="border-t border-primary/20 pt-4 space-y-2">
+                <div className="text-primary font-bold uppercase text-xs mb-2">Simulações</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setPendingRoll({
+                        id: Date.now(),
+                        periciaName: 'Teste Aleatório',
+                        attributeLabel: 'Atributo',
+                        trainingLabel: 'Simulação',
+                        attributeValue: 2,
+                        trainingDie: 8,
+                        forceInterference: 20
+                      });
+                      setShowSettings(false);
+                    }}
+                    className="flex-1 py-2 text-[10px] uppercase font-bold border border-yellow-500 text-yellow-500 hover:bg-yellow-500/20 transition-colors"
+                  >
+                    Simular Crítico
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPendingRoll({
+                        id: Date.now(),
+                        periciaName: 'Teste Aleatório',
+                        attributeLabel: 'Atributo',
+                        trainingLabel: 'Simulação',
+                        attributeValue: 2,
+                        trainingDie: 8,
+                        forceInterference: 1
+                      });
+                      setShowSettings(false);
+                    }}
+                    className="flex-1 py-2 text-[10px] uppercase font-bold border border-red-500 text-red-500 hover:bg-red-500/20 transition-colors"
+                  >
+                    Simular Desastre
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-primary/20 pt-4 space-y-2">
                 <div className="text-primary font-bold uppercase text-xs mb-2">Ações de Ficha</div>
                 <SaveLoad
                   characterData={character}
@@ -2064,6 +2174,8 @@ export default function CharacterSheet() {
               sanity={character.sanity}
               onHpChange={(field, value) => handleVitalChange('hp', field, value)}
               onSanityChange={(field, value) => handleVitalChange('sanity', field, value)}
+              vitalityCuts={character.vitalityClock?.cuts || 0}
+              onVitalityCutsChange={handleVitalityCutsChange}
               fearTags={activeFearTags.map((tag) => ({
                 id: tag.id,
                 label: `${tag.effectResult}: ${tag.effectName}${tag.selectedAttribute ? ` (${ATTRIBUTE_LABELS[tag.selectedAttribute]})` : ''}`,
@@ -2297,6 +2409,10 @@ export default function CharacterSheet() {
         onRollNewFear={handleRollDirectFear}
         onRemoveFearTag={handleRemoveFearTag}
         onOpenFearTagDetails={handleOpenFearTagDetails}
+        traumas={character.traumas || []}
+        onTraumaAdd={handleAddTrauma}
+        onTraumaSetType={handleSetTraumaType}
+        onTraumaRemove={handleRemoveTrauma}
       />
 
       <RitualsPanel

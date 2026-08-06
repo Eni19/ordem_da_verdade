@@ -22,6 +22,52 @@ interface ActiveFearTag {
   sourceInsanityName: string;
 }
 
+type TraumaType = 'motor' | 'estrutural' | 'sensorial' | 'visceral';
+
+interface Trauma {
+  id: string;
+  type: TraumaType | null;
+}
+
+const TRAUMA_TYPES: { key: TraumaType; label: string; image: string; description: string }[] = [
+  {
+    key: 'motor',
+    label: 'Trauma Motor',
+    image: '/traumas/Trauma%20Motor.png',
+    description: 'Pernas, joelhos e locomoção. A falha resulta em tropeços, lentidão ou em ficar ancorado.',
+  },
+  {
+    key: 'estrutural',
+    label: 'Trauma Estrutural',
+    image: '/traumas/Trauma%20Estrutural.png',
+    description: 'Tronco, costelas, braços. A falha resulta em soltar objetos pesados, asfixia ou perda de postura defensiva.',
+  },
+  {
+    key: 'sensorial',
+    label: 'Trauma Sensorial',
+    image: '/traumas/Trauma%20Sensorial.png',
+    description: 'Cabeça, visão, audição. A falha resulta em vertigem, desorientação e perda de reflexos rápidos.',
+  },
+  {
+    key: 'visceral',
+    label: 'Trauma Visceral',
+    image: '/traumas/Trauma%20Visceral.png',
+    description: 'Órgãos e sangue. A falha resulta em náusea incapacitante, hemorragia visível e exaustão extrema.',
+  },
+];
+
+const TRAUMA_INFO: Record<TraumaType, typeof TRAUMA_TYPES[number]> = TRAUMA_TYPES.reduce(
+  (acc, t) => ({ ...acc, [t.key]: t }),
+  {} as Record<TraumaType, typeof TRAUMA_TYPES[number]>
+);
+
+const RISK_MARGIN_LABELS = [
+  'Ileso — consequência ruim apenas no 1.',
+  '1 Trauma — consequência ruim entre 1 e 5.',
+  '2 Traumas — consequência ruim entre 1 e 10.',
+  '3 Traumas — consequência ruim entre 1 e 15.',
+];
+
 interface InsanityPanelProps {
   isOpen: boolean;
   showToggle: boolean;
@@ -35,6 +81,10 @@ interface InsanityPanelProps {
   onRollNewFear: () => void;
   onRemoveFearTag: (id: string) => void;
   onOpenFearTagDetails: (id: string) => void;
+  traumas: Trauma[];
+  onTraumaAdd: (type?: TraumaType) => void;
+  onTraumaSetType: (id: string, type: TraumaType) => void;
+  onTraumaRemove: (id: string) => void;
 }
 
 function DraggableFearTag({ tag, onOpen, index, onDragMove }: { tag: ActiveFearTag; onOpen: (id: string) => void; index: number; onDragMove?: (x: number, y: number) => void }) {
@@ -162,12 +212,39 @@ export default function InsanityPanel({
   onRollNewFear,
   onRemoveFearTag,
   onOpenFearTagDetails,
+  traumas,
+  onTraumaAdd,
+  onTraumaSetType,
+  onTraumaRemove,
 }: InsanityPanelProps) {
   const [showInsanityForm, setShowInsanityForm] = useState(false);
   const [newInsanityName, setNewInsanityName] = useState('');
   const [newInsanityDesc, setNewInsanityDesc] = useState('');
   const [newInsanityType, setNewInsanityType] = useState<Insanity['type']>('fobia');
+  const [showTraumaPopup, setShowTraumaPopup] = useState(false);
+  const [lastTriggeredTraumaId, setLastTriggeredTraumaId] = useState<string | null>(null);
   const fearListRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const nullTrauma = traumas.find(t => t.type === null);
+    if (nullTrauma && nullTrauma.id !== lastTriggeredTraumaId) {
+      setLastTriggeredTraumaId(nullTrauma.id);
+      setShowTraumaPopup(true);
+    }
+  }, [traumas, lastTriggeredTraumaId]);
+
+  useEffect(() => {
+    if (showTraumaPopup && popupRef.current) {
+      anime({
+        targets: popupRef.current,
+        scale: [0.9, 1],
+        opacity: [0, 1],
+        duration: 400,
+        easing: 'easeOutBack'
+      });
+    }
+  }, [showTraumaPopup]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -499,8 +576,123 @@ export default function InsanityPanel({
               )}
             </div>
           </div>
+
+          {/* Traumas Section */}
+          <div>
+            <div className="flex items-center justify-between mb-3 border-b-2 border-orange-500 pb-2">
+              <h3 className="font-display text-lg text-orange-300 uppercase">Traumas Físicos</h3>
+              <button
+                onClick={() => setShowTraumaPopup(true)}
+                disabled={traumas.length >= 3}
+                className="bg-orange-500 text-black font-bold px-2 py-1 hover:bg-orange-400 transition-colors flex items-center gap-1 text-xs uppercase disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-orange-500"
+              >
+                <Plus size={14} />
+                Adicionar
+              </button>
+            </div>
+
+            {traumas.length === 0 ? (
+              <div className="text-xs text-orange-400/60 italic">Nenhum trauma ativo.</div>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                {traumas.map((trauma) => {
+                  const info = trauma.type ? TRAUMA_INFO[trauma.type] : null;
+                  return (
+                    <div key={trauma.id} className="relative group w-40 h-40 flex-shrink-0 bg-orange-950/10">
+                      {info ? (
+                        <>
+                          <img
+                            src={info.image}
+                            alt={info.label}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <span className="text-orange-300 font-display font-bold uppercase text-center px-2">{info.label}</span>
+                          </div>
+                          <button
+                            onClick={() => onTraumaRemove(trauma.id)}
+                            title="Remover trauma"
+                            className="absolute top-1 right-1 bg-black/70 text-orange-300 hover:text-orange-100 p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2">
+                          <div className="text-orange-300 text-[10px] uppercase font-bold text-center">
+                            Escolha o tipo
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 w-full">
+                            {TRAUMA_TYPES.map((t) => (
+                              <button
+                                key={t.key}
+                                onClick={() => onTraumaSetType(trauma.id, t.key)}
+                                title={t.label}
+                                className="text-[9px] px-1 py-1 border border-orange-500 text-orange-300 hover:bg-orange-500 hover:text-black uppercase leading-tight"
+                              >
+                                {t.label.replace('Trauma ', '')}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => onTraumaRemove(trauma.id)}
+                            className="text-orange-400 hover:text-orange-300 text-[9px] underline"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      
+      {/* Trauma Popup Overlay */}
+      {showTraumaPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto" onClick={() => setShowTraumaPopup(false)}>
+          <div 
+            ref={popupRef}
+            className="bg-black border-2 border-orange-500 p-6 max-w-lg w-full relative shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+            onClick={e => e.stopPropagation()}
+          >
+            <h4 className="text-orange-300 font-display text-xl uppercase mb-6 text-center tracking-widest" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+              Escolha o Trauma
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              {TRAUMA_TYPES.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => {
+                    const nullTrauma = traumas.find(tr => tr.type === null);
+                    if (nullTrauma) {
+                      onTraumaSetType(nullTrauma.id, t.key);
+                    } else {
+                      onTraumaAdd(t.key);
+                    }
+                    setShowTraumaPopup(false);
+                  }}
+                  className="group relative h-36 border-2 border-orange-500/30 hover:border-orange-500 overflow-hidden transition-all duration-300"
+                >
+                  <img src={t.image} alt={t.label} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col items-center justify-end pb-3 opacity-90 group-hover:opacity-100 transition-opacity">
+                    <span className="text-orange-300 font-display uppercase font-bold text-sm z-10 text-center px-2">{t.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={() => setShowTraumaPopup(false)} 
+              className="absolute top-3 right-3 text-orange-500 hover:text-orange-300 transition-colors"
+            >
+              <Trash2 size={18} className="rotate-45" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

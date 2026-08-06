@@ -24,6 +24,7 @@ interface SkillRollRequest {
   criticalMultiplier?: number;
   damageDiceCount?: number;
   damageDiceSides?: number;
+  forceInterference?: 20 | 1;
 }
 
 interface DamageRollRequest {
@@ -155,7 +156,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
           ],
           easing: 'easeInOutQuad'
         });
-        
+
         const diceElements = containerRef.current.querySelectorAll('.dice-button-container');
         if (diceElements.length > 0) {
           anime({
@@ -175,19 +176,19 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
       setDisplayFlash(null);
       setIsCritical(false);
       setCriticalInterferencePhase('normal');
-      
+
       // Fase 1: depois 1s, começa o glitch
       const timeout1 = setTimeout(() => {
         setCriticalInterferencePhase('glitch');
       }, 1000);
-      
+
       // Fase 2: depois 2.5s (total 3.5s), mostrar presságio
       const timeout2 = setTimeout(() => {
         const randomPressagio = pressagioPhrases[Math.floor(Math.random() * pressagioPhrases.length)];
         setPressagioMessage(randomPressagio.frase);
         setCriticalInterferencePhase('pressagio');
       }, 3500);
-      
+
       // Fase 3: depois 5s mais (total 8.5s), mostrar interferência crítica
       const timeout3 = setTimeout(() => {
         setPressagioMessage(null);
@@ -294,7 +295,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
       // Final roll
       setDisplayRolls((prev) => {
         const newRolls = [...prev];
-        
+
         if (diceToReRoll === 'attribute') {
           newRolls[0] = rollAttributeValue(rollRequest.attributeValue);
         } else {
@@ -475,17 +476,17 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
       const baseAttributeRoll = rollAttributeValue(rollRequest.attributeValue);
       const baseTrainingRoll = Math.floor(Math.random() * rollRequest.trainingDie) + 1;
       const modifier = rollRequest.modifier || 0;
-      
-      const criticalDice = Math.floor(Math.random() * 20) + 1;
+
+      const criticalDice = rollRequest.forceInterference ?? (Math.floor(Math.random() * 20) + 1);
       const criticalThreshold = rollRequest.criticalThreshold ?? 20;
       setCriticalHistory((prev) => [
         { value: criticalDice, timestamp: new Date().toLocaleTimeString('pt-BR') },
         ...prev,
       ].slice(0, 6));
-      
+
       const finalRolls = [baseAttributeRoll, baseTrainingRoll];
       if (modifier !== 0) finalRolls.push(modifier);
-      
+
       let total = baseAttributeRoll + baseTrainingRoll + modifier;
 
       triggerDisplayOutcome(baseAttributeRoll, baseTrainingRoll, criticalDice, criticalThreshold);
@@ -525,9 +526,8 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
     lastProcessedDamageRollIdRef.current = damageRollRequest.id;
 
     const bonus = Number(damageRollRequest.modifier || 0);
-    const formula = `${damageRollRequest.diceCount}d${damageRollRequest.diceType}${
-      bonus !== 0 ? ` + ${bonus}` : ''
-    }`;
+    const formula = `${damageRollRequest.diceCount}d${damageRollRequest.diceType}${bonus !== 0 ? ` + ${bonus}` : ''
+      }`;
 
     rollUnifiedDisplay(
       formula,
@@ -548,13 +548,12 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
   return (
     <div className="space-y-4" ref={containerRef}>
       <div
-        className={`border-2 p-4 transition-all duration-700 relative ${
-          criticalInterferencePhase === 'glitch' || criticalInterferencePhase === 'pressagio' || criticalInterferencePhase === 'interference'
+        className={`border-2 p-4 transition-all duration-700 relative ${criticalInterferencePhase === 'glitch' || criticalInterferencePhase === 'pressagio' || criticalInterferencePhase === 'interference'
             ? 'border-purple-500 bg-purple-950/40 animate-pulse'
             : displayFlash === 'fail'
               ? 'border-red-300 bg-red-950/25'
               : 'border-red-500 bg-black'
-        }`}
+          }`}
       >
         <h3 className="text-xs font-bold text-red-500 uppercase mb-3">Display de Testes</h3>
 
@@ -635,20 +634,18 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
 
         {displayMessage && (
           <div
-            className={`mb-3 text-center text-xs font-bold uppercase transition-all duration-700 ${
-              criticalInterferencePhase === 'interference' ? 'text-purple-300 opacity-100' : 'text-red-300 opacity-100'
-            }`}
+            className={`mb-3 text-center text-xs font-bold uppercase transition-all duration-700 ${criticalInterferencePhase === 'interference' ? 'text-purple-300 opacity-100' : 'text-red-300 opacity-100'
+              }`}
           >
             {displayMessage}
           </div>
         )}
 
         {pressagioMessage && (
-          <div className={`mb-3 p-2 text-center text-xs italic border-2 transition-all duration-700 ${
-            criticalInterferencePhase === 'pressagio' 
-              ? 'border-purple-500 text-purple-300 animate-pulse opacity-100' 
+          <div className={`mb-3 p-2 text-center text-xs italic border-2 transition-all duration-700 ${criticalInterferencePhase === 'pressagio'
+              ? 'border-purple-500 text-purple-300 animate-pulse opacity-100'
               : 'border-yellow-500 text-yellow-300 opacity-0'
-          }`}>
+            }`}>
             &quot;{pressagioMessage}&quot;
           </div>
         )}
@@ -681,11 +678,10 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
               <button
                 key={num}
                 onClick={() => setNumDice(num)}
-                className={`py-2 text-xs font-bold border-2 transition-all ${
-                  numDice === num
+                className={`py-2 text-xs font-bold border-2 transition-all ${numDice === num
                     ? 'bg-red-600 border-red-500 text-white'
                     : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-black'
-                }`}
+                  }`}
               >
                 {num}
               </button>
@@ -700,11 +696,10 @@ export default function DiceRoller({ rollRequest, damageRollRequest }: DiceRolle
               <button
                 key={type}
                 onClick={() => setDiceType(type)}
-                className={`py-2 text-xs font-bold border-2 transition-all ${
-                  diceType === type
+                className={`py-2 text-xs font-bold border-2 transition-all ${diceType === type
                     ? 'bg-red-600 border-red-500 text-white'
                     : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-black'
-                }`}
+                  }`}
               >
                 d{type}
               </button>
