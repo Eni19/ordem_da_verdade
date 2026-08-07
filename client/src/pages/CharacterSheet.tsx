@@ -2014,10 +2014,10 @@ export default function CharacterSheet() {
   }));
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col relative">
+    <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col relative scrollbar-hide">
       {isTensaoActive && <TensaoOverlay />}
       {/* Header */}
-      <div className="border-b-2 border-primary bg-black p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none">
+      <div className="border-b-2 border-primary bg-black p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none scrollbar-hide">
         <div className="flex justify-between items-center relative">
           <h1 className="font-display text-2xl md:text-4xl text-primary">ORDEM DA VERDADE</h1>
           <button
@@ -2219,7 +2219,7 @@ export default function CharacterSheet() {
       {/* Main Content */}
       <div className="flex flex-col md:flex-row flex-1 gap-2 md:gap-4 p-2 md:p-4 overflow-hidden pr-0">
         {/* Left Column - Attributes */}
-        <div className="flex-shrink-0 w-full md:w-40">
+        <div className="flex-shrink-0 w-full md:w-40 overflow-y-auto pb-8 relative [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <h2 className="font-display text-xs md:text-sm text-primary uppercase mb-2 md:mb-3">Atributos</h2>
           <div className="grid grid-cols-3 md:grid-cols-2 gap-2 md:gap-3">
             {ATTRIBUTE_KEYS.map((attr) => (

@@ -138,8 +138,16 @@
     margin: 0;
   }
 
-  body {
+  html, body, #root {
     @apply bg-background text-foreground overflow-x-hidden;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #root::-webkit-scrollbar {
+    display: none;
   }
 
   button:not(:disabled),

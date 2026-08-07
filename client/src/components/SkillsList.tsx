@@ -242,7 +242,7 @@ export default function SkillsList({ skills, onUpdateSkill, onDeleteSkill, onReo
         </div>
       )}
 
-      <div ref={carouselRef} className="flex-1 overflow-x-auto overflow-y-hidden p-3 pt-12" style={{ touchAction: 'none' }}>
+      <div ref={carouselRef} className="flex-1 overflow-x-auto overflow-y-hidden p-3 pt-12 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" style={{ touchAction: 'none' }}>
         <div className="flex gap-4 pr-6 min-w-max items-stretch pb-2">
           {skills.length === 0 ? (
             <div className="flex items-center justify-center text-muted-foreground text-center py-10 w-full min-w-[20rem]">

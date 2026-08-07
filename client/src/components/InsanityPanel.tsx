@@ -350,7 +350,7 @@ export default function InsanityPanel({
 
       {/* Panel */}
       <div
-        className={`h-full bg-black overflow-y-auto scrollbar-hide transition-all duration-300 pointer-events-auto ${isOpen ? 'w-[34rem] border-l-2 border-orange-500' : 'w-0 border-l-0'
+        className={`h-full bg-black overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-black [&::-webkit-scrollbar-thumb]:bg-orange-500 [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin] [scrollbar-color:#f97316_black] transition-all duration-300 pointer-events-auto ${isOpen ? 'w-[34rem] border-l-2 border-orange-500' : 'w-0 border-l-0'
           }`}
       >
         <div className="p-4 space-y-6">

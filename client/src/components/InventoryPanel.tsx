@@ -345,7 +345,7 @@ export default function InventoryPanel({
       {/* Panel Content */}
       <div className={`fixed right-0 top-0 h-screen z-50 bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[34rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
         {isOpen && (
-          <ScrollArea className="flex-1 overflow-hidden" hideScrollbar={true}>
+          <ScrollArea className="flex-1 overflow-hidden [&_[data-slot=scroll-area-thumb]]:bg-primary">
             <div className="p-4 space-y-6 pr-4">
               
               {/* Armas */}

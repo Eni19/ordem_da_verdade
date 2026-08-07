@@ -400,7 +400,7 @@ export default function RitualsPanel({
 
           {/* Cartão Central (Detalhes do Ritual ou Formulário) */}
           {(selectedRitual || showRitualForm) && (
-            <div className="absolute w-[280px] sm:w-[340px] max-h-[80%] overflow-y-auto bg-black border-2 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.5)] p-4 z-10 scrollbar-hide rounded-xl">
+            <div className="absolute w-[280px] sm:w-[340px] max-h-[80%] overflow-y-auto bg-black border-2 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.5)] p-4 z-10 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-black [&::-webkit-scrollbar-thumb]:bg-purple-500 [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin] [scrollbar-color:#a855f7_black] rounded-xl">
 
               {/* Formulário Novo Ritual */}
               {showRitualForm && (
