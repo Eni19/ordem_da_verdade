@@ -145,6 +145,27 @@ export default function InventoryPanel({
   const [pendingDeleteItem, setPendingDeleteItem] = useState<InventoryItem | null>(null);
   const [pendingWeaponData, setPendingWeaponData] = useState<Partial<Weapon>>({});
   const [pendingProtectionData, setPendingProtectionData] = useState<Partial<InventoryItem>>({});
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: InventoryItem } | null>(null);
+
+  React.useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, item: InventoryItem) => {
+    e.preventDefault();
+    
+    // Prevent menu from going offscreen
+    let x = e.clientX;
+    let y = e.clientY;
+    
+    // Simple boundary check (assuming menu is ~150x150)
+    if (x > window.innerWidth - 150) x -= 150;
+    if (y > window.innerHeight - 150) y -= 150;
+
+    setContextMenu({ x, y, item });
+  };
 
   // Modals
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -414,7 +435,7 @@ export default function InventoryPanel({
                           items={inventory.filter(i => i.containerId === 'main')}
                           onItemMove={handleItemMove}
                           onItemClick={(item) => { setEditingItem(item); setIsEditorOpen(true); }}
-                          onItemRightClick={(e, item) => { e.preventDefault(); setPendingDeleteItem(item); }}
+                          onItemRightClick={handleContextMenu}
                           activeWeaponIds={weapons.filter(w => w.isActive).map(w => w.id)}
                           onEquipDrop={(id) => {
                             const w = weapons.find(x => x.id === id);
@@ -440,7 +461,7 @@ export default function InventoryPanel({
                               items={inventory.filter(i => i.containerId === container.id)}
                               onItemMove={handleItemMove}
                               onItemClick={(item) => { setEditingItem(item); setIsEditorOpen(true); }}
-                              onItemRightClick={(e, item) => { e.preventDefault(); setPendingDeleteItem(item); }}
+                              onItemRightClick={handleContextMenu}
                               onHeaderContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleTryDelete(container); }}
                               activeWeaponIds={weapons.filter(w => w.isActive).map(w => w.id)}
                               onEquipDrop={(id) => {
@@ -458,6 +479,7 @@ export default function InventoryPanel({
                         key={item.id}
                         className="bg-black/50 border border-green-500/20 p-3 flex items-center justify-between group hover:border-green-500/50 cursor-pointer transition-colors"
                         onClick={() => { setEditingItem(item); setIsEditorOpen(true); }}
+                        onContextMenu={(e) => handleContextMenu(e, item)}
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
                           <Box size={16} className="text-green-600 flex-shrink-0" />
@@ -595,6 +617,60 @@ export default function InventoryPanel({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Context Menu */}
+        {contextMenu && (
+          <div
+            className="fixed z-[100] bg-black/95 border border-primary shadow-[0_0_15px_rgba(34,197,94,0.3)] flex flex-col min-w-[150px] overflow-hidden rounded-sm"
+            style={{
+              left: contextMenu.x,
+              top: contextMenu.y,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="text-left px-4 py-2 text-xs uppercase tracking-wider text-primary hover:bg-primary/20 transition-colors border-b border-primary/20"
+              onClick={() => {
+                const item = contextMenu.item;
+                const newRotation = (item.rotation + 90) % 360;
+                handleItemMove(item.id, item.containerId, item.position!, newRotation);
+                setContextMenu(null);
+              }}
+            >
+              Girar
+            </button>
+            <button
+              className="text-left px-4 py-2 text-xs uppercase tracking-wider text-primary hover:bg-primary/20 transition-colors border-b border-primary/20"
+              onClick={() => {
+                setEditingItem(contextMenu.item);
+                setIsEditorOpen(true);
+                setContextMenu(null);
+              }}
+            >
+              Editar
+            </button>
+            {contextMenu.item.type === 'weapon' && (
+              <button
+                className="text-left px-4 py-2 text-xs uppercase tracking-wider text-yellow-500 hover:bg-yellow-500/20 transition-colors border-b border-primary/20"
+                onClick={() => {
+                  onToggleWeaponActive(contextMenu.item.id);
+                  setContextMenu(null);
+                }}
+              >
+                Equipar / Desequipar
+              </button>
+            )}
+            <button
+              className="text-left px-4 py-2 text-xs uppercase tracking-wider text-red-500 hover:bg-red-500/20 transition-colors"
+              onClick={() => {
+                handleTryDelete(contextMenu.item);
+                setContextMenu(null);
+              }}
+            >
+              Excluir
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

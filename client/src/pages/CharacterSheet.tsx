@@ -907,13 +907,21 @@ export default function CharacterSheet() {
   };
 
   const handleUpdatePericia = (id: string, field: keyof Pericia, value: string) => {
+    let finalValue = value;
+    if (field === 'name') {
+      finalValue = value.replace(
+        /\w\S*/g,
+        text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
+      );
+    }
+
     setCharacter({
       ...character,
       pericias: character.pericias.map((pericia) =>
         pericia.id === id
           ? pericia.isGeneric
             ? pericia
-            : { ...pericia, [field]: value }
+            : { ...pericia, [field]: finalValue }
           : pericia
       ),
     });
@@ -1395,7 +1403,7 @@ export default function CharacterSheet() {
     // We removed the block that prevented starting a conjuration for a retained ritual.
     // Retained rituals can now be conjured (and they will be suspended at turn 3).
 
-    const ocultismoPericia = character.pericias.find(p => p.name === 'Ocultismo');
+    const ocultismoPericia = character.pericias.find(p => p.name.toLowerCase() === 'ocultismo');
     // Destreinado falls under this catch if we had 'destreinado', but in this system it's either in the array with a training or not.
     // Generic is id=0.
     if (!ocultismoPericia || ocultismoPericia.isGeneric) {
@@ -2456,12 +2464,12 @@ export default function CharacterSheet() {
               ?.versions[character.rituals.find(r => r.id === pokerConjureState.ritualId)?.activeVersion || 0]?.retained || false
           }
           ocultismoLevel={
-            character.pericias.find(p => p.name === 'Ocultismo')?.training || 'treinado'
+            character.pericias.find(p => p.name.toLowerCase() === 'ocultismo')?.training || 'treinado'
           }
           inteligencia={character.attributes.inteligência}
           getRollConfig={(attr) => {
             const attributeValue = getEffectiveAttributeValue(attr);
-            const pericia = character.pericias.find(p => p.name === 'Ocultismo');
+            const pericia = character.pericias.find(p => p.name.toLowerCase() === 'ocultismo');
             const baseTrainingDie = pericia?.isGeneric ? 4 : TRAINING_DIE_MAP[pericia?.training ?? 'treinado'];
             const trainingDie = getFearAdjustedTrainingDie(baseTrainingDie, 'Ocultismo');
             return {
