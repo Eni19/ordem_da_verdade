@@ -56,8 +56,17 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
     window.addEventListener('resize', resizeCanvas);
 
     let animationFrameId: number;
+    let lastTime = Date.now();
 
     const render = () => {
+      const now = Date.now();
+      const deltaTime = now - lastTime;
+      lastTime = now;
+      
+      let timeScale = deltaTime / 16.666;
+      if (isNaN(timeScale) || !isFinite(timeScale) || timeScale < 0) timeScale = 1;
+      if (timeScale > 5) timeScale = 5; // Cap jump to avoid extreme glitches if tab is inactive
+
       const rect = canvas.getBoundingClientRect();
       if (rect.width === 0) {
         animationFrameId = requestAnimationFrame(render);
@@ -72,9 +81,9 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
       const targetSpeed = current === 0 ? 0.008 : 0.015 + (current * 0.01);
 
       // Interpolação suave para não haver cortes quando a esperança muda
-      ampRef.current += (targetAmplitude - ampRef.current) * 0.08;
-      freqRef.current += (targetFrequency - freqRef.current) * 0.08;
-      speedRef.current += (targetSpeed - speedRef.current) * 0.08;
+      ampRef.current += (targetAmplitude - ampRef.current) * Math.min(1, 0.08 * timeScale);
+      freqRef.current += (targetFrequency - freqRef.current) * Math.min(1, 0.08 * timeScale);
+      speedRef.current += (targetSpeed - speedRef.current) * Math.min(1, 0.08 * timeScale);
 
       // Fundo com "ghosting" leve para simular o rastro do fósforo na tela
       ctx.fillStyle = 'rgba(10, 10, 12, 0.35)';
@@ -121,7 +130,7 @@ export default function HopeCounter({ current, onChange }: HopeCounterProps) {
       ctx.globalCompositeOperation = "source-over";
       ctx.shadowBlur = 0;
 
-      timeRef.current -= speedRef.current;
+      timeRef.current -= speedRef.current * timeScale;
       animationFrameId = requestAnimationFrame(render);
     };
 

@@ -297,14 +297,16 @@ export function ActiveDefenseOverlay({
     setSpinningDice(sidesList.map((s) => rollDie(s)));
     const duration = 1500;
     const start = Date.now();
+    let lastUpdate = start;
     let r = requestAnimationFrame(function loop() {
       const now = Date.now();
       if (now - start > duration) {
         onDone();
         return;
       }
-      if (Math.random() < 0.3) {
+      if (now - lastUpdate > 40 && Math.random() < 0.6) {
         setSpinningDice(sidesList.map((s) => rollDie(s)));
+        lastUpdate = now;
       }
       r = requestAnimationFrame(loop);
     });

@@ -262,12 +262,17 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
     const animationDuration = 650;
     const startTime = Date.now();
+    let lastUpdate = startTime;
 
     const animateRoll = () => {
-      const elapsed = Date.now() - startTime;
+      const now = Date.now();
+      const elapsed = now - startTime;
 
       if (elapsed < animationDuration) {
-        setDisplayRolls(Array.from({ length: diceCount }, () => Math.floor(Math.random() * diceType) + 1));
+        if (now - lastUpdate > 40) {
+          setDisplayRolls(Array.from({ length: diceCount }, () => Math.floor(Math.random() * diceType) + 1));
+          lastUpdate = now;
+        }
         requestAnimationFrame(animateRoll);
         return;
       }
@@ -435,12 +440,17 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
     const animationDuration = 650;
     const startTime = Date.now();
+    let lastUpdate = startTime;
 
     const animateRoll = () => {
-      const elapsed = Date.now() - startTime;
+      const now = Date.now();
+      const elapsed = now - startTime;
 
       if (elapsed < animationDuration) {
-        setDisplayRolls(Array.from({ length: count }, () => Math.floor(Math.random() * type) + 1));
+        if (now - lastUpdate > 40) {
+          setDisplayRolls(Array.from({ length: count }, () => Math.floor(Math.random() * type) + 1));
+          lastUpdate = now;
+        }
         requestAnimationFrame(animateRoll);
         return;
       }
@@ -493,12 +503,17 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
     const animationDuration = 650;
     const startTime = Date.now();
+    let lastUpdate = startTime;
 
     const animateRoll = () => {
-      const elapsed = Date.now() - startTime;
+      const now = Date.now();
+      const elapsed = now - startTime;
 
       if (elapsed < animationDuration) {
-        setDisplayRolls(diceSides.map((sides) => Math.floor(Math.random() * sides) + 1));
+        if (now - lastUpdate > 40) {
+          setDisplayRolls(diceSides.map((sides) => Math.floor(Math.random() * sides) + 1));
+          lastUpdate = now;
+        }
         requestAnimationFrame(animateRoll);
         return;
       }

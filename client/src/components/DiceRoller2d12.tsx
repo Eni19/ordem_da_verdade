@@ -34,12 +34,17 @@ export default function DiceRoller2d12({ onRoll }: Props) {
     // Animação de rolagem
     const animationDuration = 600;
     const startTime = Date.now();
+    let lastUpdate = startTime;
     
     const animateRoll = () => {
-      const elapsed = Date.now() - startTime;
+      const now = Date.now();
+      const elapsed = now - startTime;
       if (elapsed < animationDuration) {
-        setHopeRoll(Math.floor(Math.random() * 12) + 1);
-        setFearRoll(Math.floor(Math.random() * 12) + 1);
+        if (now - lastUpdate > 40) {
+          setHopeRoll(Math.floor(Math.random() * 12) + 1);
+          setFearRoll(Math.floor(Math.random() * 12) + 1);
+          lastUpdate = now;
+        }
         requestAnimationFrame(animateRoll);
       } else {
         // Resultado final

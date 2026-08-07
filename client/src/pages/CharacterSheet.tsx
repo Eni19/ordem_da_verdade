@@ -1550,17 +1550,22 @@ export default function CharacterSheet() {
 
     const animationDuration = 900;
     const start = Date.now();
+    let lastUpdate = start;
     let rafId: number | null = null;
 
     const animate = () => {
-      const elapsed = Date.now() - start;
+      const now = Date.now();
+      const elapsed = now - start;
       if (elapsed < animationDuration) {
-        // show random values
-        setRitualResolveState((prev) =>
-          prev
-            ? { ...prev, rolls: [Math.floor(Math.random() * (attributeValue >= 5 ? 12 : 6)) + 1, Math.floor(Math.random() * trainingDie) + 1] }
-            : prev
-        );
+        if (now - lastUpdate > 40) {
+          // show random values
+          setRitualResolveState((prev) =>
+            prev
+              ? { ...prev, rolls: [Math.floor(Math.random() * (attributeValue >= 5 ? 12 : 6)) + 1, Math.floor(Math.random() * trainingDie) + 1] }
+              : prev
+          );
+          lastUpdate = now;
+        }
         rafId = requestAnimationFrame(animate);
         return;
       }
