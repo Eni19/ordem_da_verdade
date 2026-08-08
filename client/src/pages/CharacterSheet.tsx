@@ -240,6 +240,7 @@ interface SkillRollRequest {
   damageDiceSides?: number;
   modifier?: number;
   isAnsiedadeActive?: boolean;
+  isAlucinacaoActive?: boolean;
   forceInterference?: 20 | 1;
 }
 
@@ -617,14 +618,12 @@ export default function CharacterSheet() {
 
 
   const getFearAdjustedTrainingDie = (trainingDie: number, skillName: string) => {
-    const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
     const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
 
     const normalizedName = skillName.toLowerCase();
     const isAffectedByTremor = normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao');
 
     let stepsToReduce = 0;
-    if (isPanicoSomatico) stepsToReduce += 1;
     if (isTremor && isAffectedByTremor) stepsToReduce += 1;
 
     let finalDie = trainingDie;
@@ -635,14 +634,12 @@ export default function CharacterSheet() {
   };
 
   const getFearAdjustedTrainingLevel = (trainingLevel: string, skillName: string): string => {
-    const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
     const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
 
     const normalizedName = skillName.toLowerCase();
     const isAffectedByTremor = normalizedName.includes('furtividade') || normalizedName.includes('enganação') || normalizedName.includes('enganacao');
 
     let stepsToReduce = 0;
-    if (isPanicoSomatico) stepsToReduce += 1;
     if (isTremor && isAffectedByTremor) stepsToReduce += 1;
 
     const levels = ['destreinado', 'treinado', 'veterano', 'expert'];
@@ -667,9 +664,6 @@ export default function CharacterSheet() {
   };
 
   const isFearAffectedSkill = (skillName: string): boolean => {
-    const isPanicoSomatico = activeFearTags.some((tag) => tag.effectResult === '16');
-    if (isPanicoSomatico) return true;
-
     const isTremor = activeFearTags.some((tag) => tag.effectResult === '7');
     const isHisteria = activeFearTags.some((tag) => tag.effectResult === '8');
 
@@ -956,6 +950,7 @@ export default function CharacterSheet() {
 
     const modifier = getFearModifierForSkillRoll(pericia.name);
     const isAnsiedadeActive = activeFearTags.some((tag) => tag.effectResult === '13');
+    const isAlucinacaoActive = activeFearTags.some((tag) => tag.effectResult === '17');
 
     setPendingRoll({
       id: Date.now(),
@@ -966,6 +961,7 @@ export default function CharacterSheet() {
       trainingDie,
       modifier,
       isAnsiedadeActive,
+      isAlucinacaoActive,
     });
   };
 
@@ -990,7 +986,9 @@ export default function CharacterSheet() {
       criticalMultiplier: weapon.criticalMultiplier,
       damageDiceCount: weapon.damageDiceCount,
       damageDiceSides: weapon.damageDiceSides,
+      modifier: 0,
       isAnsiedadeActive: activeFearTags.some((tag) => tag.effectResult === '13'),
+      isAlucinacaoActive: activeFearTags.some((tag) => tag.effectResult === '17'),
     });
 
     // Minimiza/fecha o menu lateral quando fazer um ataque

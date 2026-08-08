@@ -16,7 +16,7 @@ const fearEffects: FearEffect[] = [
     resultado: '3',
     nome: 'Surto de Adrenalina',
     descricaoNarrativa: 'Seu corpo assume o controle. O medo acelera seus músculos, seus reflexos e seus impulsos, mas sua mente perde qualquer traço de clareza ou empatia.',
-    descricaoMecanica: 'Até o fim da cena, aumente em 1 passo o seu dado de Força ou Agilidade (à sua escolha). Em contrapartida, reduza em 1 passo o seu dado de Inteligência ou Presença. Além disso, você sofre -3 de penalidade em quaisquer testes que exijam calma, paciência, mira ou delicadeza.',
+    descricaoMecanica: 'Até o fim da cena, aumente em 1 passo o seu dado de Força ou Agilidade (à sua escolha). Em contrapartida, reduza em 1 passo o seu dado de Inteligência.',
   },
   {
     resultado: '4',
@@ -26,9 +26,9 @@ const fearEffects: FearEffect[] = [
   },
   {
     resultado: '5',
-    nome: 'Hesitação',
+    nome: 'Torpor',
     descricaoNarrativa: 'Você trava, gagueja ou perde a janela do momento certo. Seu corpo simplesmente demora demais para obedecer aos comandos do seu cérebro.',
-    descricaoMecanica: 'Reduza em 1 passo seu dado de Agilidade especificamente para testes de reação, fuga, perseguição, iniciativa e equilíbrio. Além disso, na próxima situação urgente (como o início de um combate ou armadilha), você age depois de todos os demais envolvidos, independentemente da sua iniciativa rolada.',
+    descricaoMecanica: 'Reduza em 1 passo seu dado de Agilidade. Além disso, na próxima situação urgente (como o início de um combate ou armadilha), você age depois de todos os demais envolvidos, independentemente da sua iniciativa rolada.',
   },
   {
     resultado: '6',
@@ -40,25 +40,25 @@ const fearEffects: FearEffect[] = [
     resultado: '7',
     nome: 'Tremor Incontrolável',
     descricaoNarrativa: 'Seus dentes batem violentamente, seu corpo tem espasmos e pequenos soluços de pânico escapam dos seus lábios, por mais que você tente segurá-los.',
-    descricaoMecanica: 'Até o fim da cena, você se torna um risco de exposição. Você sofre -1 passo em testes de Furtividade, Enganação ou qualquer outra ação que exija silêncio absoluto e controle corporal da respiração.',
+    descricaoMecanica: 'Até o fim da cena, você se torna um risco de exposição. Você não consegue ser furtivo, fazer silêncio absoluto ou ter controle corporal da respiração.',
   },
   {
     resultado: '8',
     nome: 'Histeria',
     descricaoNarrativa: 'Você ri, chora, grita, repete frases desconexas ou perde o controle do volume da própria voz. Seu medo transborda para fora de você, impossível de esconder.',
-    descricaoMecanica: 'Reduza o seu dado de Presença em 1 passo. Você não consegue se comunicar com clareza e sofre -3 de penalidade em testes de Furtividade, Diplomacia, Enganação, Intimidação, concentração para habilidades e qualquer tentativa de comando ou conjuração verbal.',
+    descricaoMecanica: 'Reduza o seu dado de Presença em 1 passo. Você não consegue se comunicar com clareza '
   },
   {
     resultado: '9',
     nome: 'Visão de Túnel',
     descricaoNarrativa: 'Sua mente foca inteiramente na fonte do seu pavor. Tudo ao seu redor se torna um borrão periférico insignificante.',
-    descricaoMecanica: 'Enquanto este efeito estiver ativo, você sofre uma penalidade de -3 na sua Evasão contra ataques de qualquer criatura que não seja a origem do seu medo. Além disso, você está tão focado na sua própria ameaça que não pode usar reações ativas para proteger ou alertar aliados adjacentes.',
+    descricaoMecanica: 'Enquanto este efeito estiver ativo, você sofre uma penalidade de -3 na sua Evasão contra ataques de qualquer criatura que não seja a origem do seu medo.	',
   },
   {
     resultado: '10',
     nome: 'Desespero',
     descricaoNarrativa: 'A certeza de que nada vai dar certo contamina a sua alma. A resiliência vai embora.',
-    descricaoMecanica: 'Reduza o seu dado de Vontade em 1 passo. O seu limite máximo de PD cai proporcionalmente na cena, e seus próximos testes para resistir à DT de Trauma tornam-se mecanicamente mais difíceis.',
+    descricaoMecanica: 'Reduza o seu dado de Vontade em 1 passo. '
   },
   {
     resultado: '11',
@@ -88,19 +88,19 @@ const fearEffects: FearEffect[] = [
     resultado: '15',
     nome: 'Assombro (Pesadelos)',
     descricaoNarrativa: 'A imagem do horror gruda na parte de trás dos seus olhos. Toda vez que pisca, você vê a morte.',
-    descricaoMecanica: 'Na cena atual, você sofre -2 em Percepção e Investigação. O verdadeiro terror vem depois: no seu próximo Descanso, o pesadelo te impede de dormir. Você deve escolher entre recuperar PV ou PD (não pode ambos) e não pode ser alvo da Terapia de Campo para remover Fraturas Mentais neste descanso.',
+    descricaoMecanica: 'O verdadeiro terror vem depois: no seu próximo Descanso, o pesadelo te impede de dormir. A qualidade do seu descanso diminui em 2 passos',
   },
   {
     resultado: '16',
     nome: 'Pânico Somático',
-    descricaoNarrativa: 'O medo fecha sua garganta. Seu coração bate rápido demais, o peito aperta e puxar o ar torna-se um esforço consciente e doloroso.',
-    descricaoMecanica: 'Reduza os seus dados de Perícia em 1 passo. Você perde o fôlego e não consegue gritar ou realizar ações de respiração controlada. Você não consegue falar frases longas.',
+    descricaoNarrativa: 'O medo fecha sua garganta. Seu coração bate rápido demais, o peito aperta e puxar o ar torna-se um esforço consciente e doloroso. O mundo ao seu redor fica abafado pelo som da sua própria respiração irregular.',
+    descricaoMecanica: 'A hiperventilação impede qualquer esforço contínuo. Primeiro, você fica incomunicável na cena: não consegue gritar ou discutir planos (o jogador só pode sussurrar 2 ou 3 palavras ofegantes por turno). Segundo, o seu corpo não suporta explosões de energia. Se você utilizar uma Ação Padrão e uma Ação de Movimento no mesmo turno, a privação de oxigênio cobra o preço: você sofre automaticamente 1 Corte no Relógio de Vitalidade no final do seu turno.',
   },
   {
     resultado: '17',
     nome: 'Alucinação',
-    descricaoNarrativa: 'Você vê, ouve ou sente coisas que simplesmente não estão lá. Para a sua psique estilhaçada, essas percepções são a realidade absoluta.',
-    descricaoMecanica: 'O Mestre passa a descrever ilusões na cena como se fossem alvos reais. Sempre que você realizar um ataque ou ação direcionada, observe o valor natural do seu dado de Atributo principal: se o resultado for ÍMPAR, sua mente focou na alucinação. A ação e os recursos (munição, PD) são gastos, mas o ataque atinge o vazio e falha automaticamente. Se for PAR, sua mente encontrou a ameaça real e o ataque é resolvido normalmente.',
+    descricaoNarrativa: 'Sua mente fragmenta a realidade de forma intermitente. Em um instante você vê o mundo com clareza agonizante; no segundo seguinte, as sombras distorcem rostos, documentos e distâncias. O que é real e o que é delírio tornam-se impossíveis de separar.',
+    descricaoMecanica: 'A sua confiança é sabotada pelas ilusões dentro e fora de combate. Sempre que você realizar um teste rolando seus dados, olhe primeiro para o valor natural do seu Dado de Interferência: Se for PAR, você tem um momento de clareza e o teste é resolvido normalmente.Se for ÍMPAR, a alucinação ataca no exato momento da ação. Você é obrigado a re-rolar o seu maior dado entre Atributo e Perícia, e deve ficar com o novo resultado. Se essa re-rolagem transformar um Sucesso em Falha, a ilusão engoliu sua ação. Você (o jogador) narra como a alucinação sabotou a realidade ',
   },
   {
     resultado: '18',
@@ -110,27 +110,27 @@ const fearEffects: FearEffect[] = [
   },
   {
     resultado: '19',
-    nome: 'Egoísmo de Sobrevivente',
+    nome: 'Covardia',
     descricaoNarrativa: 'Você precisa sobreviver, custe o que custar. Todo o resto, incluindo a vida de seus amigos, parece secundário diante da urgência de continuar respirando.',
     descricaoMecanica: 'Até o fim da cena, você está proibido de gastar suas ações, itens ou Pontos de Determinação para curar, acalmar, proteger ou ajudar outro personagem se essa ação colocar você em qualquer nível de risco direto ou consumir recursos que salvariam sua vida.',
   },
   {
     resultado: '20',
-    nome: 'Dissociação',
-    descricaoNarrativa: 'Sua mente "desliga". O mundo ao redor parece um filme distante e irreal.',
-    descricaoMecanica: 'Você sofre -5 em reações e evasão. O corpo está anestesiado; para conseguir focar na realidade e executar qualquer Ação Padrão, você precisa antes causar um choque físico em si mesmo (ex: morder o braço até sangrar). Isso causa 1d4 de dano físico inescapável (Ação Livre).',
+    nome: 'Descolamento da Realidade',
+    descricaoNarrativa: 'Você se torna um passageiro no próprio corpo, assistindo a tudo em terceira pessoa. O mundo fica abafado e com um atraso terrível. Sua mente entra em piloto automático para tentar sobreviver, alheia ao caos imediato.',
+    descricaoMecanica: 'No início exato de cada rodada (antes de qualquer pessoa agir), você é obrigado a declarar em voz alta e de forma definitiva como vai gastar suas ações (Movimento e Padrão) e quais serão seus alvos. Quando o seu turno chegar na ordem de iniciativa, você deve executar rigorosamente o que planejou, independentemente de como o campo de batalha mudou. Se a ação se tornar inválida ou impossível (ex: o monstro morreu, o aliado saiu da frente, a porta foi trancada), seu corpo em dissociação tentará executá-la mesmo assim (atirando no cadáver, golpeando o vazio ou trombando na porta), desperdiçando o turno..',
   },
   {
     resultado: '21',
-    nome: 'Trauma',
-    descricaoNarrativa: 'O horror rasga o tecido da sua alma de forma permanente. Algo nas sombras, no cheiro ou no som desta cena fará parte dos seus pesadelos para sempre.',
-    descricaoMecanica: 'Você fica paralisado (incapaz de agir) por 1 rodada. Além disso, você adquire imediatamente uma Fobia ou Mania temporária atrelada aos eventos do combate. Este trauma dura até o fim da missão atual, penalizando suas ações sempre que o gatilho estiver próximo. Diferente de fobias de histórico, este Trauma concede Esperança no máximo uma única vez por missão.',
+    nome: 'Trauma Psicosomático',
+    descricaoNarrativa: 'O horror rasga a sua mente de tal forma que se torna uma trauma fisico. Algo nas sombras, no cheiro ou no som desta cena fará parte dos seus pesadelos para sempre.',
+    descricaoMecanica: 'Sua mente afeta severamente seu corpo. Você adquire imediatamente um Trauma Fisico.',
   },
   {
     resultado: '22',
     nome: 'Paralisia',
     descricaoNarrativa: 'Você congela no lugar. Seus músculos endurecem como pedra, e até o menor movimento exige uma força titânica que você não possui no momento.',
-    descricaoMecanica: 'Você fica totalmente incapaz de agir por 1 rodada completa. Após essa rodada, o bloqueio persiste: sempre que quiser realizar uma Ação de Movimento voluntária, você precisará primeiro passar em um teste de Vontade para conseguir vencer a rigidez dos seus músculos.',
+    descricaoMecanica: ' Sempre que quiser realizar uma Ação de Movimento voluntária, você precisará primeiro passar em um teste de Vontade para conseguir vencer a rigidez dos seus músculos.',
   },
   {
     resultado: '23',
@@ -141,8 +141,8 @@ const fearEffects: FearEffect[] = [
   {
     resultado: '24+',
     nome: 'Choque Sistêmico',
-    descricaoNarrativa: 'O colapso mental e físico absoluto. A mente apaga os disjuntores do corpo para não ser aniquilada pela impossibilidade do universo que acabou de testemunhar. Você se torna uma casca vazia, letárgica e catatônica.',
-    descricaoMecanica: 'O seu jogo na cena atual acabou. Você cai no chão, recebendo as condições Inconsciente e Indefeso, totalmente incapaz de agir, falar ou se proteger. Para sobreviver, você precisa ser estabilizado e fisicamente arrastado do local do horror por seus aliados. Quando recuperar a consciência, você acorda com apenas 1 PD. Além disso, um de seus efeitos vira um Trauma Permanente, e você não pode mais recuperar PV, PD ou usar Cargas Defensivas em Descansos até o fim da missão.',
+    descricaoNarrativa: 'O colapso mental e físico absoluto. Você se torna uma casca vazia, letárgica e catatônica.',
+    descricaoMecanica: 'O seu jogo na cena atual acabou. Você está enlouquecendo. A insanidade te consome',
   },
 ];
 

@@ -18,6 +18,7 @@ interface SkillRollRequest {
   trainingDie: number;
   modifier?: number;
   isAnsiedadeActive?: boolean;
+  isAlucinacaoActive?: boolean;
   weaponName?: string;
   criticalThreshold?: number;
   criticalMultiplier?: number;
@@ -59,6 +60,8 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
   const [isReRolling, setIsReRolling] = useState<'attribute' | 'training' | null>(null);
   const [isCritical, setIsCritical] = useState(false);
   const [disasterPhase, setDisasterPhase] = useState<'none' | 'building' | 'collapse'>('none');
+  const [alucinacaoGlitchDice, setAlucinacaoGlitchDice] = useState<'attribute' | 'training' | null>(null);
+  const [alucinacaoSecretRoll, setAlucinacaoSecretRoll] = useState<number | null>(null);
   const [lastAttackWeapon, setLastAttackWeapon] = useState<SkillRollRequest | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const disasterLoopRef = useRef<anime.AnimeInstance | null>(null);
@@ -123,7 +126,8 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
     firstRoll: number,
     secondRoll: number,
     criticalDice: number = 20,
-    criticalThreshold: number = 20
+    criticalThreshold: number = 20,
+    isReroll: boolean = false
   ) => {
     // Armazenar o d20 e threshold para uso em re-rolls
     lastCriticalDiceRef.current = criticalDice;
@@ -134,8 +138,57 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
     setDisasterPhase('none');
 
     const isAnsiedadeActive = rollRequest?.isAnsiedadeActive ?? false;
+    const isAlucinacaoActive = rollRequest?.isAlucinacaoActive ?? false;
 
-    if (isAnsiedadeActive && (firstRoll === 1 || secondRoll === 1)) {
+    if (isAlucinacaoActive && criticalDice % 2 !== 0 && !isReroll) {
+      setDisplayMessage('Alucinação!');
+      setDisplayFlash('fail');
+      setIsCritical(false);
+      setCriticalInterferencePhase('none');
+      setDisasterPhase('none');
+      
+      const glitchDie = firstRoll >= secondRoll ? 'attribute' : 'training';
+      setAlucinacaoGlitchDice(glitchDie);
+      
+      // Roll secretly ahead of time
+      const secretValue = glitchDie === 'attribute' 
+        ? rollAttributeValue(rollRequest!.attributeValue) 
+        : Math.floor(Math.random() * rollRequest!.trainingDie) + 1;
+      setAlucinacaoSecretRoll(secretValue);
+
+      const timeoutD = setTimeout(() => {
+        const targetClass = glitchDie === 'attribute' ? '.dice-attribute' : '.dice-training';
+        const el = containerRef.current?.querySelector(targetClass);
+        if (el) {
+          anime({
+            targets: el,
+            translateX: [
+              { value: -3, duration: 120 },
+              { value: 3, duration: 120 },
+              { value: -2, duration: 120 },
+              { value: 2, duration: 120 },
+              { value: 0, duration: 120 }
+            ],
+            opacity: [
+              { value: 0.5, duration: 150 },
+              { value: 1, duration: 150 },
+              { value: 0.6, duration: 150 },
+              { value: 1, duration: 150 }
+            ],
+            color: [
+              { value: '#ef4444', duration: 200 },
+              { value: '#3b82f6', duration: 200 },
+              { value: '#a855f7', duration: 200 }
+            ],
+            loop: true,
+            direction: 'alternate',
+            easing: 'steps(3)'
+          });
+        }
+      }, 50);
+      criticalTimeoutsRef.current = [timeoutD];
+
+    } else if (isAnsiedadeActive && (firstRoll === 1 || secondRoll === 1)) {
       setDisplayMessage('Fracasso por Ansiedade!');
       setDisplayFlash('fail');
       setIsCritical(false);
@@ -302,9 +355,119 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
   const reRollDice = (diceToReRoll: 'attribute' | 'training') => {
     if (!rollRequest || isRolling) return;
+    if (alucinacaoGlitchDice && alucinacaoGlitchDice !== diceToReRoll) return;
+
+    if (alucinacaoGlitchDice && alucinacaoSecretRoll !== null) {
+      setIsReRolling(diceToReRoll);
+      const targetClass = alucinacaoGlitchDice === 'attribute' ? '.dice-attribute' : '.dice-training';
+      const el = containerRef.current?.querySelector(targetClass);
+      
+      if (el) {
+        anime.remove(el);
+        (el as HTMLElement).style.transform = '';
+        (el as HTMLElement).style.opacity = '';
+        (el as HTMLElement).style.color = '';
+        (el as HTMLElement).style.filter = '';
+        
+        // Efeito de fumaça / ilusão se desfazendo
+        anime({
+          targets: el,
+          translateX: [
+            { value: 15, duration: 120 },
+            { value: -15, duration: 120 },
+            { value: 8, duration: 120 },
+            { value: -8, duration: 120 },
+            { value: 0, duration: 120 }
+          ],
+          skewX: [
+            { value: 20, duration: 120 },
+            { value: -20, duration: 120 },
+            { value: 10, duration: 120 },
+            { value: -10, duration: 120 },
+            { value: 0, duration: 120 }
+          ],
+          filter: [
+            { value: 'hue-rotate(90deg) contrast(200%) blur(2px)', duration: 120 },
+            { value: 'hue-rotate(-90deg) contrast(200%) blur(2px)', duration: 120 },
+            { value: 'hue-rotate(0deg) contrast(100%) blur(0px)', duration: 150 }
+          ],
+          easing: 'linear'
+        });
+
+        // Fatias digitais horizontais (Static Glitch)
+        for (let i = 0; i < 8; i++) {
+          const glitchLine = document.createElement('div');
+          glitchLine.className = 'absolute w-full h-[3px] bg-fuchsia-400 z-50 pointer-events-none mix-blend-screen opacity-80';
+          glitchLine.style.left = '0';
+          glitchLine.style.top = `${Math.random() * 90}%`;
+          (el as HTMLElement).appendChild(glitchLine);
+          
+          anime({
+            targets: glitchLine,
+            translateX: [anime.random(-30, 30), anime.random(-80, 80)],
+            scaleX: [1, Math.random() * 4 + 1],
+            opacity: [0.9, 0],
+            duration: 350 + Math.random() * 200,
+            easing: 'easeOutExpo',
+            complete: () => glitchLine.remove()
+          });
+        }
+      }
+      
+      setAlucinacaoGlitchDice(null);
+      
+      // Delay de revelação muito curto (no meio do glitch visual)
+      setTimeout(() => {
+        setDisplayRolls((prev) => {
+          const newRolls = [...prev];
+          
+          if (diceToReRoll === 'attribute') {
+            newRolls[0] = alucinacaoSecretRoll;
+          } else {
+            newRolls[1] = alucinacaoSecretRoll;
+          }
+
+          if (criticalInterferencePhase === 'none') {
+            const criticalDice = lastCriticalDiceRef.current;
+            const criticalThreshold = lastCriticalThresholdRef.current;
+            triggerDisplayOutcome(newRolls[0], newRolls[1], criticalDice, criticalThreshold, true);
+          }
+
+          const attributeConfig = getAttributeRollConfig(rollRequest.attributeValue);
+          const modifier = rollRequest.modifier || 0;
+          let total = newRolls[0] + newRolls[1] + modifier;
+          const finalRolls = [...newRolls];
+          if (modifier !== 0) finalRolls.push(modifier);
+
+          const formulaParts = [attributeConfig.formula, `1d${rollRequest.trainingDie}`];
+          if (modifier !== 0) {
+            formulaParts.push(modifier > 0 ? `+ ${modifier}` : `- ${Math.abs(modifier)}`);
+          }
+          const formula = formulaParts.join(' ').replace('+ -', '- ');
+
+          const result: DiceResult = {
+            formula,
+            total,
+            rolls: finalRolls,
+            timestamp: new Date().toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            }),
+          };
+
+          setHistory((prev) => [result, ...prev.slice(0, 4)]);
+          return newRolls;
+        });
+        
+        setIsReRolling(null);
+        setAlucinacaoSecretRoll(null);
+      }, 300);
+
+      return;
+    }
 
     setIsReRolling(diceToReRoll);
-
     const animationDuration = 400;
     const startTime = Date.now();
 
@@ -345,7 +508,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
           // Usar o d20 anterior (não rolar um novo)
           const criticalDice = lastCriticalDiceRef.current;
           const criticalThreshold = lastCriticalThresholdRef.current;
-          triggerDisplayOutcome(newRolls[0], newRolls[1], criticalDice, criticalThreshold);
+          triggerDisplayOutcome(newRolls[0], newRolls[1], criticalDice, criticalThreshold, true);
         }
 
         const attributeConfig = getAttributeRollConfig(rollRequest.attributeValue);
@@ -482,6 +645,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
   useEffect(() => {
     if (!rollRequest) return;
     if (isRolling) return;
+    if (alucinacaoGlitchDice) return;
     if (lastProcessedRollIdRef.current === rollRequest.id) return;
 
     // Limpar timeouts anteriores de interferência crítica
@@ -499,6 +663,8 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
     setDisplayMessage(null);
     setDisplayFlash(null);
+    setAlucinacaoGlitchDice(null);
+    setAlucinacaoSecretRoll(null);
     setIsRolling(true);
 
     const animationDuration = 650;
@@ -566,6 +732,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
   useEffect(() => {
     if (!damageRollRequest) return;
     if (isRolling) return;
+    if (alucinacaoGlitchDice) return;
     if (lastProcessedDamageRollIdRef.current === damageRollRequest.id) return;
 
     lastProcessedDamageRollIdRef.current = damageRollRequest.id;
@@ -752,18 +919,18 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
 
         {displayMode === 'skill' ? (
           <>
-            <div className="grid grid-cols-2 gap-2 mb-1 dice-button-container">
+            <div className="grid grid-cols-2 gap-2 mb-1 dice-button-container relative">
               <button
                 onClick={() => reRollDice('attribute')}
-                disabled={isRolling || isReRolling !== null}
-                className={`h-14 border-2 border-blue-500 bg-black flex items-center justify-center text-xl font-bold transition-all cursor-pointer hover:bg-blue-950/25 disabled:cursor-default ${isRolling || isReRolling === 'attribute' ? 'animate-pulse text-blue-300' : 'text-blue-500 hover:border-blue-400'}`}
+                disabled={isRolling || isReRolling !== null || (alucinacaoGlitchDice !== null && alucinacaoGlitchDice !== 'attribute')}
+                className={`dice-attribute relative overflow-hidden h-14 border-2 border-blue-500 bg-black flex items-center justify-center text-xl font-bold transition-all cursor-pointer hover:bg-blue-950/25 disabled:cursor-default ${isRolling || isReRolling === 'attribute' ? 'animate-pulse text-blue-300' : 'text-blue-500 hover:border-blue-400'}`}
               >
                 {displayRolls[0] ?? '-'}
               </button>
               <button
                 onClick={() => reRollDice('training')}
-                disabled={isRolling || isReRolling !== null}
-                className={`h-14 border-2 border-purple-600 bg-black flex items-center justify-center text-xl font-bold transition-all cursor-pointer hover:bg-purple-950/25 disabled:cursor-default ${isRolling || isReRolling === 'training' ? 'animate-pulse text-purple-300' : 'text-purple-500 hover:border-purple-400'}`}
+                disabled={isRolling || isReRolling !== null || (alucinacaoGlitchDice !== null && alucinacaoGlitchDice !== 'training')}
+                className={`dice-training relative overflow-hidden h-14 border-2 border-purple-600 bg-black flex items-center justify-center text-xl font-bold transition-all cursor-pointer hover:bg-purple-950/25 disabled:cursor-default ${isRolling || isReRolling === 'training' ? 'animate-pulse text-purple-300' : 'text-purple-500 hover:border-purple-400'}`}
               >
                 {displayRolls[1] ?? '-'}
               </button>
@@ -810,6 +977,8 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
                 ? 'text-purple-300'
                 : disasterPhase === 'collapse'
                   ? 'text-red-400'
+                  : alucinacaoGlitchDice
+                  ? 'text-fuchsia-500 animate-pulse'
                   : 'text-red-300'
               }`}
           >
@@ -817,7 +986,7 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
           </div>
         )}
 
-        {displayMode === 'skill' && displayRolls[0] && !isRolling && displayFlash !== 'fail' && lastAttackWeapon?.damageDiceCount && lastAttackWeapon?.damageDiceSides && (
+        {displayMode === 'skill' && displayRolls[0] && !isRolling && displayFlash !== 'fail' && !alucinacaoGlitchDice && lastAttackWeapon?.damageDiceCount && lastAttackWeapon?.damageDiceSides && (
           <button
             onClick={rollWeaponDamage}
             className="w-full mb-3 py-2 bg-red-600 hover:bg-red-700 text-white font-bold uppercase border border-red-500 transition-all text-xs"
@@ -826,9 +995,15 @@ export default function DiceRoller({ rollRequest, damageRollRequest, traumasCoun
           </button>
         )}
 
-        {displayMode === 'skill' && displayRolls[0] && !isRolling && (
+        {displayMode === 'skill' && displayRolls[0] && !isRolling && !alucinacaoGlitchDice && (
           <div className="mb-3 text-center text-[9px] text-gray-400 italic">
             Clique em um dado para re-rolálo
+          </div>
+        )}
+        
+        {alucinacaoGlitchDice && (
+          <div className="mb-3 text-center text-[10px] text-fuchsia-400 font-bold uppercase animate-bounce">
+            Clique no dado alterado para tentar recuperar a realidade!
           </div>
         )}
 
