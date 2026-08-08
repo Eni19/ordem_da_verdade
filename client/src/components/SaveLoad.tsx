@@ -112,7 +112,7 @@ export default function SaveLoad({
               ) : (
                 <Cloud size={16} />
               )}
-              {characterId ? "ATUALIZAR NUVEM" : "SALVAR NUVEM"}
+              {characterId ? "ATUALIZAR FICHA" : "SALVAR FICHA"}
             </button>
 
             <button
@@ -121,7 +121,7 @@ export default function SaveLoad({
               title="Gerenciar fichas na nuvem"
             >
               <FolderKanban size={16} />
-              FICHAS
+              GERENCIAR FICHAS
             </button>
           </div>
 
