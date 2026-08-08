@@ -417,7 +417,8 @@ export default function InventoryPanel({
 
                 {/* Tab Content */}
                 {activeTab === 'mochila' ? (
-                  <div className="relative flex flex-col items-center mt-4 min-h-[600px]">
+                  <div className="w-full overflow-x-auto pb-8">
+                    <div className="relative flex flex-col items-center mt-4 min-h-[600px] min-w-max px-4">
                         <InventoryGrid
                           containerId="main"
                           title={
@@ -471,7 +472,8 @@ export default function InventoryPanel({
                             />
                           </DraggableContainer>
                         ))}
-                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="mt-4 space-y-2">
                     {inventory.filter(i => i.containerId === 'pocket').map(item => (

@@ -332,6 +332,8 @@ const ensureGenericPericia = (pericias: Pericia[]): Pericia[] => {
 export default function CharacterSheet() {
   const [pendingRoll, setPendingRoll] = useState<SkillRollRequest | null>(null);
   const [pendingDamageRoll, setPendingDamageRoll] = useState<DamageRollRequest | null>(null);
+  const [delayedRoll, setDelayedRoll] = useState<SkillRollRequest | null>(null);
+  const [delayedDamageRoll, setDelayedDamageRoll] = useState<DamageRollRequest | null>(null);
   const [openSidebar, setOpenSidebar] = useState<'inventory' | 'insanity' | 'rituals' | null>(null);
   const [pokerConjureState, setPokerConjureState] = useState<PokerConjureState | null>(null);
   const [suspendedConjurations, setSuspendedConjurations] = useState<Record<string, PokerConjureState>>({});
@@ -386,9 +388,21 @@ export default function CharacterSheet() {
 
   useEffect(() => {
     if (pendingRoll || pendingDamageRoll) {
-      setTimeout(() => {
-        diceRollerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+      const isMobile = window.innerWidth < 768;
+      
+      if (isMobile) {
+        setTimeout(() => {
+          diceRollerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+      
+      const delay = isMobile ? 600 : 0;
+      const timer = setTimeout(() => {
+        if (pendingRoll) setDelayedRoll(pendingRoll);
+        if (pendingDamageRoll) setDelayedDamageRoll(pendingDamageRoll);
+      }, delay);
+
+      return () => clearTimeout(timer);
     }
   }, [pendingRoll, pendingDamageRoll]);
 
@@ -2285,7 +2299,7 @@ export default function CharacterSheet() {
 
         {/* Right Column - Dice */}
         <div ref={diceRollerRef} className="flex-shrink-0 w-full md:w-56 pr-0 md:pr-4">
-          <DiceRoller rollRequest={pendingRoll} damageRollRequest={pendingDamageRoll} traumasCount={character.traumas?.length ?? 0} />
+          <DiceRoller rollRequest={delayedRoll} damageRollRequest={delayedDamageRoll} traumasCount={character.traumas?.length ?? 0} />
         </div>
       </div>
 

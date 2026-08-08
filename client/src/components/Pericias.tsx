@@ -196,7 +196,7 @@ function DraggablePericiaItem({
         />
 
         <div
-          className={`w-36 border text-sm p-1 focus:outline-none h-8 transition-colors duration-200 relative overflow-hidden ${
+          className={`w-24 sm:w-36 border text-xs sm:text-sm p-1 focus:outline-none h-8 transition-colors duration-200 relative overflow-hidden ${
             isRollMenuActive
               ? isAffected
                 ? 'bg-purple-500 border-black text-black'
@@ -234,7 +234,7 @@ function DraggablePericiaItem({
               prev?.periciaId === pericia.id ? null : { periciaId: pericia.id, attribute: 'força' }
             )
           }
-          className={`w-20 h-8 font-bold uppercase text-sm border-2 transition-all ${
+          className={`w-16 sm:w-20 h-8 font-bold uppercase text-xs sm:text-sm border-2 transition-all ${
             isRollMenuActive
               ? isAffected
                 ? 'bg-black text-purple-400 border-black hover:bg-black hover:text-purple-300'
