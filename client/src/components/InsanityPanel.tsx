@@ -336,7 +336,7 @@ export default function InsanityPanel({
       {showToggle && (
         <button
           onClick={onToggle}
-          className={`group fixed top-32 z-[60] h-16 w-6 hover:w-36 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 pointer-events-auto ${isOpen ? 'right-[34rem]' : 'right-0'
+          className={`group fixed top-32 z-[60] h-16 w-6 hover:w-36 overflow-hidden bg-black border-2 border-orange-500 hover:bg-orange-500 hover:bg-opacity-10 flex items-center justify-start text-orange-300 transition-all duration-300 pointer-events-auto ${isOpen ? 'right-[85vw] sm:right-[34rem]' : 'right-0'
             }`}
         >
           <span className="flex h-full w-5 flex-shrink-0 items-center justify-center">
@@ -350,7 +350,7 @@ export default function InsanityPanel({
 
       {/* Panel */}
       <div
-        className={`h-full bg-black overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-black [&::-webkit-scrollbar-thumb]:bg-orange-500 [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin] [scrollbar-color:#f97316_black] transition-all duration-300 pointer-events-auto ${isOpen ? 'w-[34rem] border-l-2 border-orange-500' : 'w-0 border-l-0'
+        className={`h-full bg-black overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-black [&::-webkit-scrollbar-thumb]:bg-orange-500 [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin] [scrollbar-color:#f97316_black] transition-all duration-300 pointer-events-auto ${isOpen ? 'w-[85vw] sm:w-[34rem] border-l-2 border-orange-500' : 'w-0 border-l-0'
           }`}
       >
         <div className="p-4 space-y-6">

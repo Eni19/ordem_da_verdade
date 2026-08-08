@@ -382,6 +382,16 @@ export default function CharacterSheet() {
   const fearRouletteIntervalRef = useRef<number | null>(null);
   const fearRouletteTimeoutRef = useRef<number | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const diceRollerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (pendingRoll || pendingDamageRoll) {
+      setTimeout(() => {
+        diceRollerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [pendingRoll, pendingDamageRoll]);
+
   const [characterId, setCharacterId] = useState<string | null>(() => {
     try {
       return localStorage.getItem('odv_current_character_id');
@@ -2274,7 +2284,7 @@ export default function CharacterSheet() {
         </div>
 
         {/* Right Column - Dice */}
-        <div className="flex-shrink-0 w-full md:w-56 pr-0 md:pr-4">
+        <div ref={diceRollerRef} className="flex-shrink-0 w-full md:w-56 pr-0 md:pr-4">
           <DiceRoller rollRequest={pendingRoll} damageRollRequest={pendingDamageRoll} traumasCount={character.traumas?.length ?? 0} />
         </div>
       </div>

@@ -251,7 +251,7 @@ export default function RitualsPanel({
         <button
           onClick={onToggle}
           className={`group fixed top-48 z-[60] h-16 w-6 hover:w-36 overflow-hidden bg-black border-2 border-purple-500 hover:bg-purple-500 hover:bg-opacity-10 flex items-center justify-start text-purple-300 transition-all duration-300 pointer-events-auto ${
-            isOpen ? 'right-[100vw] sm:right-[650px] md:right-[750px]' : 'right-0'
+            isOpen ? 'right-[85vw] sm:right-[650px] md:right-[750px]' : 'right-0'
           }`}
         >
           <span className="flex h-full w-5 flex-shrink-0 items-center justify-center">

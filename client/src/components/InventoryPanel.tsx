@@ -330,7 +330,7 @@ export default function InventoryPanel({
         <button
           onClick={onToggle}
           className={`group fixed top-16 z-[60] h-16 w-6 hover:w-36 overflow-hidden bg-black border-2 border-primary hover:bg-primary hover:bg-opacity-10 flex items-center justify-start text-primary transition-all duration-300 ${
-            isOpen ? 'right-[34rem]' : 'right-0'
+            isOpen ? 'right-[85vw] sm:right-[34rem]' : 'right-0'
           }`}
         >
           <span className="flex h-full w-5 flex-shrink-0 items-center justify-center">
@@ -343,7 +343,7 @@ export default function InventoryPanel({
       )}
 
       {/* Panel Content */}
-      <div className={`fixed right-0 top-0 h-screen z-50 bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[34rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
+      <div className={`fixed right-0 top-0 h-screen z-50 bg-black transition-all duration-300 flex flex-col ${isOpen ? 'w-[85vw] sm:w-[34rem] border-l-2 border-primary' : 'w-0 border-l-0'}`} style={{ paddingTop: '3rem' }}>
         {isOpen && (
           <ScrollArea className="flex-1 overflow-hidden [&_[data-slot=scroll-area-thumb]]:bg-primary">
             <div className="p-4 space-y-6 pr-4">
