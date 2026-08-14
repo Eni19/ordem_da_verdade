@@ -25,6 +25,7 @@ interface SkillsListProps {
   onUpdateSkill: (id: string, field: keyof Skill, value: string | number | boolean) => void;
   onDeleteSkill: (id: string) => void;
   onReorderSkills: (draggedId: string, targetId: string) => void;
+  degradationPenalty?: number;
 }
 
 function DraggableSkillCard({
@@ -35,6 +36,7 @@ function DraggableSkillCard({
   onUpdateSkill,
   setPendingDeleteSkill,
   onReorderSkills,
+  degradationPenalty = 0,
 }: {
   skill: Skill;
   draggedSkillId: string | null;
@@ -43,6 +45,7 @@ function DraggableSkillCard({
   onUpdateSkill: (id: string, field: keyof Skill, value: string | number | boolean) => void;
   setPendingDeleteSkill: (skill: Skill) => void;
   onReorderSkills: (draggedId: string, targetId: string) => void;
+  degradationPenalty?: number;
 }) {
   const elRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -181,9 +184,15 @@ function DraggableSkillCard({
           <label className="font-display text-[11px] text-primary uppercase">Custo</label>
           <input
             type="text"
-            value={skill.cost}
+            value={degradationPenalty > 0 ? String(skill.cost || '').replace(/\d+/, match => (parseInt(match) + degradationPenalty).toString()) : (skill.cost || '')}
             onChange={(e) => onUpdateSkill(skill.id, 'cost', e.target.value)}
-            className="w-full bg-input border border-primary text-primary text-sm p-1 focus:outline-none focus:ring-1 focus:ring-primary transition-colors duration-200"
+            disabled={degradationPenalty > 0}
+            title={degradationPenalty > 0 ? `Custo aumentado em +${degradationPenalty} devido à Degradação Mental` : undefined}
+            className={`w-full bg-input border text-sm p-1 focus:outline-none transition-colors duration-200 ${
+              degradationPenalty > 0 
+                ? 'border-red-500/50 text-red-400 cursor-not-allowed opacity-80' 
+                : 'border-primary text-primary focus:ring-1 focus:ring-primary'
+            }`}
             placeholder="Custo"
           />
         </div>
@@ -209,7 +218,7 @@ function DraggableSkillCard({
   );
 }
 
-export default function SkillsList({ skills, onUpdateSkill, onDeleteSkill, onReorderSkills }: SkillsListProps) {
+export default function SkillsList({ skills, onUpdateSkill, onDeleteSkill, onReorderSkills, degradationPenalty = 0 }: SkillsListProps) {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [draggedSkillId, setDraggedSkillId] = useState<string | null>(null);
   const [pendingDeleteSkill, setPendingDeleteSkill] = useState<Skill | null>(null);
@@ -259,6 +268,7 @@ export default function SkillsList({ skills, onUpdateSkill, onDeleteSkill, onReo
                 onUpdateSkill={onUpdateSkill}
                 setPendingDeleteSkill={setPendingDeleteSkill}
                 onReorderSkills={onReorderSkills}
+                degradationPenalty={degradationPenalty}
               />
             ))
           )}

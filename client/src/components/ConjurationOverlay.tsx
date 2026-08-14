@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import anime from 'animejs';
 import { Card, drawCard, getConjurationEffect, evaluate5CardHand, getTargetResistanceDT, createDeck, HandGrade } from '@/utils/pokerLogic';
+import BlackHole from './BlackHole';
 
 export type ConjurationPhase = 'draw' | 'discard_roll' | 'discard_select' | 'omen_select' | 'decision' | 'showdown' | 'immediate_showdown';
 
@@ -22,6 +23,7 @@ interface ConjurationOverlayProps {
   ritualType: 'dano' | 'aflicao' | 'suporte';
   ocultismoLevel: string; // e.g. 'treinado', 'veterano', 'expert'
   inteligencia: number;
+  presenca: number;
   getRollConfig: (attr: 'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor') => {
     attributeValue: number;
     trainingDie: number;
@@ -29,9 +31,11 @@ interface ConjurationOverlayProps {
     realAttribute: string;
   };
   onClose: () => void;
-  onConclude: (effect?: string) => void;
+  onConclude: (effect: SpellEffect) => void;
   isRetained?: boolean;
   onSuspend?: (state: PokerConjureState) => void;
+  defensiveCharges: number;
+  onConsumeDefensiveCharge: () => void;
 }
 
 function DraggablePokerCard({
@@ -272,16 +276,15 @@ export default function ConjurationOverlay({
   ritualType,
   ocultismoLevel,
   inteligencia,
+  presenca,
   getRollConfig,
   onClose,
   onConclude,
   isRetained = false,
   onSuspend,
+  defensiveCharges,
+  onConsumeDefensiveCharge,
 }: ConjurationOverlayProps) {
-  const [selectedAttribute, setSelectedAttribute] = useState<'força' | 'agilidade' | 'inteligência' | 'presença' | 'vigor'>('inteligência');
-  const [localRollResult, setLocalRollResult] = useState<number | null>(null);
-  const [isRolling, setIsRolling] = useState(false);
-  const [diceState, setDiceState] = useState<{ attrDie: number | string, skillDie: number | string, winner: 'attr' | 'skill' | null } | null>(null);
   const [showdownResult, setShowdownResult] = useState<{ grade: HandGrade; handName: string; best5: Card[] } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -290,36 +293,44 @@ export default function ConjurationOverlay({
   const actionWrapperRef = useRef<HTMLDivElement>(null);
   const hasAnimatedInitialHand = useRef(false);
 
-  // Define Hand Size based on Ocultismo training
-  const getHandSize = (level: string) => {
+  // Define Hand Size based on Intelligence or Presence (highest)
+  const baseAttr = Math.max(inteligencia, presenca);
+  const getHandSize = (attrValue: number, currentTurn: number) => {
+    if (attrValue <= 1) return 5;
+    if (attrValue === 2) return 6;
+    if (attrValue === 3) return currentTurn === 3 ? 7 : 6;
+    if (attrValue === 4) return 7;
+    return 8;
+  };
+  const handSize = getHandSize(baseAttr, state?.turn || 1);
+
+  const getDiscardLimit = (level: string) => {
     switch (level.toLowerCase()) {
-      case 'expert': return 7;
-      case 'veterano': return 6;
-      case 'treinado': return 5;
-      default: return 5;
+      case 'expert': return 4;
+      case 'veterano': return 3;
+      case 'treinado': return 2;
+      default: return 2;
     }
   };
-  const handSize = getHandSize(ocultismoLevel);
-
-  // Removemos a animação staggada estática antiga pois agora voaremos do baralho
-  // useEffect(() => { ... }) foi removido
+  const currentDiscardLimit = getDiscardLimit(ocultismoLevel);
 
   useEffect(() => {
     if (state.phase === 'draw' && state.deck.length === 0) {
-      // Initialize the deck and draw the first hand
       const initialDeck = createDeck();
       const { drawnCards, newDeck } = drawCard(initialDeck, handSize);
 
-      setAnimatingIndices(drawnCards.map((_, i) => i)); // Anima todas as cartas
+      setAnimatingIndices(drawnCards.map((_, i) => i));
 
       setState(prev => prev ? {
         ...prev,
         deck: newDeck,
         hand: drawnCards,
-        phase: 'discard_roll'
+        discardLimit: currentDiscardLimit,
+        phase: 'discard_select',
+        selectedCards: []
       } : prev);
     }
-  }, [state.phase, state.deck.length, handSize, setState]);
+  }, [state.phase, state.deck.length, handSize, currentDiscardLimit, setState]);
 
   useEffect(() => {
     if (animatingIndices.length > 0) {
@@ -341,16 +352,12 @@ export default function ConjurationOverlay({
         if (!cardEl) return;
         const cardRect = cardEl.getBoundingClientRect();
 
-        // Compensate for the opacity-0 class logic
         anime.set(cardEl, { opacity: 1 });
 
-        // Calculate delta from deck center to card center to account for transform-origin and scale
         const dx = (deckRect.left + deckRect.width / 2) - (cardRect.left + cardRect.width / 2);
         const dy = (deckRect.top + deckRect.height / 2) - (cardRect.top + cardRect.height / 2);
 
         const inner = cardEl.querySelector('.poker-card-inner');
-
-        // Reverse the animation order: last DOM elements (visually on top) fly first!
         const delayIndex = animatingIndices.length - 1 - i;
 
         tl.add({
@@ -398,14 +405,28 @@ export default function ConjurationOverlay({
     }
   }, [state?.phase]);
 
-  // Showdown animation
+  useEffect(() => {
+    // Triggers the 7th card extra draw on turn 3 exactly when the player is viewing the hand
+    if (state.phase === 'discard_select' && state.turn === 3 && baseAttr === 3 && state.hand.length === 6) {
+      const timer = setTimeout(() => {
+        setState(prev => {
+          if (!prev || prev.turn !== 3 || prev.hand.length !== 6) return prev;
+          const draw = drawCard(prev.deck, 1);
+          const newHand = [...prev.hand, ...draw.drawnCards];
+          setAnimatingIndices([newHand.length - 1]);
+          return { ...prev, deck: draw.newDeck, hand: newHand };
+        });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [state.phase, state.turn, baseAttr, state.hand.length, setState]);
+
   useEffect(() => {
     if (showdownResult) {
       const tl = anime.timeline({
         easing: 'easeOutExpo'
       });
 
-      // Show container
       tl.add({
         targets: '.showdown-container',
         opacity: [0, 1],
@@ -413,7 +434,6 @@ export default function ConjurationOverlay({
         duration: 800,
       });
 
-      // Stagger cards
       tl.add({
         targets: '.showdown-card',
         translateY: [30, 0],
@@ -423,7 +443,6 @@ export default function ConjurationOverlay({
         duration: 800,
       }, '-=400');
 
-      // Title & stats
       tl.add({
         targets: '.showdown-title, .showdown-stat',
         opacity: [0, 1],
@@ -432,7 +451,6 @@ export default function ConjurationOverlay({
         duration: 800,
       }, '-=200');
 
-      // Words in description
       tl.add({
         targets: '.showdown-word',
         opacity: [0, 1],
@@ -443,7 +461,6 @@ export default function ConjurationOverlay({
         easing: 'easeOutBack'
       }, '-=400');
       
-      // The final button
       tl.add({
         targets: '.showdown-btn',
         opacity: [0, 1],
@@ -452,213 +469,6 @@ export default function ConjurationOverlay({
       }, '-=200');
     }
   }, [showdownResult]);
-
-  const getAttrDiceConfig = (rawAttrValue: any): { qty: number, sides: number } => {
-    const attrValue = Number(rawAttrValue);
-    if (isNaN(attrValue) || attrValue <= 1) return { qty: 1, sides: 6 };
-    if (attrValue === 2) return { qty: 1, sides: 8 };
-    if (attrValue === 3) return { qty: 1, sides: 10 };
-    if (attrValue === 4) return { qty: 1, sides: 12 };
-    return { qty: 2, sides: 12 };
-  };
-
-  const handleRollFiltragem = () => {
-    setIsRolling(true);
-    setDiceState({ attrDie: '?', skillDie: '?', winner: null });
-
-    // Reseta todos os estilos de animações anteriores para que nada comece escuro, borrado ou distorcido
-    anime.set('.conjure-die-attr, .conjure-die-skill', {
-      opacity: 1,
-      scale: 1,
-      filter: 'blur(0px)'
-    });
-    anime.set('.mystic-die-container', {
-      scale: 1,
-      boxShadow: '0 0 0px rgba(0,0,0,0)'
-    });
-
-    const attrConfig = getAttrDiceConfig(getRollConfig(selectedAttribute).attributeValue);
-    const skillSides = getRollConfig(selectedAttribute).trainingDie;
-
-    // Dispara as animações de ambiência lentas e místicas
-    setTimeout(() => {
-      anime({
-        targets: '.outer-ring',
-        rotateZ: ['0turn', '1turn'],
-        duration: 30000,
-        easing: 'linear',
-        loop: true
-      });
-      anime({
-        targets: '.inner-square',
-        rotateZ: ['45deg', '-315deg'],
-        duration: 40000,
-        easing: 'linear',
-        loop: true
-      });
-      anime({
-        targets: '.mystic-text',
-        scale: [0.95, 1.1],
-        opacity: [0.7, 1],
-        direction: 'alternate',
-        loop: true,
-        duration: 4000, // 4 segundos pra ir e voltar
-        easing: 'easeInOutSine'
-      });
-      anime({
-        targets: '.mystic-die-container',
-        translateY: [-20, 20],
-        direction: 'alternate',
-        loop: true,
-        duration: 6000,
-        easing: 'easeInOutSine'
-      });
-    }, 50);
-
-    let iterations = 0;
-    let currentDelay = 40; // Começa bem rápido (40ms)
-
-    const rollStep = () => {
-      // Usando apenas os glifos que você escolheu (A-O, sem K, X e Y)
-      const symbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'L', 'M', 'N', 'O'];
-      const randomSymbol = () => symbols[Math.floor(Math.random() * symbols.length)];
-
-      setDiceState({
-        attrDie: randomSymbol(),
-        skillDie: randomSymbol(),
-        winner: null
-      });
-      iterations++;
-      currentDelay *= 1.1; // Vai ficando 10% mais devagar a cada piscar
-
-      if (iterations < 25) { // Aproximadamente 4 a 5 segundos de duração total
-        setTimeout(rollStep, currentDelay);
-      } else {
-        let finalAttr = 0;
-        for (let i = 0; i < attrConfig.qty; i++) {
-          finalAttr = Math.max(finalAttr, Math.floor(Math.random() * attrConfig.sides) + 1);
-        }
-        const finalSkill = Math.floor(Math.random() * skillSides) + 1;
-        const finalWinner = finalAttr > finalSkill ? 'attr' : 'skill';
-        setDiceState({ attrDie: finalAttr, skillDie: finalSkill, winner: finalWinner });
-
-        // Mantém a levitação e os anéis, só tira a pulsação de texto para revelar o número
-        anime.remove('.mystic-text');
-
-        // Força a opacidade de volta para 100% imediatamente para não congelar escuro
-        anime.set('.mystic-text', { opacity: 1, scale: 1 });
-
-        // Calcula a posição para centralizar o dado vencedor na linha
-        setTimeout(() => {
-          const rowEl = document.querySelector('.dice-row-container');
-          const winnerEl = document.querySelector(finalWinner === 'attr' ? '.conjure-die-attr' : '.conjure-die-skill');
-          let dx = 0;
-          if (rowEl && winnerEl) {
-            const rowRect = rowEl.getBoundingClientRect();
-            const winnerRect = winnerEl.getBoundingClientRect();
-            const rowCenter = rowRect.left + rowRect.width / 2;
-            const winnerCenter = winnerRect.left + winnerRect.width / 2;
-            dx = rowCenter - winnerCenter;
-          }
-
-          anime({
-            targets: finalWinner === 'attr' ? '.conjure-die-attr' : '.conjure-die-skill',
-            translateX: dx,
-            duration: 1500,
-            easing: 'easeOutExpo'
-          });
-        }, 50);
-
-        // Um retorno extremamente suave pro centro
-        anime({
-          targets: '.mystic-die-container',
-          scale: 1,
-          translateY: 0,
-          duration: 2500,
-          easing: 'easeOutElastic(1, .8)',
-        });
-
-        // Vencedor acende majestosamente devagar
-        anime({
-          targets: finalWinner === 'attr' ? '.conjure-die-attr .mystic-die-container' : '.conjure-die-skill .mystic-die-container',
-          scale: [1, 1.15],
-          boxShadow: ['0 0 0px rgba(168,85,247,0)', '0 0 80px rgba(168,85,247,0.6)'],
-          duration: 2500,
-          easing: 'easeOutExpo'
-        });
-
-        // Perdedor derrete no escuro dolorosamente devagar
-        anime({
-          targets: finalWinner === 'attr' ? '.conjure-die-skill' : '.conjure-die-attr',
-          opacity: [1, 0.05],
-          scale: [1, 0.8],
-          filter: ['blur(0px)', 'blur(10px)'],
-          duration: 2500,
-          easing: 'easeOutCubic'
-        });
-
-        setTimeout(() => {
-          const actionArea = document.querySelector('.dice-action-area') as HTMLElement;
-          const wrapper = actionWrapperRef.current;
-
-          if (actionArea && wrapper) {
-            anime({
-              targets: actionArea,
-              opacity: [1, 0],
-              duration: 400,
-              easing: 'easeInOutQuad',
-              complete: () => {
-                // Mede a altura atual e trava nela antes de mudar a fase
-                const hStart = wrapper.offsetHeight;
-                wrapper.style.height = `${hStart}px`;
-                wrapper.style.overflow = 'hidden';
-
-                handleRollComplete(finalAttr, finalSkill);
-                setIsRolling(false);
-
-                // Espera um frame para o React montar o novo conteúdo do discard_select
-                setTimeout(() => {
-                  wrapper.style.height = 'auto';
-                  const hEnd = wrapper.offsetHeight;
-                  wrapper.style.height = `${hStart}px`;
-
-                  anime({
-                    targets: wrapper,
-                    height: [hStart, hEnd],
-                    duration: 600,
-                    easing: 'easeOutCubic',
-                    complete: () => {
-                      wrapper.style.height = 'auto';
-                      wrapper.style.overflow = 'visible';
-                    }
-                  });
-                }, 50);
-              }
-            });
-          } else {
-            handleRollComplete(finalAttr, finalSkill);
-            setIsRolling(false);
-          }
-        }, 2500); // Aguarda a revelação e depois transiciona suavemente a altura
-      }
-    };
-
-    setTimeout(rollStep, currentDelay);
-  };
-
-  const handleRollComplete = (finalAttr: number, finalSkill: number) => {
-    const maxRoll = Math.max(finalAttr, finalSkill);
-    const allowedDiscards = Math.max(1, Math.floor(maxRoll / 2));
-
-    setLocalRollResult(maxRoll);
-
-    setState(prev => prev ? {
-      ...prev,
-      discardLimit: allowedDiscards,
-      phase: 'discard_select',
-      selectedCards: []
-    } : prev);
-  };
 
   const toggleCardSelection = (index: number) => {
     if (state.phase !== 'discard_select' && state.phase !== 'showdown') return;
@@ -680,7 +490,6 @@ export default function ConjurationOverlay({
 
   const handleDiscardAndReplace = () => {
     if (!state.selectedCards.length) {
-      // Opted to discard 0 cards
       const nextPhase = state.turn === 3 ? 'showdown' : 'decision';
       setState(prev => prev ? { ...prev, phase: nextPhase, selectedCards: [] } : prev);
       return;
@@ -690,7 +499,6 @@ export default function ConjurationOverlay({
     const newHand = [...state.hand];
     const replacedIndices: number[] = [];
 
-    // Replace discarded cards with new ones
     let drawIndex = 0;
     for (let i = 0; i < state.hand.length; i++) {
       if (state.selectedCards.includes(i)) {
@@ -712,15 +520,10 @@ export default function ConjurationOverlay({
   };
 
   const handleOmenSelect = (cardIndexInDeck: number) => {
-    // Fetch a specific card from the deck, swap with a card in hand (or just add if hand isn't full, but we maintain handSize)
-    // Actually, rules say "buscar 1 carta no baralho". Usually you discard 1 and get that 1.
-    // Let's assume you just pick one to replace the first card, or you select which one to discard first.
-    // For simplicity, Presságio 20 replaces the leftmost card (or a chosen one).
-    // Let's just give them the card and discard the first one.
     const chosenCard = state.deck[cardIndexInDeck];
     const newDeck = state.deck.filter((_, idx) => idx !== cardIndexInDeck);
     const newHand = [...state.hand];
-    newHand[0] = chosenCard; // Overwrite first card for simplicity in this MVP
+    newHand[0] = chosenCard;
 
     setAnimatingIndices([0]);
 
@@ -737,15 +540,17 @@ export default function ConjurationOverlay({
 
   const handleSustentarTranse = () => {
     if (!isRetained) {
-      setState(prev => prev ? {
-        ...prev,
-        turn: prev.turn + 1,
-        phase: 'discard_roll',
-        selectedCards: []
-      } : prev);
-      setLocalRollResult(null);
-      setDiceState(null);
-      onClose(); // Pausa a overlay apenas se não for retido
+      setState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          turn: prev.turn + 1,
+          discardLimit: currentDiscardLimit,
+          phase: 'discard_select',
+          selectedCards: []
+        };
+      });
+      onClose(); 
       return;
     }
 
@@ -756,14 +561,16 @@ export default function ConjurationOverlay({
         duration: 300,
         easing: 'easeInOutQuad',
         complete: () => {
-          setState(prev => prev ? {
-            ...prev,
-            turn: prev.turn + 1,
-            phase: 'discard_roll',
-            selectedCards: []
-          } : prev);
-          setLocalRollResult(null);
-          setDiceState(null);
+          setState(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              turn: prev.turn + 1,
+              discardLimit: currentDiscardLimit,
+              phase: 'discard_select',
+              selectedCards: []
+            };
+          });
           
           anime({
             targets: actionWrapperRef.current,
@@ -774,14 +581,16 @@ export default function ConjurationOverlay({
         }
       });
     } else {
-      setState(prev => prev ? {
-        ...prev,
-        turn: prev.turn + 1,
-        phase: 'discard_roll',
-        selectedCards: []
-      } : prev);
-      setLocalRollResult(null);
-      setDiceState(null);
+      setState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          turn: prev.turn + 1,
+          discardLimit: currentDiscardLimit,
+          phase: 'discard_select',
+          selectedCards: []
+        };
+      });
     }
   };
 
@@ -851,8 +660,12 @@ export default function ConjurationOverlay({
     const dt = getTargetResistanceDT(showdownResult.grade, parseInt(ritualCircle) || 1);
 
     return (
-      <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div className="showdown-container opacity-0 max-w-2xl w-full border-2 border-purple-500 bg-black p-6 space-y-6 text-center shadow-[0_0_50px_rgba(168,85,247,0.3)]">
+      <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4">
+        <div className="absolute inset-0 opacity-70">
+          <BlackHole centre={{ voidY: 35 }} orbitSpeed={3} particleCount={800} colors={['#a855f7', '#d8b4fe', '#ffffff']} outerRadius={100} tilt={15} tiltSideway={170} pullSpeed={1.5} />
+        </div>
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="showdown-container opacity-0 max-w-2xl w-full border-2 border-purple-500 bg-black/80 backdrop-blur-sm p-6 space-y-6 text-center shadow-[0_0_50px_rgba(168,85,247,0.3)] relative z-10">
           <h2 className="showdown-title opacity-0 text-3xl font-display text-purple-300 uppercase tracking-widest">Showdown</h2>
 
           <div className="flex justify-center gap-2">
@@ -875,7 +688,7 @@ export default function ConjurationOverlay({
           <div className="grid grid-cols-2 gap-4 border-t border-b border-purple-500/50 py-4">
             <div className="showdown-stat opacity-0">
               <div className="text-xs text-purple-400 uppercase font-bold">Conjuração</div>
-              <div className={`text-lg font-bold ${effect === 'Ruptura' ? 'text-red-400' : effect === 'Anomalia Narrativa' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse' : 'text-purple-100'}`}>{effect}</div>
+              <div className={`text-lg font-bold ${(effect === 'Desastre' || effect === 'Falha') ? 'text-red-400' : effect === 'Anomalia Narrativa' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse' : 'text-purple-100'}`}>{effect}</div>
             </div>
             <div className="showdown-stat opacity-0">
               <div className="text-xs text-purple-400 uppercase font-bold">DT do Ritual</div>
@@ -884,8 +697,11 @@ export default function ConjurationOverlay({
           </div>
           
           <div className="text-sm text-purple-300 bg-purple-900/20 p-4 border border-purple-500/30 rounded text-left leading-relaxed min-h-[100px]">
-            {effect === 'Ruptura' && (
-              <span><AnimatedText className="text-red-400 font-bold" text="Ruptura: O feitiço falha catastroficamente. A energia volta contra o Ocultista, causando consequências severas e rompendo o tecido da realidade ao seu redor, sem manifestar o efeito desejado do ritual." /></span>
+            {effect === 'Desastre' && (
+              <span><AnimatedText className="text-red-500 font-bold" text="Desastre:" /> <AnimatedText className="text-red-400" text="O ritual falha catastroficamente. A energia volta contra o Ocultista, causando consequências severas e rompendo o tecido da realidade ao seu redor, sem manifestar o efeito desejado do ritual." /></span>
+            )}
+            {effect === 'Falha' && (
+              <span><AnimatedText className="text-red-400 font-bold" text="Falha:" /> <AnimatedText className="text-red-300" text="O ritual falha e a energia dissipada do Outro Lado estressa a mente do conjurador." /></span>
             )}
             {effect === 'Padrão' && (
               <span><AnimatedText className="text-white font-bold" text="Padrão:" /> <AnimatedText text="O feitiço funciona na sua versão básica." /></span>
@@ -916,8 +732,13 @@ export default function ConjurationOverlay({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
-      <div className="absolute top-8 text-center space-y-2">
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 overflow-hidden">
+      <div className="absolute inset-0 opacity-40">
+        <BlackHole centre={{ voidY: 35 }} orbitSpeed={0.5 + state.turn * 0.5} particleCount={600 + state.turn * 150} colors={['#a855f7', '#c084fc', '#ffffff']} outerRadius={80 + state.turn * 10} tilt={20} tiltSideway={160} pullSpeed={(state.turn - 1) * 0.5} />
+      </div>
+      <div className="absolute inset-0 bg-black/60"></div>
+
+      <div className="absolute top-8 text-center space-y-2 relative z-10">
         <h2 className="text-3xl md:text-5xl font-display text-purple-300 uppercase tracking-widest" style={{ textShadow: '0 0 20px rgba(168,85,247,0.5)' }}>
           Transe: {ritualName}
         </h2>
@@ -930,74 +751,11 @@ export default function ConjurationOverlay({
 
         {/* ACTION AREA */}
         <div ref={actionWrapperRef} className="flex items-center justify-center w-full relative z-30">
-          {state.phase === 'discard_roll' && (
-            <div className="dice-action-area text-center space-y-6 max-w-lg w-full overflow-hidden">
-              <div className="text-purple-200 text-sm md:text-base">Escolha o Atributo para rolar junto com Ocultismo.</div>
-
-              <div className="flex gap-2 justify-center flex-wrap">
-                {['força', 'agilidade', 'inteligência', 'presença', 'vigor'].map(attr => (
-                  <button
-                    key={attr}
-                    disabled={isRolling || !!diceState}
-                    onClick={() => setSelectedAttribute(attr as any)}
-                    className={`px-3 py-1.5 border uppercase font-bold text-xs transition-colors rounded ${selectedAttribute === attr
-                        ? 'bg-purple-500 border-purple-500 text-black shadow-[0_0_10px_rgba(168,85,247,0.5)]'
-                        : 'border-purple-500/50 text-purple-300 hover:bg-purple-500/20 disabled:opacity-50'
-                      }`}
-                  >
-                    {attr.substring(0, 3)}
-                  </button>
-                ))}
-              </div>
-
-              <div className="h-64 md:h-80 w-full max-w-2xl flex flex-col items-center justify-center gap-8 border border-purple-500/20 bg-black/60 rounded-xl relative shadow-[0_0_30px_rgba(168,85,247,0.1)] overflow-hidden">
-                {!isRolling && !diceState ? (
-                  <button onClick={handleRollFiltragem} className="px-10 py-4 bg-transparent border-2 border-purple-500 text-purple-300 font-display uppercase tracking-[0.3em] text-xl hover:bg-purple-500 hover:text-black transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_40px_rgba(168,85,247,0.8)] relative z-50">
-                    Conjurar Teste
-                  </button>
-                ) : diceState ? (
-                  <div className="dice-row-container flex gap-12 md:gap-24 relative z-10">
-
-                    {/* ATTR DIE */}
-                    <div className="conjure-die-attr flex flex-col items-center gap-8">
-                      <div className="text-xs md:text-sm uppercase text-purple-300/80 font-display tracking-[0.4em] -mt-6">{selectedAttribute}</div>
-                      <div className="mystic-die-container rounded-full relative w-28 h-28 md:w-36 md:h-36 flex items-center justify-center">
-                        <div className="outer-ring absolute inset-0 rounded-full border-2 border-dashed border-purple-400/60 shadow-[0_0_15px_rgba(168,85,247,0.3)]" style={{ borderStyle: 'dotted' }}></div>
-                        <div className="inner-square absolute w-20 h-20 md:w-24 md:h-24 border border-purple-300/40 rotate-45 shadow-[inset_0_0_20px_rgba(168,85,247,0.2)]"></div>
-                        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 to-purple-500/30 rounded-full mix-blend-overlay"></div>
-                        <span className={`mystic-text absolute inset-0 flex items-center justify-center leading-none ${typeof diceState.attrDie === 'string' ? 'text-7xl md:text-8xl' : 'text-5xl md:text-6xl'} font-bold ${diceState.winner === 'attr' || !diceState.winner ? 'text-white' : 'text-purple-300'} z-10 pt-2`} style={{ textShadow: diceState.winner ? (diceState.winner === 'attr' ? '0 0 30px #fff, 0 0 50px #a855f7' : '0 0 5px rgba(168,85,247,0.2)') : '0 0 20px #c084fc, 0 0 10px #fff', fontFamily: typeof diceState.attrDie === 'string' ? 'AFonteParanormal, sans-serif' : 'inherit' }}>
-                          {diceState.attrDie}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* SKILL DIE */}
-                    <div className="conjure-die-skill flex flex-col items-center gap-8">
-                      <div className="text-xs md:text-sm uppercase text-purple-300/80 font-display tracking-[0.4em] -mt-6">Ocultismo</div>
-                      <div className="mystic-die-container rounded-full relative w-28 h-28 md:w-36 md:h-36 flex items-center justify-center">
-                        <div className="outer-ring absolute inset-0 rounded-full border-2 border-dashed border-purple-400/60 shadow-[0_0_15px_rgba(168,85,247,0.3)]" style={{ borderStyle: 'dotted' }}></div>
-                        <div className="inner-square absolute w-20 h-20 md:w-24 md:h-24 border border-purple-300/40 rotate-45 shadow-[inset_0_0_20px_rgba(168,85,247,0.2)]"></div>
-                        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 to-purple-500/30 rounded-full mix-blend-overlay"></div>
-                        <span className={`mystic-text absolute inset-0 flex items-center justify-center leading-none ${typeof diceState.skillDie === 'string' ? 'text-7xl md:text-8xl' : 'text-5xl md:text-6xl'} font-bold ${diceState.winner === 'skill' || !diceState.winner ? 'text-white' : 'text-purple-300'} z-10 pt-2`} style={{ textShadow: diceState.winner ? (diceState.winner === 'skill' ? '0 0 30px #fff, 0 0 50px #a855f7' : '0 0 5px rgba(168,85,247,0.2)') : '0 0 20px #c084fc, 0 0 10px #fff', fontFamily: typeof diceState.skillDie === 'string' ? 'AFonteParanormal, sans-serif' : 'inherit' }}>
-                          {diceState.skillDie}
-                        </span>
-                      </div>
-                    </div>
-
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
-
           {state.phase === 'discard_select' && (
             <div className="text-center space-y-6 max-w-lg w-full">
               <div className="text-purple-200">
-                <div className="discard-line-1 opacity-0 text-lg">
-                  Teste de Transe: <span className="font-bold text-white text-3xl mx-2" style={{ textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>{localRollResult}</span>
-                </div>
-                <div className="discard-line-2 opacity-0 text-base mt-2">
-                  Sua intuição revela até <span className="font-bold text-purple-400 text-4xl mx-2" style={{ textShadow: '0 0 20px rgba(168,85,247,0.8)' }}>{state.discardLimit}</span> descartes permitidos.
+                <div className="discard-line-1 opacity-0 text-lg mt-2">
+                  Sua técnica de ocultismo permite até <span className="font-bold text-purple-400 text-4xl mx-2" style={{ textShadow: '0 0 20px rgba(168,85,247,0.8)' }}>{state.discardLimit}</span> descartes.
                 </div>
               </div>
               <button
@@ -1035,9 +793,22 @@ export default function ConjurationOverlay({
                     Sustentar Ritual
                   </button>
                 )}
-                {state.turn > 1 && (
+                {state.turn > 1 ? (
                   <button onClick={initiateShowdown} className="px-8 py-3 bg-purple-500 text-black font-bold uppercase text-lg hover:bg-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all">
                     Showdown
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      if (defensiveCharges <= 0) return;
+                      onConsumeDefensiveCharge();
+                      initiateShowdown();
+                    }} 
+                    disabled={defensiveCharges <= 0}
+                    className="px-6 py-3 border-2 border-red-500 text-red-400 font-bold uppercase text-sm hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(239,68,68,0.2)] disabled:shadow-none transition-all flex flex-col items-center justify-center"
+                  >
+                    <span>Conjuração Impulsiva</span>
+                    <span className="text-xs opacity-80">(Gasta 1 Carga Defensiva)</span>
                   </button>
                 )}
               </div>

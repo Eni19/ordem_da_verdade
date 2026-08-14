@@ -183,10 +183,10 @@ function DraggableFearTag({ tag, onOpen, index, onDragMove }: { tag: ActiveFearT
       >
         <div 
           className="fear-text-container relative z-10 text-zinc-100 text-[18px] font-display font-bold uppercase text-center w-full leading-tight" 
-          title={tag.effectName}
+          title={tag.effectName || (tag as any).label || ''}
           style={{ textShadow: '1.5px 0 0 rgba(255, 0, 0, 0.8), -1.5px 0 0 rgba(0, 255, 255, 0.8)' }}
         >
-          {tag.effectName.split(' ').map((word, wIdx) => (
+          {((tag.effectName || (tag as any).label || '').replace(/^(dm[12]|1º|2º|\d+º|[\s-])+/gi, '')).split(' ').map((word, wIdx) => (
             <span key={wIdx} className="inline-block mx-[2px]">
               {word.split('').map((char, cIdx) => (
                 <span key={cIdx} className="fear-letter inline-block opacity-0" data-char={char}>{char}</span>

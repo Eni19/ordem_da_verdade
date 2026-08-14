@@ -176,24 +176,18 @@ function getCombinations<T>(array: T[], size: number): T[][] {
   return result;
 }
 
-export type SpellEffect = 'Ruptura' | 'Padrão' | 'Discente' | 'Discente Maximizado' | 'Anomalia Narrativa';
+export type SpellEffect = 'Desastre' | 'Falha' | 'Padrão' | 'Discente' | 'Discente Maximizado' | 'Anomalia Narrativa';
 
-export function getConjurationEffect(grade: HandGrade, circle: 1 | 2 | 3, isRetained: boolean = false): SpellEffect {
+export function getConjurationEffect(grade: HandGrade, circle: 1 | 2 | 3): SpellEffect {
   const matrix: Record<HandGrade, Record<1 | 2 | 3, SpellEffect>> = {
-    0: { 1: 'Ruptura', 2: 'Ruptura', 3: 'Ruptura' },
-    1: { 1: 'Padrão', 2: 'Ruptura', 3: 'Ruptura' },
-    2: { 1: 'Discente', 2: 'Padrão', 3: 'Ruptura' },
+    0: { 1: 'Falha', 2: 'Desastre', 3: 'Desastre' },
+    1: { 1: 'Padrão', 2: 'Falha', 3: 'Falha' },
+    2: { 1: 'Discente', 2: 'Padrão', 3: 'Falha' },
     3: { 1: 'Discente Maximizado', 2: 'Discente', 3: 'Padrão' },
-    4: { 1: 'Discente Maximizado', 2: 'Discente Maximizado', 3: 'Discente Maximizado' },
+    4: { 1: 'Discente Maximizado', 2: 'Discente Maximizado', 3: 'Discente' },
     5: { 1: 'Anomalia Narrativa', 2: 'Anomalia Narrativa', 3: 'Anomalia Narrativa' },
   };
   let effect = matrix[grade][circle];
-
-  if (isRetained) {
-    if (effect === 'Anomalia Narrativa' || effect === 'Discente Maximizado') {
-      effect = 'Discente';
-    }
-  }
 
   return effect;
 }

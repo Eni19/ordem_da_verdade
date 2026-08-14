@@ -208,7 +208,7 @@ interface CharacterData {
   skills: Skill[];
   pericias: Pericia[];
   hp: { current: number; max: number };
-  sanity: { current: number; max: number };
+  sanity: { current: number; max: number; degradationLevel?: number };
   hope: number;
   evasion: {
     protection: EvasionProtection;
@@ -1019,10 +1019,56 @@ export default function CharacterSheet() {
     setOpenSidebar(null);
   };
 
-  const handleVitalChange = (type: 'hp' | 'sanity', field: 'current' | 'max', value: number): void => {
-    setCharacter({
-      ...character,
-      [type]: { ...character[type], [field]: value },
+  const handleVitalChange = (type: 'hp' | 'sanity', field: 'current' | 'max' | 'degradationLevel', value: number): void => {
+    setCharacter((prev) => {
+      let nextChar = { ...prev };
+      
+      if (type === 'sanity' && field === 'degradationLevel') {
+        let newDegradation = value;
+        let newFearTags = prev.activeFearTags ? [...prev.activeFearTags] : [];
+        
+        // Remove old degradation tags
+        newFearTags = newFearTags.filter(t => !['DM1', 'DM2'].includes(t.effectResult || ''));
+        
+        if (newDegradation >= 3) {
+          // Colapso! Reset to 0 and trigger fear roulette automatically
+          newDegradation = 0;
+          setTimeout(() => {
+            handleRollDirectFear();
+          }, 100);
+        } else if (newDegradation === 1) {
+          newFearTags.push({
+            id: Date.now().toString() + '-dm1',
+            effectName: 'Estresse Mental',
+            effectDescription: 'O custo para ativar qualquer Habilidade ou Ritual aumenta em +1 Ponto de Determinação (PD).',
+            effectNarrative: 'O cérebro entra em estado de alerta, dificultando o foco.',
+            rollTotal: 0,
+            bonusApplied: 0,
+            sourceInsanityId: 'degradation',
+            sourceInsanityName: 'Degradação Mental',
+            effectResult: 'DM1'
+          });
+        } else if (newDegradation === 2) {
+          newFearTags.push({
+            id: Date.now().toString() + '-dm2',
+            effectName: 'Fadiga Mental',
+            effectDescription: 'O custo para ativar qualquer Habilidade ou Ritual aumenta em +2 Pontos de Determinação (PD).',
+            effectNarrative: 'O esforço drena as últimas reservas de sanidade.',
+            rollTotal: 0,
+            bonusApplied: 0,
+            sourceInsanityId: 'degradation',
+            sourceInsanityName: 'Degradação Mental',
+            effectResult: 'DM2'
+          });
+        }
+        
+        nextChar.activeFearTags = newFearTags;
+        nextChar.sanity = { ...prev.sanity, degradationLevel: newDegradation };
+      } else {
+        nextChar[type] = { ...prev[type], [field]: value };
+      }
+      
+      return nextChar;
     });
   };
 
@@ -1451,7 +1497,18 @@ export default function CharacterSheet() {
     }
   };
 
-  const handleResumeConjuration = () => {
+  const handleResumeConjuration = (ritualId?: string) => {
+    if (ritualId && suspendedConjurations[ritualId] && pokerConjureState?.ritualId !== ritualId) {
+      if (pokerConjureState) {
+        setSuspendedConjurations(prev => ({ ...prev, [pokerConjureState.ritualId]: pokerConjureState }));
+      }
+      setPokerConjureState(suspendedConjurations[ritualId]);
+      setSuspendedConjurations(prev => {
+        const next = { ...prev };
+        delete next[ritualId];
+        return next;
+      });
+    }
     setIsConjurationOverlayOpen(true);
     setOpenSidebar(null);
   };
@@ -1468,6 +1525,11 @@ export default function CharacterSheet() {
       const type = character.rituals.find(r => r.id === ritualId)
         ?.versions[character.rituals.find(r => r.id === ritualId)?.activeVersion || 0]?.type || 'suporte';
       setLastConjuredEffect({ ritualId, effect, type });
+
+      // Apply mental degradation if the result was a failure or disaster
+      if (effect === 'Falha' || effect === 'Desastre') {
+        handleVitalChange('sanity', 'degradationLevel', (character.sanity.degradationLevel || 0) + 1);
+      }
 
       // If it was a suspended conjuration that we just concluded, remove it from suspended list
       if (suspendedConjurations[ritualId]) {
@@ -1486,6 +1548,7 @@ export default function CharacterSheet() {
           setCharacter(prev => ({
             ...prev,
             sanity: {
+              ...prev.sanity,
               current: prev.sanity.current,
               max: prev.sanity.max + costValue, // restaura max
             },
@@ -2211,10 +2274,15 @@ export default function CharacterSheet() {
               onSanityChange={(field, value) => handleVitalChange('sanity', field, value)}
               vitalityCuts={character.vitalityClock?.cuts || 0}
               onVitalityCutsChange={handleVitalityCutsChange}
-              fearTags={activeFearTags.map((tag) => ({
-                id: tag.id,
-                label: `${tag.effectResult}: ${tag.effectName}${tag.selectedAttribute ? ` (${ATTRIBUTE_LABELS[tag.selectedAttribute]})` : ''}`,
-              }))}
+              fearTags={activeFearTags.map((tag) => {
+                const rawName = tag.effectName || (tag as any).label || '';
+                const cleanName = rawName.replace(/^(dm[12]|1º|2º|\d+º|[\s-])+/gi, '');
+                const prefix = tag.effectResult.startsWith('DM') ? '' : `${tag.effectResult}: `;
+                return {
+                  id: tag.id,
+                  label: `${prefix}${cleanName}${tag.selectedAttribute ? ` (${ATTRIBUTE_LABELS[tag.selectedAttribute]})` : ''}`
+                };
+              })}
               onFearTagClick={handleOpenFearTagDetails}
             />
 
@@ -2293,6 +2361,7 @@ export default function CharacterSheet() {
               onUpdateSkill={handleUpdateSkill}
               onDeleteSkill={handleDeleteSkill}
               onReorderSkills={handleReorderSkills}
+              degradationPenalty={character.sanity.degradationLevel || 0}
             />
           </div>
         </div>
@@ -2468,6 +2537,7 @@ export default function CharacterSheet() {
         onReleaseRitual={handleReleaseRitual}
         lastConjuredEffect={lastConjuredEffect}
         onClearLastEffect={() => setLastConjuredEffect(null)}
+        degradationPenalty={character.sanity.degradationLevel || 0}
       />
 
       {isConjurationOverlayOpen && pokerConjureState && (
@@ -2494,6 +2564,17 @@ export default function CharacterSheet() {
             character.pericias.find(p => p.name.toLowerCase() === 'ocultismo')?.training || 'treinado'
           }
           inteligencia={character.attributes.inteligência}
+          presenca={character.attributes.presença}
+          defensiveCharges={character.evasion.defensiveCharges}
+          onConsumeDefensiveCharge={() => {
+            setCharacter(prev => ({
+              ...prev,
+              evasion: {
+                ...prev.evasion,
+                defensiveCharges: spendDefensiveCharge(prev.evasion.defensiveCharges)
+              }
+            }));
+          }}
           getRollConfig={(attr) => {
             const attributeValue = getEffectiveAttributeValue(attr);
             const pericia = character.pericias.find(p => p.name.toLowerCase() === 'ocultismo');

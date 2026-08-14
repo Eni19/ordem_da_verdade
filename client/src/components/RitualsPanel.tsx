@@ -45,13 +45,14 @@ interface RitualsPanelProps {
   onRemoveRitual: (id: string) => void;
   onConjureRitual: (ritual: Ritual) => void;
   activeConjuration?: PokerConjureState | null;
-  onResumeConjuration?: () => void;
+  onResumeConjuration?: (ritualId?: string) => void;
   onForceShowdown?: () => void;
   onCancelConjuration?: () => void;
   lastConjuredEffect?: { ritualId: string; effect: string; type: string } | null;
   suspendedConjurations?: Record<string, PokerConjureState>;
   onReleaseRitual?: (ritualId: string) => void;
   onClearLastEffect?: () => void;
+  degradationPenalty?: number;
 }
 
 const RITUAL_TYPES: Array<{ value: RitualType; label: string }> = [
@@ -78,6 +79,7 @@ export default function RitualsPanel({
   suspendedConjurations = {},
   onReleaseRitual,
   onClearLastEffect,
+  degradationPenalty = 0,
 }: RitualsPanelProps) {
   const [showRitualForm, setShowRitualForm] = useState(false);
   const [selectedRitualId, setSelectedRitualId] = useState<string | null>(null);
@@ -135,19 +137,36 @@ export default function RitualsPanel({
     };
   }, [isOpen]);
 
+  const getSafeVersions = (ritual: Ritual): RitualVersion[] => {
+    if (ritual && ritual.versions && ritual.versions.length > 0) return ritual.versions;
+    return [{
+      name: (ritual as any)?.name || '', 
+      circle: (ritual as any)?.circle || '', 
+      cost: (ritual as any)?.cost || '', 
+      duration: (ritual as any)?.duration || '', 
+      resistance: Number((ritual as any)?.resistance) || 0, 
+      type: (ritual as any)?.type || 'suporte', 
+      description: (ritual as any)?.description || '', 
+      retained: (ritual as any)?.retained || false 
+    }];
+  };
+
   const pendingRemoveRitualName = pendingRemoveRitual
-    ? pendingRemoveRitual.versions[pendingRemoveRitual.activeVersion]?.name || 'selecionado'
+    ? getSafeVersions(pendingRemoveRitual)[pendingRemoveRitual.activeVersion || 0]?.name || 'selecionado'
     : 'selecionado';
 
   const updateActiveVersion = (ritual: Ritual, updates: Partial<RitualVersion>): Ritual => ({
     ...ritual,
-    versions: ritual.versions.map((version, index) =>
-      index === ritual.activeVersion ? { ...version, ...updates } : version
+    versions: getSafeVersions(ritual).map((version, index) =>
+      index === (ritual.activeVersion || 0) ? { ...version, ...updates } : version
     ),
+    activeVersion: ritual.activeVersion || 0,
   });
 
   const getActiveVersion = (ritual: Ritual): RitualVersion => {
-    return ritual.versions[ritual.activeVersion] ?? ritual.versions[0];
+    if (!ritual) return {} as RitualVersion;
+    const safeVersions = getSafeVersions(ritual);
+    return safeVersions[ritual.activeVersion || 0] ?? safeVersions[0] ?? ({} as RitualVersion);
   };
 
   const autoResizeTextarea = (target: HTMLTextAreaElement) => {
@@ -196,12 +215,14 @@ export default function RitualsPanel({
 
   const handleSelectVersion = (ritual: Ritual, targetIndex: number) => {
     if (ritual.activeVersion === targetIndex) return;
+    
+    const safeVersions = getSafeVersions(ritual);
 
-    if (targetIndex < ritual.versions.length) {
+    if (targetIndex < safeVersions.length) {
       onSetRitualVersion(ritual.id, targetIndex);
     } else {
       // Create missing versions up to targetIndex
-      const newVersions = [...ritual.versions];
+      const newVersions = [...safeVersions];
       while (newVersions.length <= targetIndex) {
         newVersions.push({ ...newVersions[newVersions.length - 1] });
       }
@@ -240,6 +261,7 @@ export default function RitualsPanel({
   });
 
   const selectedRitual = rituals.find((r) => r.id === selectedRitualId) || null;
+  const isSelectedRitualActive = selectedRitual && (activeConjuration?.ritualId === selectedRitual.id || suspendedConjurations?.[selectedRitual.id]);
 
   return (
     <div
@@ -261,28 +283,6 @@ export default function RitualsPanel({
             Rituais
           </span>
         </button>
-      )}
-
-      {/* Menu do Transe Ativo no topo absoluto da tela/painel */}
-      {isOpen && activeConjuration && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/80 border border-purple-500/50 px-6 py-3 rounded-full flex items-center gap-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] backdrop-blur-md z-[70]">
-          <span className="text-purple-300 font-display uppercase tracking-wider text-sm flex items-center gap-2">
-            <Zap size={14} className="text-purple-400 animate-pulse" /> Transe Ativo
-          </span>
-          <button
-            onClick={onResumeConjuration}
-            className="bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-display uppercase px-3 py-1.5 rounded-sm transition-all shadow-[0_0_10px_rgba(168,85,247,0.4)]"
-          >
-            Continuar Transe
-          </button>
-          <button
-            onClick={onCancelConjuration}
-            className="text-red-400 hover:text-red-300 transition-colors bg-red-950/30 p-1 rounded-full"
-            title="Romper Transe (Cancelar)"
-          >
-            <X size={14} />
-          </button>
-        </div>
       )}
 
       {/* Exibição do último efeito conjurado */}
@@ -341,6 +341,8 @@ export default function RitualsPanel({
           {slots.map((slot) => {
             const isSelected = selectedRitualId === slot.ritual?.id;
             const isRetained = slot.ritual ? getActiveVersion(slot.ritual).retained : false;
+            const isActiveConjuration = slot.ritual && (activeConjuration?.ritualId === slot.ritual.id || suspendedConjurations[slot.ritual.id]);
+            
             return (
               <div
                 key={slot.index}
@@ -352,26 +354,38 @@ export default function RitualsPanel({
                 >
                   {slot.ritual ? (
                     <>
+                      {isActiveConjuration && (
+                        <>
+                          <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-amber-400 via-transparent to-yellow-200 animate-[spin_1s_linear_infinite] opacity-90 blur-[2px] pointer-events-none" />
+                          <div className="absolute -inset-2 rounded-full bg-gradient-to-bl from-transparent via-orange-400 to-transparent animate-[spin_1.5s_linear_infinite_reverse] opacity-70 blur-[4px] pointer-events-none" />
+                        </>
+                      )}
                       <button
                         onClick={() => {
-                          setSelectedRitualId(slot.ritual.id);
+                          setSelectedRitualId(slot.ritual!.id);
                           setShowRitualForm(false);
                         }}
-                        className={`w-full h-full rounded-full border-2 flex flex-col items-center justify-center bg-black/80 hover:bg-purple-900/50 transition-all shadow-[0_0_15px_rgba(0,0,0,0.8)] ${
+                        className={`relative z-10 w-full h-full rounded-full border-2 flex flex-col items-center justify-center transition-all shadow-[0_0_15px_rgba(0,0,0,0.8)] ${
+                          isActiveConjuration ? 'bg-black border-transparent' : 'bg-black/80 hover:bg-purple-900/50'
+                        } ${
                           isSelected
                             ? isRetained
                               ? 'border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.8)] scale-110'
-                              : 'border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.8)] scale-110'
+                              : isActiveConjuration
+                                ? 'shadow-[0_0_25px_rgba(251,191,36,0.6)] scale-110 text-white'
+                                : 'border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.8)] scale-110'
                             : isRetained
                               ? 'border-amber-600/80 hover:scale-105 hover:border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-                              : 'border-purple-500/50 hover:scale-105 hover:border-purple-400'
+                              : isActiveConjuration
+                                ? 'hover:scale-105 shadow-[0_0_15px_rgba(251,191,36,0.4)]'
+                                : 'border-purple-500/50 hover:scale-105 hover:border-purple-400'
                         }`}
                       >
-                        <span className={`text-[10px] sm:text-xs md:text-sm uppercase font-bold truncate w-full px-2 text-center ${isRetained ? 'text-amber-200' : 'text-purple-200'}`}>
-                          {getActiveVersion(slot.ritual).name.substring(0, 10)}
+                        <span className={`text-[10px] sm:text-xs md:text-sm uppercase font-bold truncate w-full px-2 text-center ${isRetained ? 'text-amber-200' : isActiveConjuration ? 'text-white drop-shadow-[0_0_2px_rgba(251,191,36,0.8)]' : 'text-purple-200'}`}>
+                          {(getActiveVersion(slot.ritual).name || '').substring(0, 10)}
                         </span>
-                        <span className={`text-[8px] sm:text-[10px] ${isRetained ? 'text-amber-400' : 'text-purple-400'}`}>
-                          {getActiveVersion(slot.ritual).circle ? `${getActiveVersion(slot.ritual).circle.replace('º', '')}º` : '1º'}
+                        <span className={`text-[8px] sm:text-[10px] ${isRetained ? 'text-amber-400' : isActiveConjuration ? 'text-amber-300' : 'text-purple-400'}`}>
+                          {getActiveVersion(slot.ritual).circle ? `${String(getActiveVersion(slot.ritual).circle).replace('º', '')}º` : '1º'}
                         </span>
                       </button>
                       {isRetained && (
@@ -400,7 +414,11 @@ export default function RitualsPanel({
 
           {/* Cartão Central (Detalhes do Ritual ou Formulário) */}
           {(selectedRitual || showRitualForm) && (
-            <div className="absolute w-[280px] sm:w-[340px] max-h-[80%] overflow-y-auto bg-black border-2 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.5)] p-4 z-10 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-black [&::-webkit-scrollbar-thumb]:bg-purple-500 [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin] [scrollbar-color:#a855f7_black] rounded-xl">
+            <div className={`absolute max-h-[85%] overflow-y-auto z-10 transition-all ${
+              isSelectedRitualActive 
+                ? 'w-[300px] sm:w-[380px] bg-black/90 backdrop-blur-md border border-amber-500/60 shadow-[0_0_50px_rgba(245,158,11,0.25)] p-5 rounded-2xl'
+                : 'w-[280px] sm:w-[340px] bg-black border-2 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.5)] p-4 rounded-xl'
+            } [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-500/50 [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin]`}>
 
               {/* Formulário Novo Ritual */}
               {showRitualForm && (
@@ -502,7 +520,7 @@ export default function RitualsPanel({
               {/* Detalhes do Ritual Selecionado */}
               {selectedRitual && !showRitualForm && (
                 <div className="space-y-3 relative">
-                  <button onClick={() => setSelectedRitualId(null)} className="absolute -top-2 -right-2 text-purple-400 hover:text-white">
+                  <button onClick={() => setSelectedRitualId(null)} className={`absolute -top-2 -right-2 hover:text-white transition-colors ${isSelectedRitualActive ? 'text-amber-400' : 'text-purple-400'}`}>
                     <X size={16} />
                   </button>
                   
@@ -514,7 +532,7 @@ export default function RitualsPanel({
                       onChange={(e) =>
                         onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { name: e.target.value }))
                       }
-                      className="w-full bg-transparent text-purple-300 text-sm font-bold uppercase border-b border-transparent focus:border-purple-500 outline-none text-center"
+                      className={`w-full bg-transparent font-bold uppercase border-b border-transparent outline-none text-center transition-colors ${isSelectedRitualActive ? 'text-xl text-white drop-shadow-[0_0_3px_rgba(251,191,36,0.8)] focus:border-amber-400' : 'text-sm text-purple-300 focus:border-purple-500'}`}
                     />
                   </div>
 
@@ -526,8 +544,8 @@ export default function RitualsPanel({
                         onClick={() => handleSelectVersion(selectedRitual, idx)}
                         className={`flex-1 py-1.5 text-[9px] font-bold uppercase transition-colors border ${
                           selectedRitual.activeVersion === idx
-                            ? 'bg-purple-500 text-black border-purple-500'
-                            : 'bg-black text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
+                            ? isSelectedRitualActive ? 'bg-amber-400 text-black border-amber-200' : 'bg-purple-500 text-black border-purple-500'
+                            : isSelectedRitualActive ? 'bg-black/50 text-amber-300 border-amber-500/30 hover:bg-amber-500/20' : 'bg-black text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
                         }`}
                       >
                         {label}
@@ -544,10 +562,10 @@ export default function RitualsPanel({
                           updateActiveVersion(selectedRitual, { retained: !getActiveVersion(selectedRitual).retained })
                         )
                       }
-                      className={`h-6 px-3 border border-purple-500 font-bold uppercase text-[9px] transition-colors ${
+                      className={`h-6 px-3 border font-bold uppercase text-[9px] transition-colors ${
                         getActiveVersion(selectedRitual).retained
-                          ? 'bg-purple-500 text-black shadow-[0_0_8px_rgba(168,85,247,0.6)]'
-                          : 'bg-black text-purple-200 hover:bg-purple-500/20'
+                          ? isSelectedRitualActive ? 'bg-amber-500 text-black border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'bg-purple-500 text-black border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]'
+                          : isSelectedRitualActive ? 'bg-black/40 text-fuchsia-200 border-fuchsia-500/40 hover:bg-fuchsia-500/20' : 'bg-black text-purple-200 border-purple-500/50 hover:bg-purple-500/20'
                       }`}
                     >
                       {getActiveVersion(selectedRitual).retained ? 'Retido' : 'Reter Ritual'}
@@ -566,56 +584,62 @@ export default function RitualsPanel({
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Círculo</label>
+                        <label className={`text-[9px] uppercase font-bold block mb-0.5 ${isSelectedRitualActive ? 'text-amber-400' : 'text-purple-400'}`}>Círculo</label>
                         <input
                           type="text"
                           value={getActiveVersion(selectedRitual).circle}
                           onChange={(e) =>
                             onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { circle: e.target.value }))
                           }
-                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                          className={`w-full bg-black/40 border p-1.5 outline-none transition-colors ${isSelectedRitualActive ? 'text-white border-amber-500/30 focus:border-amber-400 text-xs' : 'text-purple-200 border-purple-500/50 focus:border-purple-400 text-[10px]'}`}
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Custo</label>
+                        <label className={`text-[9px] uppercase font-bold block mb-0.5 ${isSelectedRitualActive ? 'text-amber-400' : 'text-purple-400'}`}>Custo</label>
                         <input
                           type="text"
-                          value={getActiveVersion(selectedRitual).cost}
+                          value={degradationPenalty > 0 ? String(getActiveVersion(selectedRitual).cost || '').replace(/\d+/, match => (parseInt(match) + degradationPenalty).toString()) : (getActiveVersion(selectedRitual).cost || '')}
                           onChange={(e) =>
                             onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { cost: e.target.value }))
                           }
-                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                          disabled={degradationPenalty > 0}
+                          title={degradationPenalty > 0 ? `Custo aumentado em +${degradationPenalty} devido à Degradação Mental` : undefined}
+                          className={`w-full bg-black/40 p-1.5 outline-none transition-colors border ${
+                            degradationPenalty > 0
+                              ? 'border-red-500/50 text-red-400 cursor-not-allowed opacity-80'
+                              : isSelectedRitualActive ? 'border-amber-500/30 text-amber-100 focus:border-amber-400 text-xs' : 'border-purple-500/50 text-purple-200 focus:border-purple-400 text-[10px]'
+                          }`}
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Duração</label>
+                        <label className={`text-[9px] uppercase font-bold block mb-0.5 ${isSelectedRitualActive ? 'text-amber-400' : 'text-purple-400'}`}>Duração</label>
                         <input
                           type="text"
                           value={getActiveVersion(selectedRitual).duration}
                           onChange={(e) =>
                             onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { duration: e.target.value }))
                           }
-                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                          className={`w-full bg-black/40 border p-1.5 outline-none transition-colors ${isSelectedRitualActive ? 'text-white border-amber-500/30 focus:border-amber-400 text-xs' : 'text-purple-200 border-purple-500/50 focus:border-purple-400 text-[10px]'}`}
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Resistência</label>
+                        <label className={`text-[9px] uppercase font-bold block mb-0.5 ${isSelectedRitualActive ? 'text-amber-400' : 'text-purple-400'}`}>Resistência</label>
                         <input
                           type="number"
                           value={getActiveVersion(selectedRitual).resistance}
                           onChange={(e) =>
                             onUpdateRitual(selectedRitual.id, updateActiveVersion(selectedRitual, { resistance: parseInt(e.target.value) || 0 }))
                           }
-                          className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none focus:border-purple-400 transition-colors"
+                          className={`w-full bg-black/40 border p-1.5 outline-none transition-colors ${isSelectedRitualActive ? 'text-amber-100 border-amber-500/30 focus:border-amber-400 text-xs' : 'text-purple-200 border-purple-500/50 focus:border-purple-400 text-[10px]'}`}
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Tipo</label>
+                      <label className={`text-[9px] uppercase font-bold block mb-0.5 ${isSelectedRitualActive ? 'text-amber-400' : 'text-purple-400'}`}>Tipo</label>
                       <div className="flex gap-1">
                         {RITUAL_TYPES.map((option) => (
                           <button
@@ -625,8 +649,8 @@ export default function RitualsPanel({
                             }
                             className={`flex-1 h-6 text-[8px] font-bold uppercase border transition-colors ${
                               getActiveVersion(selectedRitual).type === option.value
-                                ? 'bg-purple-500 text-black border-purple-500'
-                                : 'bg-black text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
+                                ? isSelectedRitualActive ? 'bg-amber-400 text-black border-amber-500' : 'bg-purple-500 text-black border-purple-500'
+                                : isSelectedRitualActive ? 'bg-black/50 text-amber-300 border-amber-500/30 hover:bg-amber-500/20' : 'bg-black text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
                             }`}
                           >
                             {option.label}
@@ -636,7 +660,7 @@ export default function RitualsPanel({
                     </div>
 
                   <div>
-                    <label className="text-[9px] text-purple-400 uppercase font-bold block mb-0.5">Efeito</label>
+                    <label className={`text-[9px] uppercase font-bold block mb-0.5 ${isSelectedRitualActive ? 'text-amber-400' : 'text-purple-400'}`}>Efeito</label>
                     <textarea
                       value={getActiveVersion(selectedRitual).description}
                       onChange={(e) =>
@@ -644,8 +668,8 @@ export default function RitualsPanel({
                       }
                       onInput={(e) => autoResizeTextarea(e.currentTarget)}
                       data-ritual-effect-textarea="true"
-                      className="w-full bg-black text-purple-200 text-[10px] border border-purple-500/50 p-1.5 outline-none resize-none overflow-hidden"
-                      rows={2}
+                      className={`w-full bg-black/40 border p-2 outline-none resize-none overflow-hidden leading-relaxed transition-colors ${isSelectedRitualActive ? 'text-amber-50 border-amber-500/30 focus:border-amber-400 text-xs' : 'text-purple-200 border-purple-500/50 focus:border-purple-400 text-[10px]'}`}
+                      rows={3}
                     />
                   </div>
                 </div>
@@ -662,21 +686,45 @@ export default function RitualsPanel({
                       Liberar Ritual
                     </button>
                   ) : (
-                    <button
-                      onClick={() => {
-                        onConjureRitual(selectedRitual);
-                        setSelectedRitualId(null);
-                      }}
-                      disabled={!!activeConjuration && activeConjuration.ritualId !== selectedRitual.id}
-                      className={`w-full py-1.5 mt-2 font-bold uppercase border transition-colors text-[10px] flex items-center justify-center gap-1 ${
-                        activeConjuration && activeConjuration.ritualId !== selectedRitual.id
-                          ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
-                          : 'bg-purple-500 text-black border-purple-400 hover:bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
-                      }`}
-                    >
-                      <Zap size={12} />
-                      Conjurar Ritual
-                    </button>
+                    <div className="flex gap-2 mt-2 w-full">
+                      <button
+                        onClick={() => {
+                          if (activeConjuration?.ritualId === selectedRitual.id || suspendedConjurations[selectedRitual.id]) {
+                            onResumeConjuration?.(selectedRitual.id);
+                            setSelectedRitualId(null);
+                          } else {
+                            onConjureRitual(selectedRitual);
+                            setSelectedRitualId(null);
+                          }
+                        }}
+                        className={`flex-1 py-1.5 font-bold uppercase border transition-colors text-[10px] flex items-center justify-center gap-1 ${
+                          activeConjuration?.ritualId === selectedRitual.id || suspendedConjurations[selectedRitual.id]
+                            ? 'bg-amber-400 text-black border-yellow-200 hover:bg-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.8)]'
+                            : activeConjuration && activeConjuration.ritualId !== selectedRitual.id
+                              ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
+                              : 'bg-purple-500 text-black border-purple-400 hover:bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+                        }`}
+                        disabled={!!activeConjuration && activeConjuration.ritualId !== selectedRitual.id}
+                      >
+                        <Zap size={12} />
+                        {activeConjuration?.ritualId === selectedRitual.id || suspendedConjurations[selectedRitual.id]
+                          ? 'Continuar Transe'
+                          : 'Conjurar Ritual'}
+                      </button>
+
+                      {isSelectedRitualActive && onCancelConjuration && (
+                        <button
+                          onClick={() => {
+                            onCancelConjuration();
+                            setSelectedRitualId(null);
+                          }}
+                          className="px-3 bg-red-950/40 text-red-400 border border-red-500/30 hover:bg-red-900/60 hover:text-red-300 hover:border-red-500/60 transition-all flex items-center justify-center rounded"
+                          title="Romper Transe (Cancelar)"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

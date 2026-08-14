@@ -146,4 +146,25 @@ const fearEffects: FearEffect[] = [
   },
 ];
 
+export const mentalDegradation: FearEffect[] = [
+  {
+    resultado: 'DM1',
+    nome: '1º Estresse Mental',
+    descricaoNarrativa: 'O cérebro entra em estado de alerta, dificultando o foco.',
+    descricaoMecanica: 'O custo para ativar qualquer Habilidade ou Ritual aumenta em +1 Ponto de Determinação (PD).'
+  },
+  {
+    resultado: 'DM2',
+    nome: '2º Fadiga Mental',
+    descricaoNarrativa: 'O esforço drena a mente.',
+    descricaoMecanica: 'O custo para ativar qualquer Habilidade ou Ritual aumenta em mais +1 PD (totalizando um acréscimo de +2 PD junto ao Estresse Mental).'
+  },
+  {
+    resultado: 'DM3',
+    nome: '3º Colapso',
+    descricaoNarrativa: 'O limite humano é rompido.',
+    descricaoMecanica: 'O personagem não recebe uma terceira condição; em vez disso, é forçado a realizar uma rolagem na Tabela de Efeitos de Medo imediatamente. Após o resultado, a degradação é zerada e as condições de Estresse e Fadiga são removidas, deixando apenas o novo trauma na mente.'
+  }
+];
+
 export default fearEffects;
