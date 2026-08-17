@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, Trash2, Plus } from 'lucide-react';
 import anime from 'animejs';
+import TextMorph from './TextMorph';
 
 interface Insanity {
   id: string;
@@ -87,7 +88,7 @@ interface InsanityPanelProps {
   onTraumaRemove: (id: string) => void;
 }
 
-function DraggableFearTag({ tag, onOpen, index, onDragMove }: { tag: ActiveFearTag; onOpen: (id: string) => void; index: number; onDragMove?: (x: number, y: number) => void }) {
+function DraggableFearTag({ tag, onOpen, index, onDragMove, isOpen }: { tag: ActiveFearTag; onOpen: (id: string) => void; index: number; onDragMove?: (x: number, y: number) => void; isOpen?: boolean }) {
   const elRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: 0, y: 0 });
@@ -182,17 +183,16 @@ function DraggableFearTag({ tag, onOpen, index, onDragMove }: { tag: ActiveFearT
         className="relative w-full h-full flex flex-col items-center justify-center select-none transition-transform duration-75"
       >
         <div 
-          className="fear-text-container relative z-10 text-zinc-100 text-[18px] font-display font-bold uppercase text-center w-full leading-tight" 
+          className="relative z-10 w-full h-full flex items-center justify-center"
           title={tag.effectName || (tag as any).label || ''}
-          style={{ textShadow: '1.5px 0 0 rgba(255, 0, 0, 0.8), -1.5px 0 0 rgba(0, 255, 255, 0.8)' }}
+          style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
         >
-          {((tag.effectName || (tag as any).label || '').replace(/^(dm[12]|1º|2º|\d+º|[\s-])+/gi, '')).split(' ').map((word, wIdx) => (
-            <span key={wIdx} className="inline-block mx-[2px]">
-              {word.split('').map((char, cIdx) => (
-                <span key={cIdx} className="fear-letter inline-block opacity-0" data-char={char}>{char}</span>
-              ))}
-            </span>
-          ))}
+            <TextMorph 
+              key={isOpen ? 'open' : 'closed'}
+              words={((tag.effectName || (tag as any).label || '').replace(/^(\d+º?|dm[12]|[\s-:])+/gi, '').trim())}
+              color="#f4f4f5" 
+              font={{ fontFamily: "HomeVideo, sans-serif", fontSize: '13px', fontWeight: 'normal', textAlign: 'center', letterSpacing: '0.05em', textTransform: 'uppercase' }}
+            />
         </div>
       </div>
     </div>
@@ -254,57 +254,6 @@ export default function InsanityPanel({
     if (videoRef.current) {
       // Deixando o novo vídeo mais devagar sem causar travamento extremo
       videoRef.current.playbackRate = 0.7;
-    }
-
-    if (fearListRef.current) {
-      const texts = fearListRef.current.querySelectorAll('.fear-text-container');
-      const letters = fearListRef.current.querySelectorAll('.fear-letter');
-      
-      anime.remove(texts);
-      anime.remove(letters);
-      
-      if (letters.length > 0) {
-        const characters = '!@#$%^&*()_+{}|:<>?~';
-        
-        anime({
-          targets: letters,
-          opacity: [0, 1],
-          translateY: [10, 0],
-          duration: 800,
-          delay: anime.stagger(30, {start: 100}),
-          easing: 'easeOutExpo',
-          update: function(anim) {
-            // Efeito Scramble
-            letters.forEach((el) => {
-              if (anim.progress < 95 && Math.random() > 0.5) {
-                el.textContent = characters.charAt(Math.floor(Math.random() * characters.length));
-              } else if (anim.progress >= 95) {
-                el.textContent = el.getAttribute('data-char') || '';
-              }
-            });
-          },
-          complete: function() {
-            letters.forEach((el) => {
-              el.textContent = el.getAttribute('data-char') || '';
-            });
-          }
-        });
-      }
-
-      if (texts.length > 0) {
-        // Efeito Glitch constante sutil tipo VHS
-        anime({
-          targets: texts,
-          translateX: () => anime.random(-2, 2),
-          translateY: () => anime.random(-1, 1),
-          skewX: () => anime.random(-3, 3),
-          duration: 100,
-          delay: () => anime.random(2000, 5000),
-          direction: 'alternate',
-          loop: true,
-          easing: 'easeInOutQuad'
-        });
-      }
     }
   }, [isOpen, activeFearTags.length]);
 
@@ -570,7 +519,7 @@ export default function InsanityPanel({
               ) : (
                 <>
                   {activeFearTags.map((tag, index) => (
-                    <DraggableFearTag key={tag.id} tag={tag} onOpen={onOpenFearTagDetails} index={index} />
+                    <DraggableFearTag key={tag.id} tag={tag} onOpen={onOpenFearTagDetails} index={index} isOpen={isOpen} />
                   ))}
                 </>
               )}

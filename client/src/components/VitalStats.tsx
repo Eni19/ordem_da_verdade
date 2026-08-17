@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import anime from 'animejs';
+import TextMorph from './TextMorph';
 
 interface FearTagChip {
   id: string;
@@ -52,6 +53,8 @@ export default function VitalStats({
     }
     prevSanityRef.current = sanity.current;
   }, [sanity.current]);
+
+
 
   return (
     <div className="card-occult space-y-3">
@@ -187,15 +190,24 @@ export default function VitalStats({
               min="0"
             />
             {fearTags.length > 0 && (
-              <div className="ml-1 flex-1 min-w-0 overflow-x-auto">
-                <div className="flex gap-1 w-max">
+              <div className="ml-1 flex-1 min-w-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pr-6">
+                <div className="flex gap-1 w-max items-center h-full">
                   {fearTags.map((tag) => (
                     <button
                       key={tag.id}
                       onClick={() => onFearTagClick?.(tag.id)}
-                      className="px-2 h-7 text-[10px] uppercase border border-purple-500 text-purple-200 bg-purple-950/20 hover:bg-purple-500/20 whitespace-nowrap"
+                      className="h-10 px-1.5 flex items-center bg-purple-950/20 border border-purple-500 hover:bg-purple-500/20 transition-colors whitespace-nowrap overflow-hidden"
                     >
-                      {tag.label}
+                      <div 
+                        className="relative z-10 h-full w-full flex items-center justify-center"
+                        style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                      >
+                        <TextMorph 
+                          words={(tag.label || '').replace(/^(\d+º?|dm[12]|[\s-:])+/gi, '').trim()}
+                          color="#e9d5ff" 
+                          font={{ fontFamily: "HomeVideo, sans-serif", fontSize: '11px', fontWeight: 'normal', letterSpacing: '0.05em', textTransform: 'uppercase' }}
+                        />
+                      </div>
                     </button>
                   ))}
                 </div>

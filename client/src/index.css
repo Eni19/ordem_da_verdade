@@ -8,6 +8,34 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'HomeVideo';
+  src: url('/fonts/HomeVideo.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Apex MK2';
+  src: url('/fonts/apex-mk2.light-condensed.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Doodle';
+  src: url('/fonts/doodle.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Balode';
+  src: url('/fonts/BalodeDemo.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -213,6 +241,14 @@
 
   .font-mono {
     font-family: 'Roboto Mono', monospace;
+  }
+
+  .font-apex {
+    font-family: 'Apex MK2', sans-serif;
+  }
+
+  .font-fear {
+    font-family: 'HomeVideo', sans-serif;
   }
 
   /* Hexágonos para atributos */

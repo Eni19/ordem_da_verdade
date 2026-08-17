@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Settings, X } from 'lucide-react';
+import { Settings, X, BookOpen, Settings2, Trash2 } from 'lucide-react';
+import anime from 'animejs';
 import AttributeHexagon from '@/components/AttributeHexagon';
 import SkillsList from '@/components/SkillsList';
 import DiceRoller from '@/components/DiceRoller';
@@ -2103,9 +2104,27 @@ export default function CharacterSheet() {
     damageDiceSides: w.damageDiceSides,
   }));
 
+  useEffect(() => {
+    if (selectedFearTag) {
+      anime({
+        targets: '.fear-details-overlay',
+        opacity: [0, 1],
+        duration: 300,
+        easing: 'linear'
+      });
+      anime({
+        targets: '.fear-details-modal',
+        translateY: [20, 0],
+        scale: [0.95, 1],
+        opacity: [0, 1],
+        duration: 400,
+        easing: 'easeOutCubic'
+      });
+    }
+  }, [selectedFearTag]);
+
   return (
     <div className="min-h-screen bg-black text-white font-mono overflow-hidden flex flex-col relative scrollbar-hide">
-      {isTensaoActive && <TensaoOverlay />}
       {/* Header */}
       <div className="border-b-2 border-primary bg-black p-2 md:p-4 flex-shrink-0 space-y-2 md:space-y-3 overflow-y-auto max-h-screen md:max-h-none scrollbar-hide">
         <div className="flex justify-between items-center relative">
@@ -2373,36 +2392,65 @@ export default function CharacterSheet() {
       </div>
 
       {selectedFearTag && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl border-2 border-purple-500 bg-black p-4 space-y-3">
-            <div className="flex items-center justify-between border-b border-purple-500 pb-2">
-              <h3 className="font-display text-lg text-purple-300 uppercase">
-                {selectedFearTag.effectResult}: {selectedFearTag.effectName}
-              </h3>
-              <button
-                onClick={() => setSelectedFearTag(null)}
-                className="text-xs px-2 py-1 border border-purple-500 text-purple-300 hover:bg-purple-500/10"
-              >
-                Fechar
-              </button>
+        <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 fear-details-overlay opacity-0">
+          <div className="w-full max-w-3xl bg-black border border-purple-500/50 shadow-[0_0_40px_rgba(168,85,247,0.3)] flex flex-col fear-details-modal overflow-hidden relative opacity-0">
+            
+            {/* Header */}
+            <div className="relative p-6 border-b border-purple-500/30 flex items-start sm:items-center justify-between bg-purple-950/20">
+               <div className="flex items-center gap-4">
+                  {/* Space for the number */}
+                  <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-purple-500/10 border border-purple-500/50 rounded font-display text-2xl text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                     {selectedFearTag.effectResult}
+                  </div>
+                  <div>
+                    <h3 className="font-fear text-2xl md:text-3xl text-purple-200 uppercase tracking-widest" style={{ textShadow: '0 0 10px rgba(168,85,247,0.8)' }}>
+                      {selectedFearTag.effectName}
+                    </h3>
+                    <div className="text-[10px] text-purple-400/80 uppercase font-bold tracking-wider mt-1">
+                      Origem: {selectedFearTag.sourceInsanityName} &bull; Rola: {selectedFearTag.rollTotal} (Bônus: +{selectedFearTag.bonusApplied})
+                    </div>
+                  </div>
+               </div>
+               
+               <button onClick={() => setSelectedFearTag(null)} className="text-purple-400 hover:text-purple-200 transition-colors p-2 mt-[-8px] sm:mt-0">
+                  <X size={24} />
+               </button>
             </div>
 
-            <div className="text-[10px] uppercase text-purple-400 font-bold">Narrativa</div>
-            <p className="text-sm text-purple-100/90 leading-relaxed">{selectedFearTag.effectNarrative}</p>
-
-            <div className="text-[10px] uppercase text-purple-400 font-bold">Efeito Mecânico</div>
-            <p className="text-sm text-purple-100/90 leading-relaxed">{selectedFearTag.effectDescription}</p>
-
-            <div className="text-[10px] text-purple-300/90 uppercase">
-              Origem: {selectedFearTag.sourceInsanityName} | Total: {selectedFearTag.rollTotal} | Bônus aplicado: +{selectedFearTag.bonusApplied}
+            {/* Body */}
+            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-purple-500/20">
+               {/* Left: Narrative */}
+               <div className="flex-1 p-6 space-y-3 bg-gradient-to-br from-black to-purple-950/10">
+                  <div className="flex items-center gap-2 text-purple-400/60 font-display text-sm uppercase tracking-widest">
+                     <BookOpen size={16} />
+                     <span>Narrativa</span>
+                  </div>
+                  <p className="text-sm md:text-base text-purple-100/90 leading-relaxed font-serif italic">
+                    "{selectedFearTag.effectNarrative}"
+                  </p>
+               </div>
+               {/* Right: Mechanics */}
+               <div className="flex-1 p-6 space-y-3 bg-gradient-to-bl from-black to-purple-900/10">
+                  <div className="flex items-center gap-2 text-purple-400/60 font-display text-sm uppercase tracking-widest">
+                     <Settings2 size={16} />
+                     <span>Mecânica</span>
+                  </div>
+                  <p className="text-sm md:text-base text-purple-200 leading-relaxed">
+                    {selectedFearTag.effectDescription}
+                  </p>
+               </div>
             </div>
 
-            <button
-              onClick={() => setFearTagPendingRemoval(selectedFearTag)}
-              className="w-full py-2 border border-red-500 text-red-300 hover:bg-red-500/10 uppercase text-xs font-bold"
-            >
-              Remover Tag
-            </button>
+            {/* Footer */}
+            <div className="p-4 bg-black/60 border-t border-purple-500/20 flex justify-end">
+               <button
+                  onClick={() => setFearTagPendingRemoval(selectedFearTag)}
+                  className="px-4 py-2 border border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors uppercase text-xs font-bold tracking-wider flex items-center gap-2"
+                >
+                  <Trash2 size={14} />
+                  Remover Efeito
+                </button>
+            </div>
           </div>
         </div>
       )}
